@@ -1,9 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-export default function HomeScreen() {
+// Provisorio: a tela de login de verdade (formulario, validacao e erros) vem no proximo commit.
+export default function LoginScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Voz & Via</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        Entrar
+      </Text>
     </View>
   );
 }
