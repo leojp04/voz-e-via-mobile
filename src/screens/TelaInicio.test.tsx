@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from 'expo-router/testing-library';
-import { Alert } from 'react-native';
+import { Alert, Text } from 'react-native';
 
 import {
   criarArmazenamentoEmMemoria,
@@ -55,6 +55,28 @@ describe('TelaInicio', () => {
       'Em breve',
       'A função "Pedir ajuda" ainda não está disponível.',
     );
+  });
+
+  it('Privacidade abre a tela de política de privacidade', async () => {
+    const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
+    await montarTela(TelaInicio, {
+      auth: criarAuthApiMock(),
+      armazenamento,
+      rotas: { privacidade: () => <Text>Destino privacidade</Text> },
+    });
+    await fireEvent.press(screen.getByRole('button', { name: 'Política de privacidade' }));
+    expect(await screen.findByText('Destino privacidade')).toBeOnTheScreen();
+  });
+
+  it('Sobre o app abre a tela com versão e hash', async () => {
+    const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
+    await montarTela(TelaInicio, {
+      auth: criarAuthApiMock(),
+      armazenamento,
+      rotas: { sobre: () => <Text>Destino sobre</Text> },
+    });
+    await fireEvent.press(screen.getByRole('button', { name: 'Sobre o app' }));
+    expect(await screen.findByText('Destino sobre')).toBeOnTheScreen();
   });
 
   it('Sair apaga a sessão do cofre e volta ao estado anônimo', async () => {

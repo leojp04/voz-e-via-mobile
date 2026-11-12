@@ -2,6 +2,7 @@
 // tem funcao (cada etapa seguinte liga uma): tocar mostra "Em breve" para o botao nao parecer
 // quebrado. O botao Sair e o unico que ja funciona e limpa a sessao do cofre.
 
+import { useRouter } from 'expo-router';
 import { Alert, StyleSheet, Text } from 'react-native';
 
 import { Botao } from '../components/Botao';
@@ -25,6 +26,7 @@ const ACOES: AcaoDoInicio[] = [
 
 export function TelaInicio() {
   const { sessao, logout } = useAuth();
+  const router = useRouter();
 
   return (
     <Tela>
@@ -45,6 +47,14 @@ export function TelaInicio() {
           }
         />
       ))}
+
+      <Botao
+        titulo="Privacidade"
+        rotulo="Política de privacidade"
+        variante="secundario"
+        onPress={() => router.push('/privacidade')}
+      />
+      <Botao titulo="Sobre o app" variante="secundario" onPress={() => router.push('/sobre')} />
 
       <Botao
         titulo="Sair"

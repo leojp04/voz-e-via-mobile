@@ -9,8 +9,10 @@ voltado a pessoas idosas e pessoas com deficiência e reúne duas partes, cada u
 - **Zeladoria de acessibilidade** (API .NET): o cidadão reporta barreiras na rua (calçada
   quebrada, rampa ausente, buraco) com foto e localização e acompanha o andamento.
 
-> **Status:** em construção. Hoje o repositório tem o esqueleto do app, as ferramentas de
-> qualidade e as decisões técnicas. As telas entram nas próximas etapas.
+> **Status:** em construção. Hoje o app tem login, cadastro, início, política de privacidade e a
+> tela "Sobre o app", que mostra a versão e o **hash do commit** gravado no build
+> ([ADR 0006](docs/adr/0006-hash-do-commit-em-app-config.md)). As telas de reportes, assistente por
+> voz e contatos entram nas próximas etapas.
 
 ## Requisitos
 
