@@ -1,56 +1,93 @@
-# Welcome to your Expo app 👋
+# Voz & Via (app mobile)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App React Native do projeto **Voz & Via**, da Global Solution 2026/2 (CitizenTech, FIAP). Ele é
+voltado a pessoas idosas e pessoas com deficiência e reúne duas partes, cada uma com a sua API:
 
-## Get started
+- **Assistente por voz** (API Java): a pessoa fala, uma IA entende a intenção e o app executa a
+  ação depois de uma confirmação (reportar um problema, pedir ajuda, ligar para um contato,
+  tirar uma dúvida sobre direitos).
+- **Zeladoria de acessibilidade** (API .NET): o cidadão reporta barreiras na rua (calçada
+  quebrada, rampa ausente, buraco) com foto e localização e acompanha o andamento.
 
-1. Install dependencies
+> **Status:** em construção. Hoje o repositório tem o esqueleto do app, as ferramentas de
+> qualidade e as decisões técnicas. As telas entram nas próximas etapas.
 
-   ```bash
-   npm install
-   ```
+## Requisitos
 
-2. Start the app
+- Node.js 22.13 ou mais novo (testado com o Node 26)
+- npm
+- Simulador iOS (Xcode), emulador Android ou o app Expo Go no celular
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Como rodar
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env     # ajuste as URLs das APIs, se precisar
+npx expo start
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Na saída do comando, escolha `i` (simulador iOS), `a` (emulador Android) ou leia o QR code com o
+Expo Go.
 
-### Other setup steps
+Enquanto as APIs não estiverem no ar, deixe `EXPO_PUBLIC_USE_FAKE_API=true` no `.env`: o app usa
+uma API falsa em memória. Na entrega, o app usa apenas as APIs reais (ver
+[ADR 0004](docs/adr/0004-api-falsa-temporaria.md)).
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Scripts
 
-## Learn more
+| Comando                | O que faz                                      |
+| ---------------------- | ---------------------------------------------- |
+| `npm start`            | Abre o servidor de desenvolvimento do Expo     |
+| `npm run lint`         | Procura erros e más práticas com o ESLint      |
+| `npm run format`       | Formata o código com o Prettier                |
+| `npm run format:check` | Só confere a formatação, sem alterar nada      |
+| `npm run typecheck`    | Confere os tipos do TypeScript, sem gerar nada |
 
-To learn more about developing your project with Expo, look at the following resources:
+Antes de cada commit: `npm run lint`, `npm run format:check` e `npm run typecheck` devem passar.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Variáveis de ambiente
 
-## Join the community
+Veja o [`.env.example`](.env.example). As variáveis `EXPO_PUBLIC_*` ficam dentro do app
+instalado e podem ser lidas por qualquer pessoa, por isso **não guardam segredo**. O arquivo
+`.env` real não vai para o Git.
 
-Join our community of developers creating universal apps.
+## Estrutura de pastas (alvo)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```text
+src/
+  app/          rotas (Expo Router): cada arquivo é uma tela
+  screens/      conteúdo de cada tela
+  components/   botões grandes, cartões e campos acessíveis
+  services/     acesso às APIs (cliente HTTP, token, erros)
+  contexts/     sessão do usuário (token, login, logout)
+  hooks/        hooks reutilizáveis
+  theme/        cores, fontes e espaçamentos
+  utils/        funções puras (validações etc.)
+assets/         fontes e imagens
+docs/adr/       decisões técnicas e o motivo de cada uma
+```
+
+As pastas são criadas conforme o código chega. Pasta vazia não vai para o Git.
+
+## Decisões técnicas
+
+Cada escolha importante tem um registro curto (ADR) com o contexto, a decisão, as alternativas
+e as consequências:
+
+1. [Expo com TypeScript e Expo Router](docs/adr/0001-expo-typescript-expo-router.md)
+2. [`fetch` em vez de Axios](docs/adr/0002-fetch-sem-axios.md)
+3. [Token guardado no SecureStore](docs/adr/0003-token-no-securestore.md)
+4. [API falsa temporária no desenvolvimento](docs/adr/0004-api-falsa-temporaria.md)
+
+## Acessibilidade e privacidade
+
+O app é para pessoas com mais dificuldade de uso, então a acessibilidade faz parte do projeto:
+rótulos em todos os botões, áreas de toque de pelo menos 48 dp, alto contraste e respeito ao
+tamanho de fonte do sistema. O áudio da voz não sai do celular (só o texto é enviado). Nesta
+etapa os usuários são apenas contas de teste.
+
+## Entrega
+
+- Vídeo (até 5 min): _link a preencher_
+- Publicação no Firebase App Distribution: _a preencher_
+- Tela "Sobre o App" com o hash do commit: _ainda não implementada_
