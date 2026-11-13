@@ -45,7 +45,10 @@ const MENSAGEM_SEM_CONEXAO = 'Sem conexão. Verifique a internet e tente de novo
 const MENSAGEM_ERRO_SERVIDOR = 'Algo deu errado no servidor. Tente de novo.';
 const MENSAGEM_ERRO_GENERICA = 'Não foi possível concluir a operação. Tente de novo.';
 
+const MENSAGEM_MUITAS_TENTATIVAS = 'Muitas tentativas. Espere um pouco e tente de novo.';
+
 function mensagemPadrao(status: number): string {
+  if (status === 429) return MENSAGEM_MUITAS_TENTATIVAS;
   return status >= 500 ? MENSAGEM_ERRO_SERVIDOR : MENSAGEM_ERRO_GENERICA;
 }
 
@@ -60,14 +63,28 @@ async function lerCorpo(resposta: Response): Promise<unknown> {
   }
 }
 
-// Formato de erro do Java: { timestamp, status, erro, mensagem, campos: [{ campo, mensagem }] }.
+function textoNaoVazio(valor: unknown): string | null {
+  return typeof valor === 'string' && valor ? valor : null;
+}
+
+// "Descricao" -> "descricao": o .NET devolve o nome do campo como na classe (PascalCase).
+function nomeDoCampo(nome: string): string {
+  return nome.charAt(0).toLowerCase() + nome.slice(1);
+}
+
+// Entende os dois formatos de erro das nossas APIs:
+//  - Java: { timestamp, status, erro, mensagem, campos: [{ campo, mensagem }] }
+//  - .NET (ProblemDetails do ASP.NET): { title, status, detail?, errors?: { Campo: ["mensagem"] } }
+// O "title" do .NET vem em ingles (ex.: "One or more validation errors occurred."), entao nunca
+// e mostrado; sem "mensagem" nem "detail" vale a mensagem padrao em portugues.
 function converterErro(status: number, corpo: unknown): ErroApi {
   const dados = (corpo && typeof corpo === 'object' ? corpo : {}) as {
     mensagem?: unknown;
+    detail?: unknown;
     campos?: unknown;
+    errors?: unknown;
   };
-  const mensagem =
-    typeof dados.mensagem === 'string' && dados.mensagem ? dados.mensagem : mensagemPadrao(status);
+  const mensagem = textoNaoVazio(dados.mensagem) ?? textoNaoVazio(dados.detail);
   const campos: Record<string, string> = {};
   if (Array.isArray(dados.campos)) {
     for (const item of dados.campos) {
@@ -76,7 +93,14 @@ function converterErro(status: number, corpo: unknown): ErroApi {
       }
     }
   }
-  return new ErroApi(status, mensagem, campos);
+  if (dados.errors && typeof dados.errors === 'object' && !Array.isArray(dados.errors)) {
+    for (const [campo, mensagens] of Object.entries(dados.errors)) {
+      const primeira = Array.isArray(mensagens) ? mensagens.find(textoNaoVazio) : mensagens;
+      const texto = textoNaoVazio(primeira);
+      if (texto) campos[nomeDoCampo(campo)] = texto;
+    }
+  }
+  return new ErroApi(status, mensagem ?? mensagemPadrao(status), campos);
 }
 
 export function criarClienteHttp({

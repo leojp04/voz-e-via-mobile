@@ -238,6 +238,76 @@ describe('criarClienteHttp', () => {
     });
   });
 
+  // A API .NET (Minimal API) responde erros no formato ProblemDetails do ASP.NET, diferente do
+  // formato do Java: { title, status, detail?, errors?: { Campo: ["mensagem"] } }.
+  describe('erros no formato ProblemDetails da API .NET', () => {
+    it('le os campos de "errors" e passa o nome do campo para minusculo (Descricao -> descricao)', async () => {
+      const fetchSimulado = jest.fn().mockResolvedValue(
+        resposta(400, {
+          title: 'One or more validation errors occurred.',
+          status: 400,
+          errors: { Descricao: ['Descreva melhor.'], CategoriaId: ['Escolha uma categoria.'] },
+        }),
+      );
+
+      const erro = await criar(fetchSimulado)
+        .post('/api/reportes', {})
+        .catch((e: unknown) => e);
+
+      expect(erro).toBeInstanceOf(ErroApi);
+      expect(erro).toMatchObject({
+        status: 400,
+        // O "title" vem em ingles: nao e mostrado ao usuario; vale a mensagem padrao em portugues.
+        message: 'Não foi possível concluir a operação. Tente de novo.',
+        campos: { descricao: 'Descreva melhor.', categoriaId: 'Escolha uma categoria.' },
+      });
+    });
+
+    it('usa o "detail" como mensagem quando ele vem', async () => {
+      const fetchSimulado = jest.fn().mockResolvedValue(
+        resposta(409, {
+          title: 'Conflict',
+          status: 409,
+          detail: 'Só é possível editar um reporte em aberto.',
+        }),
+      );
+
+      const erro = await criar(fetchSimulado)
+        .put('/api/reportes/7', {})
+        .catch((e: unknown) => e);
+
+      expect(erro).toMatchObject({
+        status: 409,
+        message: 'Só é possível editar um reporte em aberto.',
+      });
+    });
+
+    it('o "mensagem" do formato do Java continua tendo prioridade', async () => {
+      const fetchSimulado = jest
+        .fn()
+        .mockResolvedValue(resposta(400, { mensagem: 'Do Java.', detail: 'Do .NET.' }));
+
+      const erro = await criar(fetchSimulado)
+        .post('/api/x', {})
+        .catch((e: unknown) => e);
+
+      expect((erro as ErroApi).message).toBe('Do Java.');
+    });
+  });
+
+  it('429 sem mensagem usa o aviso padrao de "muitas tentativas"', async () => {
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(429));
+
+    const erro = await criar(fetchSimulado)
+      .post('/api/reportes', {})
+      .catch((e: unknown) => e);
+
+    expect(erro).toMatchObject({
+      status: 429,
+      message: 'Muitas tentativas. Espere um pouco e tente de novo.',
+    });
+  });
+
   it('nao chama aoNaoAutorizado no 401 de uma requisicao sem token (ex.: senha errada no login)', async () => {
     const fetchSimulado = jest.fn().mockResolvedValue(resposta(401, { mensagem: 'Senha errada.' }));
     const aoNaoAutorizado = jest.fn();
