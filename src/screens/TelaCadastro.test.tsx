@@ -27,6 +27,11 @@ const aceitar = () => fireEvent.press(screen.getByRole('checkbox', { name: TEXTO
 const criar = () => fireEvent.press(screen.getByRole('button', { name: 'Criar conta' }));
 
 describe('TelaCadastro', () => {
+  it('mostra a marca Voz & Via no topo', async () => {
+    await montar();
+    expect(screen.getByText('Voz & Via')).toBeOnTheScreen();
+  });
+
   it('mostra os campos, o papel Cidadão já escolhido e o consentimento DESMARCADO', async () => {
     await montar();
     expect(screen.getByRole('header', { name: 'Criar conta' })).toBeOnTheScreen();

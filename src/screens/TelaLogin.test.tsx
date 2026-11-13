@@ -22,6 +22,11 @@ async function preencher(email: string, senha: string) {
 const entrar = () => fireEvent.press(screen.getByRole('button', { name: 'Entrar' }));
 
 describe('TelaLogin', () => {
+  it('mostra a marca Voz & Via no topo', async () => {
+    await montar();
+    expect(screen.getByText('Voz & Via')).toBeOnTheScreen();
+  });
+
   it('mostra título, campos, botão Entrar e o caminho para criar conta', async () => {
     await montar();
     expect(screen.getByRole('header', { name: 'Entrar' })).toBeOnTheScreen();

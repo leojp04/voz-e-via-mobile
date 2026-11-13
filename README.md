@@ -80,6 +80,9 @@ e as consequências:
 2. [`fetch` em vez de Axios](docs/adr/0002-fetch-sem-axios.md)
 3. [Token guardado no SecureStore](docs/adr/0003-token-no-securestore.md)
 4. [API falsa temporária no desenvolvimento](docs/adr/0004-api-falsa-temporaria.md)
+5. [Rotas protegidas com Stack.Protected](docs/adr/0005-rotas-protegidas-com-stack-protected.md)
+6. [Hash do commit em app.config](docs/adr/0006-hash-do-commit-em-app-config.md)
+7. [Identidade visual](docs/adr/0007-identidade-visual.md)
 
 ## Acessibilidade e privacidade
 
@@ -87,6 +90,12 @@ O app é para pessoas com mais dificuldade de uso, então a acessibilidade faz p
 rótulos em todos os botões, áreas de toque de pelo menos 48 dp, alto contraste e respeito ao
 tamanho de fonte do sistema. O áudio da voz não sai do celular (só o texto é enviado). Nesta
 etapa os usuários são apenas contas de teste.
+
+## Créditos e licenças
+
+- **Fonte Atkinson Hyperlegible**: Braille Institute, licença SIL OFL 1.1 (pacote `@expo-google-fonts/atkinson-hyperlegible`, MIT).
+- **Ícones Ionicons**: Ionic, licença MIT (pacote `@expo/vector-icons`).
+- **Logo e ícone do app**: desenho próprio do projeto (`assets/images/voz-e-via.svg`).
 
 ## Entrega
 

@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { CampoTexto } from '../components/CampoTexto';
+import { Marca } from '../components/Marca';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useAuth } from '../contexts/AuthContext';
@@ -45,6 +46,7 @@ export function TelaLogin() {
 
   return (
     <Tela>
+      <Marca />
       <Texto style={styles.titulo} accessibilityRole="header">
         Entrar
       </Texto>

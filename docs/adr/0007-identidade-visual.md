@@ -50,4 +50,9 @@ todo texto passa por `Texto`, que aplica a família normal e deixa a tela sobres
 - O app só desenha a primeira tela depois que as fontes carregam; o splash fica aberto até lá. Se o
   carregamento falhar, o app segue com a fonte do sistema.
 - Texto novo deve usar `Texto` (e não `Text`) e `fontFamily` (e não `fontWeight`).
-- Créditos e licenças vão para o README no commit da logo.
+- Créditos e licenças estão no README.
+- O logo (`assets/images/voz-e-via.svg`) é desenho próprio: microfone com uma "via" saindo dele. Os PNGs
+  (`icon`, `android-icon-*`, `splash-icon`, `favicon`, `logo`) saem do SVG pelo Chrome, sem biblioteca:
+  `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --default-background-color=00000000
+--window-size=1024,1024 --screenshot=icon.png pagina.html`, onde a página só mostra o SVG no tamanho da janela.
+  O ícone adaptativo do Android usa só o desenho (62% do tamanho) sobre fundo marinho liso.

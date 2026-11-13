@@ -10,6 +10,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Botao } from '../components/Botao';
 import { CaixaConsentimento } from '../components/CaixaConsentimento';
 import { CampoTexto } from '../components/CampoTexto';
+import { Marca } from '../components/Marca';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
@@ -105,6 +106,7 @@ export function TelaCadastro() {
 
   return (
     <Tela>
+      <Marca />
       <Texto style={styles.titulo} accessibilityRole="header">
         Criar conta
       </Texto>
