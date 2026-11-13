@@ -19,12 +19,26 @@ export interface OpcoesClienteHttp {
 export interface OpcoesChamada {
   /** Token desta chamada; tem prioridade sobre o "obterToken" do cliente. */
   token?: string;
+  /** Cabecalhos extras desta chamada, ex.: o "Idempotency-Key" do POST /api/reportes. */
+  cabecalhos?: Record<string, string>;
+}
+
+/** Arquivo do aparelho (ex.: foto) a ser enviado como multipart. */
+export interface ArquivoParaEnvio {
+  /** Endereco local do arquivo, ex.: "file:///.../foto.jpg". */
+  uri: string;
+  nome: string;
+  /** Tipo MIME, ex.: "image/jpeg". */
+  tipo: string;
 }
 
 export interface ClienteHttp {
   get<T>(caminho: string, opcoes?: OpcoesChamada): Promise<T>;
   post<T>(caminho: string, corpo?: unknown, opcoes?: OpcoesChamada): Promise<T>;
+  put<T>(caminho: string, corpo?: unknown, opcoes?: OpcoesChamada): Promise<T>;
   delete<T>(caminho: string, opcoes?: OpcoesChamada): Promise<T>;
+  /** POST multipart com um arquivo no campo "arquivo" (upload da foto do reporte). */
+  enviarArquivo<T>(caminho: string, arquivo: ArquivoParaEnvio, opcoes?: OpcoesChamada): Promise<T>;
 }
 
 const MENSAGEM_SEM_CONEXAO = 'Sem conexão. Verifique a internet e tente de novo.';
@@ -80,8 +94,11 @@ export function criarClienteHttp({
     opcoes?: OpcoesChamada,
   ): Promise<T> {
     const token = opcoes?.token ?? obterToken?.() ?? null;
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (corpo !== undefined) headers['Content-Type'] = 'application/json';
+    // Os extras entram primeiro: assim nenhum cabecalho da chamada consegue trocar o Authorization.
+    const headers: Record<string, string> = { ...opcoes?.cabecalhos, Accept: 'application/json' };
+    // Multipart (FormData): sem Content-Type de proposito, o fetch monta o "boundary" sozinho.
+    const ehMultipart = corpo instanceof FormData;
+    if (corpo !== undefined && !ehMultipart) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
 
     let resposta: Response;
@@ -89,7 +106,7 @@ export function criarClienteHttp({
       resposta = await fetchImpl(`${base}${caminho}`, {
         method: metodo,
         headers,
-        body: corpo === undefined ? undefined : JSON.stringify(corpo),
+        body: corpo === undefined ? undefined : ehMultipart ? corpo : JSON.stringify(corpo),
       });
     } catch {
       throw new ErroApi(0, MENSAGEM_SEM_CONEXAO);
@@ -106,6 +123,17 @@ export function criarClienteHttp({
   return {
     get: (caminho, opcoes) => requisitar('GET', caminho, undefined, opcoes),
     post: (caminho, corpo, opcoes) => requisitar('POST', caminho, corpo, opcoes),
+    put: (caminho, corpo, opcoes) => requisitar('PUT', caminho, corpo, opcoes),
     delete: (caminho, opcoes) => requisitar('DELETE', caminho, undefined, opcoes),
+    enviarArquivo: (caminho, arquivo, opcoes) => {
+      const formulario = new FormData();
+      // No React Native o arquivo entra como { uri, name, type }; o tipo do TS (Blob) nao conhece isso.
+      formulario.append('arquivo', {
+        uri: arquivo.uri,
+        name: arquivo.nome,
+        type: arquivo.tipo,
+      } as unknown as Blob);
+      return requisitar('POST', caminho, formulario, opcoes);
+    },
   };
 }

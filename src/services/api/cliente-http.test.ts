@@ -154,6 +154,90 @@ describe('criarClienteHttp', () => {
     expect((erro as ErroApi).status).toBe(401);
   });
 
+  it('envia o corpo como JSON no PUT (editar)', async () => {
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(200, { id: 7 }));
+
+    await criar(fetchSimulado).put('/api/reportes/7', { descricao: 'Nova' });
+
+    const [url, init] = fetchSimulado.mock.calls[0];
+    expect(url).toBe('http://api.teste/api/reportes/7');
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify({ descricao: 'Nova' }));
+    expect(init.headers['Content-Type']).toBe('application/json');
+  });
+
+  // O Idempotency-Key do POST /api/reportes (plano unico, 8.2) vai como cabecalho da chamada.
+  it('manda os cabecalhos extras da chamada, como o Idempotency-Key', async () => {
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(201, { id: 1 }));
+
+    await criar(fetchSimulado, { obterToken: () => 'abc' }).post(
+      '/api/reportes',
+      { descricao: 'Buraco' },
+      { cabecalhos: { 'Idempotency-Key': 'chave-1' } },
+    );
+
+    const headers = fetchSimulado.mock.calls[0][1].headers;
+    expect(headers['Idempotency-Key']).toBe('chave-1');
+    expect(headers.Authorization).toBe('Bearer abc');
+    expect(headers['Content-Type']).toBe('application/json');
+  });
+
+  describe('enviarArquivo (foto do reporte)', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    const foto = { uri: 'file:///tmp/foto.jpg', nome: 'foto.jpg', tipo: 'image/jpeg' };
+
+    it('envia multipart com o arquivo no campo "arquivo" e devolve o JSON', async () => {
+      const adicionar = jest.spyOn(FormData.prototype, 'append');
+      const fetchSimulado = jest
+        .fn()
+        .mockResolvedValue(resposta(201, { fotoUrl: 'https://x/f.jpg' }));
+
+      const dados = await criar(fetchSimulado).enviarArquivo<{ fotoUrl: string }>(
+        '/api/fotos',
+        foto,
+      );
+
+      expect(dados).toEqual({ fotoUrl: 'https://x/f.jpg' });
+      const [url, init] = fetchSimulado.mock.calls[0];
+      expect(url).toBe('http://api.teste/api/fotos');
+      expect(init.method).toBe('POST');
+      expect(init.body).toBeInstanceOf(FormData);
+      // No React Native o arquivo entra como { uri, name, type }. O FormData do Jest (do Node) nao
+      // guarda esse objeto, entao o teste confere o que foi passado ao append.
+      expect(adicionar).toHaveBeenCalledTimes(1);
+      expect(adicionar).toHaveBeenCalledWith('arquivo', {
+        uri: foto.uri,
+        name: foto.nome,
+        type: foto.tipo,
+      });
+    });
+
+    // Sem Content-Type de proposito: o fetch precisa montar o "boundary" do multipart sozinho.
+    it('nao fixa o Content-Type e manda o token', async () => {
+      const fetchSimulado = jest.fn().mockResolvedValue(resposta(201, {}));
+
+      await criar(fetchSimulado, { obterToken: () => 'abc' }).enviarArquivo('/api/fotos', foto);
+
+      const headers = fetchSimulado.mock.calls[0][1].headers;
+      expect(headers['Content-Type']).toBeUndefined();
+      expect(headers.Authorization).toBe('Bearer abc');
+    });
+
+    it('trata erro como nas outras chamadas (ErroApi e 401 avisa o app)', async () => {
+      const fetchSimulado = jest.fn().mockResolvedValue(resposta(401, { mensagem: 'Vencido.' }));
+      const aoNaoAutorizado = jest.fn();
+
+      const erro = await criar(fetchSimulado, { obterToken: () => 'velho', aoNaoAutorizado })
+        .enviarArquivo('/api/fotos', foto)
+        .catch((e: unknown) => e);
+
+      expect(erro).toBeInstanceOf(ErroApi);
+      expect((erro as ErroApi).status).toBe(401);
+      expect(aoNaoAutorizado).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('nao chama aoNaoAutorizado no 401 de uma requisicao sem token (ex.: senha errada no login)', async () => {
     const fetchSimulado = jest.fn().mockResolvedValue(resposta(401, { mensagem: 'Senha errada.' }));
     const aoNaoAutorizado = jest.fn();
