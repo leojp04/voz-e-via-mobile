@@ -3,11 +3,12 @@
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { CampoTexto } from '../components/CampoTexto';
 import { Tela } from '../components/Tela';
+import { Texto } from '../components/Texto';
 import { useAuth } from '../contexts/AuthContext';
 import { cores, espacos, fontes } from '../theme';
 import { mensagemDeErro } from '../utils/mensagem-de-erro';
@@ -44,14 +45,14 @@ export function TelaLogin() {
 
   return (
     <Tela>
-      <Text style={styles.titulo} accessibilityRole="header">
+      <Texto style={styles.titulo} accessibilityRole="header">
         Entrar
-      </Text>
-      <Text style={styles.subtitulo}>Bem-vindo ao Voz & Via.</Text>
+      </Texto>
+      <Texto style={styles.subtitulo}>Bem-vindo ao Voz & Via.</Texto>
 
       {erroGeral ? (
         <View style={styles.faixaErro} accessibilityRole="alert" accessibilityLiveRegion="polite">
-          <Text style={styles.textoErro}>{erroGeral}</Text>
+          <Texto style={styles.textoErro}>{erroGeral}</Texto>
         </View>
       ) : null}
 
@@ -84,7 +85,7 @@ export function TelaLogin() {
 }
 
 const styles = StyleSheet.create({
-  titulo: { fontSize: fontes.titulo, fontWeight: '700', color: cores.texto },
+  titulo: { fontSize: fontes.titulo, fontFamily: fontes.familia.negrito, color: cores.texto },
   subtitulo: { fontSize: fontes.subtitulo, color: cores.textoSecundario },
   faixaErro: {
     padding: espacos.medio,

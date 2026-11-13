@@ -6,8 +6,13 @@ export const cores = {
   fundo: '#FFFFFF',
   texto: '#1A1A1A',
   textoSecundario: '#4A4A4A',
-  acao: '#0B57D0',
+  // Marinho: cor da marca e da acao principal (botoes, links). Passa confianca e calma.
+  acao: '#1F3A5F',
   textoSobreAcao: '#FFFFFF',
+  // Salvia: fundo suave dos atalhos da tela de Inicio.
+  superficie: '#E4EEE8',
+  // Terracota: "Pedir ajuda". Chama a atencao sem o alarme do vermelho puro.
+  ajuda: '#A8431F',
   perigo: '#B3261E',
   erro: '#B3261E',
   fundoErro: '#FDECEA',
@@ -24,6 +29,12 @@ export const espacos = {
 } as const;
 
 export const fontes = {
+  // Atkinson Hyperlegible (Braille Institute), feita para quem enxerga pouco. No React Native cada
+  // peso e uma familia: use "regular" ou "negrito" em fontFamily e nao fontWeight.
+  familia: {
+    regular: 'AtkinsonHyperlegible_400Regular',
+    negrito: 'AtkinsonHyperlegible_700Bold',
+  },
   corpo: 18,
   rotulo: 16,
   botao: 18,

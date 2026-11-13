@@ -3,10 +3,11 @@
 
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { Tela } from '../components/Tela';
+import { Texto } from '../components/Texto';
 import { cores, espacos, fontes } from '../theme';
 import { lerInfoDoApp } from '../utils/info-do-app';
 
@@ -14,10 +15,10 @@ function Dado({ nome, valor, rotulo }: { nome: string; valor: string; rotulo: st
   // O leitor de tela le o dado inteiro de uma vez ("Versao do app: 1.0.0").
   return (
     <View style={styles.dado} accessible accessibilityLabel={`${rotulo}: ${valor}`}>
-      <Text style={styles.nome}>{nome}</Text>
-      <Text style={styles.valor} selectable>
+      <Texto style={styles.nome}>{nome}</Texto>
+      <Texto style={styles.valor} selectable>
         {valor}
-      </Text>
+      </Texto>
     </View>
   );
 }
@@ -28,13 +29,13 @@ export function TelaSobre() {
 
   return (
     <Tela>
-      <Text style={styles.titulo} accessibilityRole="header">
+      <Texto style={styles.titulo} accessibilityRole="header">
         Sobre o app
-      </Text>
-      <Text style={styles.texto}>
+      </Texto>
+      <Texto style={styles.texto}>
         Voz & Via ajuda pessoas idosas e pessoas com deficiência a pedir ajuda por voz e a reportar
         barreiras na rua. Projeto da Global Solution 2026/2 (FIAP).
-      </Text>
+      </Texto>
 
       <Dado nome="Versão" valor={versao} rotulo="Versão do app" />
       <Dado nome="Commit do código" valor={commitHash} rotulo="Commit do código" />
@@ -45,9 +46,9 @@ export function TelaSobre() {
 }
 
 const styles = StyleSheet.create({
-  titulo: { fontSize: fontes.titulo, fontWeight: '700', color: cores.texto },
+  titulo: { fontSize: fontes.titulo, fontFamily: fontes.familia.negrito, color: cores.texto },
   texto: { fontSize: fontes.corpo, color: cores.texto },
   dado: { gap: espacos.pequeno },
   nome: { fontSize: fontes.rotulo, color: cores.textoSecundario },
-  valor: { fontSize: fontes.subtitulo, fontWeight: '700', color: cores.texto },
+  valor: { fontSize: fontes.subtitulo, fontFamily: fontes.familia.negrito, color: cores.texto },
 });

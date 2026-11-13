@@ -1,9 +1,10 @@
 // Botao padrao do app: area de toque de pelo menos 48 dp, contraste conferido no tema e
 // estados de "carregando" e "desabilitado" avisados ao leitor de tela (VoiceOver/TalkBack).
 
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 
 import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { Texto } from './Texto';
 
 type Variante = 'primario' | 'secundario' | 'perigo';
 
@@ -52,7 +53,7 @@ export function Botao({
       {carregando ? (
         <ActivityIndicator color={corDoTexto} />
       ) : (
-        <Text style={[styles.texto, { color: corDoTexto }]}>{titulo}</Text>
+        <Texto style={[styles.texto, { color: corDoTexto }]}>{titulo}</Texto>
       )}
     </Pressable>
   );
@@ -75,5 +76,5 @@ const styles = StyleSheet.create({
   grande: { minHeight: 80 },
   inativo: { opacity: 0.6 },
   pressionado: { opacity: 0.85 },
-  texto: { fontSize: fontes.botao, fontWeight: '600' },
+  texto: { fontSize: fontes.botao, fontFamily: fontes.familia.negrito },
 });

@@ -1,9 +1,10 @@
 // Campo de texto padrao: rotulo sempre visivel (nao some ao digitar, como um placeholder),
 // mesmo nome para o leitor de tela e mensagem de erro anunciada assim que aparece.
 
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { Texto } from './Texto';
 
 interface PropsCampoTexto {
   rotulo: string;
@@ -30,7 +31,7 @@ export function CampoTexto({
 }: PropsCampoTexto) {
   return (
     <View style={styles.grupo}>
-      <Text style={styles.rotulo}>{rotulo}</Text>
+      <Texto style={styles.rotulo}>{rotulo}</Texto>
       <TextInput
         accessibilityLabel={rotulo}
         value={valor}
@@ -43,9 +44,9 @@ export function CampoTexto({
         style={[styles.entrada, erro ? styles.entradaComErro : null]}
       />
       {erro ? (
-        <Text style={styles.erro} accessibilityRole="alert" accessibilityLiveRegion="polite">
+        <Texto style={styles.erro} accessibilityRole="alert" accessibilityLiveRegion="polite">
           {erro}
-        </Text>
+        </Texto>
       ) : null}
     </View>
   );
@@ -53,13 +54,14 @@ export function CampoTexto({
 
 const styles = StyleSheet.create({
   grupo: { gap: espacos.pequeno / 2 },
-  rotulo: { fontSize: fontes.rotulo, fontWeight: '600', color: cores.texto },
+  rotulo: { fontSize: fontes.rotulo, fontFamily: fontes.familia.negrito, color: cores.texto },
   entrada: {
     minHeight: ALVO_MINIMO,
     paddingHorizontal: espacos.medio,
     borderWidth: 2,
     borderColor: cores.borda,
     borderRadius: 8,
+    fontFamily: fontes.familia.regular,
     fontSize: fontes.corpo,
     color: cores.texto,
     backgroundColor: cores.fundo,

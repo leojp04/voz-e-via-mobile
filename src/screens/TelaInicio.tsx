@@ -3,10 +3,11 @@
 // quebrado. O botao Sair e o unico que ja funciona e limpa a sessao do cofre.
 
 import { useRouter } from 'expo-router';
-import { Alert, StyleSheet, Text } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { Tela } from '../components/Tela';
+import { Texto } from '../components/Texto';
 import { useAuth } from '../contexts/AuthContext';
 import { cores, fontes } from '../theme';
 
@@ -30,10 +31,10 @@ export function TelaInicio() {
 
   return (
     <Tela>
-      <Text style={styles.titulo} accessibilityRole="header">
+      <Texto style={styles.titulo} accessibilityRole="header">
         Voz & Via
-      </Text>
-      <Text style={styles.saudacao}>Olá, {sessao?.usuario.nome}</Text>
+      </Texto>
+      <Texto style={styles.saudacao}>Olá, {sessao?.usuario.nome}</Texto>
 
       {ACOES.map((acao) => (
         <Botao
@@ -67,6 +68,6 @@ export function TelaInicio() {
 }
 
 const styles = StyleSheet.create({
-  titulo: { fontSize: fontes.titulo, fontWeight: '700', color: cores.texto },
+  titulo: { fontSize: fontes.titulo, fontFamily: fontes.familia.negrito, color: cores.texto },
   saudacao: { fontSize: fontes.subtitulo, color: cores.textoSecundario },
 });

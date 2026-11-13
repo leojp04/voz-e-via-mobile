@@ -3,10 +3,11 @@
 // Como as telas nao tem cabecalho proprio, o botao Voltar e a unica saida.
 
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { Tela } from '../components/Tela';
+import { Texto } from '../components/Texto';
 import { cores, espacos, fontes } from '../theme';
 import { SECOES_DE_PRIVACIDADE } from './texto-privacidade';
 
@@ -15,19 +16,19 @@ export function TelaPrivacidade() {
 
   return (
     <Tela>
-      <Text style={styles.titulo} accessibilityRole="header">
+      <Texto style={styles.titulo} accessibilityRole="header">
         Política de Privacidade
-      </Text>
+      </Texto>
 
       {SECOES_DE_PRIVACIDADE.map((secao) => (
         <View key={secao.titulo} style={styles.secao}>
-          <Text style={styles.subtitulo} accessibilityRole="header">
+          <Texto style={styles.subtitulo} accessibilityRole="header">
             {secao.titulo}
-          </Text>
+          </Texto>
           {secao.paragrafos.map((paragrafo) => (
-            <Text key={paragrafo} style={styles.texto}>
+            <Texto key={paragrafo} style={styles.texto}>
               {paragrafo}
-            </Text>
+            </Texto>
           ))}
         </View>
       ))}
@@ -38,8 +39,8 @@ export function TelaPrivacidade() {
 }
 
 const styles = StyleSheet.create({
-  titulo: { fontSize: fontes.titulo, fontWeight: '700', color: cores.texto },
+  titulo: { fontSize: fontes.titulo, fontFamily: fontes.familia.negrito, color: cores.texto },
   secao: { gap: espacos.pequeno },
-  subtitulo: { fontSize: fontes.subtitulo, fontWeight: '700', color: cores.texto },
+  subtitulo: { fontSize: fontes.subtitulo, fontFamily: fontes.familia.negrito, color: cores.texto },
   texto: { fontSize: fontes.corpo, color: cores.texto },
 });

@@ -1,4 +1,4 @@
-import { ALVO_MINIMO, cores, razaoDeContraste } from './index';
+import { ALVO_MINIMO, cores, fontes, razaoDeContraste } from './index';
 
 describe('razaoDeContraste', () => {
   it('preto sobre branco dá 21:1 (o máximo possível)', () => {
@@ -26,6 +26,10 @@ describe('tema acessível (WCAG AA: texto precisa de pelo menos 4,5:1)', () => {
     ['erro sobre fundo', cores.erro, cores.fundo],
     ['erro sobre faixa de erro', cores.erro, cores.fundoErro],
     ['ação (link) sobre fundo', cores.acao, cores.fundo],
+    ['texto do botão de ajuda', cores.textoSobreAcao, cores.ajuda],
+    ['texto sobre a superfície dos atalhos', cores.texto, cores.superficie],
+    ['ação sobre a superfície dos atalhos', cores.acao, cores.superficie],
+    ['texto secundário sobre a superfície dos atalhos', cores.textoSecundario, cores.superficie],
   ];
 
   it.each(paresDeTexto)('%s tem contraste de pelo menos 4,5:1', (_nome, frente, fundo) => {
@@ -38,5 +42,14 @@ describe('tema acessível (WCAG AA: texto precisa de pelo menos 4,5:1)', () => {
 
   it('o alvo de toque mínimo é 48 dp', () => {
     expect(ALVO_MINIMO).toBe(48);
+  });
+});
+
+describe('fonte Atkinson Hyperlegible', () => {
+  // No React Native, fonte personalizada não usa fontWeight: cada peso é uma família, e o nome
+  // precisa ser idêntico ao que o pacote @expo-google-fonts registra.
+  it('tem uma família para o texto normal e outra para o negrito', () => {
+    expect(fontes.familia.regular).toBe('AtkinsonHyperlegible_400Regular');
+    expect(fontes.familia.negrito).toBe('AtkinsonHyperlegible_700Bold');
   });
 });

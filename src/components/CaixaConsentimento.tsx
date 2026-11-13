@@ -2,9 +2,10 @@
 // O link para a Politica de Privacidade fica FORA desta caixa, na tela, porque um botao dentro
 // de outro botao confunde o leitor de tela.
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { Texto } from './Texto';
 
 interface PropsCaixaConsentimento {
   texto: string;
@@ -24,14 +25,14 @@ export function CaixaConsentimento({ texto, marcada, aoAlternar, erro }: PropsCa
         style={styles.linha}
       >
         <View style={[styles.caixa, marcada && styles.caixaMarcada]}>
-          {marcada ? <Text style={styles.marca}>✓</Text> : null}
+          {marcada ? <Texto style={styles.marca}>✓</Texto> : null}
         </View>
-        <Text style={styles.texto}>{texto}</Text>
+        <Texto style={styles.texto}>{texto}</Texto>
       </Pressable>
       {erro ? (
-        <Text style={styles.erro} accessibilityRole="alert" accessibilityLiveRegion="polite">
+        <Texto style={styles.erro} accessibilityRole="alert" accessibilityLiveRegion="polite">
           {erro}
-        </Text>
+        </Texto>
       ) : null}
     </View>
   );
@@ -56,7 +57,11 @@ const styles = StyleSheet.create({
     backgroundColor: cores.fundo,
   },
   caixaMarcada: { backgroundColor: cores.acao, borderColor: cores.acao },
-  marca: { color: cores.textoSobreAcao, fontSize: fontes.rotulo, fontWeight: '700' },
+  marca: {
+    color: cores.textoSobreAcao,
+    fontSize: fontes.rotulo,
+    fontFamily: fontes.familia.negrito,
+  },
   texto: { flex: 1, fontSize: fontes.corpo, color: cores.texto },
   erro: { fontSize: fontes.rotulo, color: cores.erro },
 });

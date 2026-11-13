@@ -5,12 +5,13 @@
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { CaixaConsentimento } from '../components/CaixaConsentimento';
 import { CampoTexto } from '../components/CampoTexto';
 import { Tela } from '../components/Tela';
+import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ehErroApi } from '../services/api/erro';
@@ -104,13 +105,13 @@ export function TelaCadastro() {
 
   return (
     <Tela>
-      <Text style={styles.titulo} accessibilityRole="header">
+      <Texto style={styles.titulo} accessibilityRole="header">
         Criar conta
-      </Text>
+      </Texto>
 
       {erroGeral ? (
         <View style={styles.faixaErro} accessibilityRole="alert" accessibilityLiveRegion="polite">
-          <Text style={styles.textoErro}>{erroGeral}</Text>
+          <Texto style={styles.textoErro}>{erroGeral}</Texto>
         </View>
       ) : null}
 
@@ -148,7 +149,7 @@ export function TelaCadastro() {
       />
 
       <View style={styles.grupo} accessibilityRole="radiogroup" accessibilityLabel="Tipo de conta">
-        <Text style={styles.rotulo}>Tipo de conta</Text>
+        <Texto style={styles.rotulo}>Tipo de conta</Texto>
         <View style={styles.papeis}>
           {PAPEIS.map((opcao) => {
             const selecionado = papel === opcao.valor;
@@ -161,9 +162,9 @@ export function TelaCadastro() {
                 onPress={() => setPapel(opcao.valor)}
                 style={[styles.papel, selecionado && styles.papelSelecionado]}
               >
-                <Text style={[styles.textoPapel, selecionado && styles.textoPapelSelecionado]}>
+                <Texto style={[styles.textoPapel, selecionado && styles.textoPapelSelecionado]}>
                   {opcao.titulo}
-                </Text>
+                </Texto>
               </Pressable>
             );
           })}
@@ -192,7 +193,7 @@ export function TelaCadastro() {
 }
 
 const styles = StyleSheet.create({
-  titulo: { fontSize: fontes.titulo, fontWeight: '700', color: cores.texto },
+  titulo: { fontSize: fontes.titulo, fontFamily: fontes.familia.negrito, color: cores.texto },
   faixaErro: {
     padding: espacos.medio,
     borderRadius: 8,
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
   },
   textoErro: { fontSize: fontes.corpo, color: cores.erro },
   grupo: { gap: espacos.pequeno },
-  rotulo: { fontSize: fontes.rotulo, fontWeight: '600', color: cores.texto },
+  rotulo: { fontSize: fontes.rotulo, fontFamily: fontes.familia.negrito, color: cores.texto },
   papeis: { flexDirection: 'row', gap: espacos.medio },
   papel: {
     flex: 1,
@@ -215,6 +216,6 @@ const styles = StyleSheet.create({
     backgroundColor: cores.fundo,
   },
   papelSelecionado: { backgroundColor: cores.acao },
-  textoPapel: { fontSize: fontes.botao, fontWeight: '600', color: cores.acao },
+  textoPapel: { fontSize: fontes.botao, fontFamily: fontes.familia.negrito, color: cores.acao },
   textoPapelSelecionado: { color: cores.textoSobreAcao },
 });
