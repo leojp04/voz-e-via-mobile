@@ -439,4 +439,37 @@ describe('criarReportesApiFalsa', () => {
       expect((await erroDe(api.cancelar(criado.id))).status).toBe(404);
     });
   });
+
+  // Na API real, o cliente HTTP avisa o app num 401 com token (sessao vencida) e o app volta ao
+  // login. A API falsa faz o mesmo: sem isso, depois de reiniciar o servidor de desenvolvimento
+  // (que zera a "base" em memoria) o app ficaria logado, mas so recebendo erro.
+  describe('aoNaoAutorizado', () => {
+    it('avisa o app quando o token nao vale', async () => {
+      const auth = criarAuthApiFalsa();
+      const aoNaoAutorizado = jest.fn();
+      const api = criarReportesApiFalsa({
+        obterToken: () => 'token-velho',
+        idDoToken: auth.idDoToken,
+        aoNaoAutorizado,
+      });
+
+      expect((await erroDe(api.listarMeus(1, 10))).status).toBe(401);
+
+      expect(aoNaoAutorizado).toHaveBeenCalledTimes(1);
+    });
+
+    it('nao avisa quando nem havia token (nao e sessao vencida)', async () => {
+      const auth = criarAuthApiFalsa();
+      const aoNaoAutorizado = jest.fn();
+      const api = criarReportesApiFalsa({
+        obterToken: () => null,
+        idDoToken: auth.idDoToken,
+        aoNaoAutorizado,
+      });
+
+      expect((await erroDe(api.listarMeus(1, 10))).status).toBe(401);
+
+      expect(aoNaoAutorizado).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -40,8 +40,10 @@ type Ponte = ReturnType<typeof criarPonte>;
 interface PropsAppProviders {
   /** true = API falsa em memoria (EXPO_PUBLIC_USE_FAKE_API). */
   usarApiFalsa: boolean;
-  /** Endereco da API Java. */
+  /** Endereco da API Java (login, cadastro, assistente). */
   urlJava: string;
+  /** Endereco da API .NET (reportes e fotos). */
+  urlDotnet: string;
   /** Troca do cofre da sessao; so os testes usam (o padrao e o SecureStore). */
   armazenamento?: ArmazenamentoSessao;
   /** Troca do fetch; so os testes usam. */
@@ -63,6 +65,7 @@ function LigaPonte({ ponte, children }: { ponte: Ponte; children: ReactNode }) {
 export function AppProviders({
   usarApiFalsa,
   urlJava,
+  urlDotnet,
   armazenamento,
   fetchImpl,
   children,
@@ -74,11 +77,12 @@ export function AppProviders({
       criarApis({
         usarApiFalsa,
         urlJava,
+        urlDotnet,
         fetchImpl,
         obterToken: ponte.obterToken,
         aoNaoAutorizado: ponte.aoNaoAutorizado,
       }),
-    [usarApiFalsa, urlJava, fetchImpl, ponte],
+    [usarApiFalsa, urlJava, urlDotnet, fetchImpl, ponte],
   );
 
   const cofre = useMemo(() => armazenamento ?? criarArmazenamentoSecureStore(), [armazenamento]);

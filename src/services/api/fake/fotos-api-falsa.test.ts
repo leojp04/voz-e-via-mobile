@@ -55,4 +55,18 @@ describe('criarFotosApiFalsa', () => {
     const erro = await api.enviar(foto).catch((e: unknown) => e);
     expect(erro).toMatchObject({ status: 401 });
   });
+
+  it('avisa o app (aoNaoAutorizado) quando o token nao vale, como o 401 da API real', async () => {
+    const auth = criarAuthApiFalsa();
+    const aoNaoAutorizado = jest.fn();
+    const api = criarFotosApiFalsa({
+      obterToken: () => 'token-velho',
+      idDoToken: auth.idDoToken,
+      aoNaoAutorizado,
+    });
+
+    await expect(api.enviar(foto)).rejects.toMatchObject({ status: 401 });
+
+    expect(aoNaoAutorizado).toHaveBeenCalledTimes(1);
+  });
 });

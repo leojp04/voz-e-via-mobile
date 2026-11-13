@@ -10,7 +10,7 @@ import { Text } from 'react-native';
 
 import { ApisProvider } from '../contexts/ApisContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import type { AuthApi, Sessao } from '../services/api/types';
+import type { AuthApi, FotosApi, ReportesApi, Sessao } from '../services/api/types';
 import type { ArmazenamentoSessao } from '../services/armazenamento-sessao';
 
 export const sessaoDeTeste: Sessao = {
@@ -21,6 +21,21 @@ export const sessaoDeTeste: Sessao = {
 
 export function criarAuthApiMock(): jest.Mocked<AuthApi> {
   return { login: jest.fn(), cadastrar: jest.fn(), excluirConta: jest.fn() };
+}
+
+export function criarReportesApiMock(): jest.Mocked<ReportesApi> {
+  return {
+    listarCategorias: jest.fn(),
+    criar: jest.fn(),
+    listarMeus: jest.fn(),
+    obter: jest.fn(),
+    editar: jest.fn(),
+    cancelar: jest.fn(),
+  };
+}
+
+export function criarFotosApiMock(): jest.Mocked<FotosApi> {
+  return { enviar: jest.fn() };
 }
 
 export function criarArmazenamentoEmMemoria(inicial: Sessao | null = null): ArmazenamentoSessao {
@@ -47,6 +62,9 @@ type Componente = () => ReactElement | null;
 
 interface OpcoesMontagem {
   auth: AuthApi;
+  /** APIs de reportes e fotos; sem elas, a tela recebe mocks vazios (jest.fn). */
+  reportes?: ReportesApi;
+  fotos?: FotosApi;
   armazenamento?: ArmazenamentoSessao;
   /** Rotas extras (alem de "index"), para testar navegacao entre telas. */
   rotas?: Record<string, Componente>;
@@ -56,10 +74,16 @@ interface OpcoesMontagem {
 /** Monta a tela na rota "index" e espera a sessao terminar de carregar. */
 export async function montarTela(Tela: Componente, opcoes: OpcoesMontagem) {
   const armazenamento = opcoes.armazenamento ?? criarArmazenamentoEmMemoria();
+  // Criado fora do _layout para o objeto nao mudar a cada renderizacao.
+  const apis = {
+    auth: opcoes.auth,
+    reportes: opcoes.reportes ?? criarReportesApiMock(),
+    fotos: opcoes.fotos ?? criarFotosApiMock(),
+  };
   await renderRouter(
     {
       _layout: () => (
-        <ApisProvider apis={{ auth: opcoes.auth }}>
+        <ApisProvider apis={apis}>
           <AuthProvider api={opcoes.auth} armazenamento={armazenamento}>
             <EstadoDaSessao />
             <Slot />

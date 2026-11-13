@@ -48,6 +48,7 @@ function montar(fetchImpl: jest.Mock, armazenamento: ArmazenamentoSessao) {
     <AppProviders
       usarApiFalsa={false}
       urlJava="http://localhost:8080"
+      urlDotnet="http://localhost:5000"
       armazenamento={armazenamento}
       fetchImpl={fetchImpl as unknown as typeof fetch}
     >
@@ -108,6 +109,43 @@ describe('AppProviders', () => {
 
     const [, init] = fetchImpl.mock.calls[1] as unknown as [string, RequestInit];
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok-123');
+  });
+
+  it('os reportes vao para a URL da API .NET, com o token do login feito no Java', async () => {
+    const fetchImpl = criarFetchFalso(true);
+    const { result } = await montar(fetchImpl, criarArmazenamentoEmMemoria());
+    await waitFor(() => expect(result.current.auth.status).toBe('anonimo'));
+    await act(async () => {
+      await result.current.auth.login('maria@exemplo.com', 'Senha@123');
+    });
+
+    await act(async () => {
+      await result.current.apis.reportes.listarCategorias().catch(() => {});
+    });
+
+    const chamadaDoDotnet = fetchImpl.mock.calls.find(
+      ([url]) => url === 'http://localhost:5000/api/categorias',
+    ) as unknown as [string, RequestInit] | undefined;
+    expect(chamadaDoDotnet).toBeDefined();
+    expect((chamadaDoDotnet?.[1].headers as Record<string, string>).Authorization).toBe(
+      'Bearer tok-123',
+    );
+  });
+
+  it('derruba a sessao quando a API .NET responde 401 a uma chamada com token', async () => {
+    const armazenamento = criarArmazenamentoEmMemoria();
+    const { result } = await montar(criarFetchFalso(true), armazenamento);
+    await waitFor(() => expect(result.current.auth.status).toBe('anonimo'));
+    await act(async () => {
+      await result.current.auth.login('maria@exemplo.com', 'Senha@123');
+    });
+
+    await act(async () => {
+      await result.current.apis.reportes.listarMeus(1, 10).catch(() => {});
+    });
+
+    await waitFor(() => expect(result.current.auth.status).toBe('anonimo'));
+    expect(armazenamento.apagar).toHaveBeenCalled();
   });
 });
 

@@ -43,6 +43,8 @@ interface Opcoes {
   latenciaMs?: number;
   /** Relogio (em milissegundos); os testes trocam para andar no tempo. */
   agora?: () => number;
+  /** Chamado quando ha token mas ele nao vale (sessao vencida), como o 401 da API real. */
+  aoNaoAutorizado?: () => void;
 }
 
 interface ReporteArmazenado extends Reporte {
@@ -83,6 +85,7 @@ export function criarReportesApiFalsa({
   idDoToken,
   latenciaMs = 0,
   agora = Date.now,
+  aoNaoAutorizado,
 }: Opcoes): ReportesApi {
   const reportes = new Map<number, ReporteArmazenado>();
   const respostasIdempotentes = new Map<string, RespostaIdempotente>();
@@ -94,8 +97,13 @@ export function criarReportesApiFalsa({
 
   // Toda chamada exige sessao valida; quem chama recebe o id do usuario logado.
   const usuarioAtual = (): number => {
-    const id = idDoToken(obterToken());
-    if (id === null) throw new ErroApi(401, 'Sessão inválida. Entre novamente.');
+    const token = obterToken();
+    const id = idDoToken(token);
+    if (id === null) {
+      // Como na API real: so e "sessao vencida" quando havia token (sem token e so "nao logado").
+      if (token) aoNaoAutorizado?.();
+      throw new ErroApi(401, 'Sessão inválida. Entre novamente.');
+    }
     return id;
   };
 
