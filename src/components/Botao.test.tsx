@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import { ALVO_MINIMO, cores } from '../theme';
+import { ALVO_MINIMO, cores, espacos } from '../theme';
 import { Botao } from './Botao';
 
 describe('Botao', () => {
@@ -63,5 +63,31 @@ describe('Botao', () => {
       screen.getByRole('button', { name: 'Pedir ajuda' }).props.style,
     );
     expect(estilo.backgroundColor).toBe(cores.ajuda);
+  });
+
+  // Com a letra do sistema no maximo, uma palavra longa ("Privacidade") nao cabia na largura
+  // sobrando e quebrava no meio ("Privacida/de"), e o icone era empurrado para a borda.
+  describe('com letra grande', () => {
+    it('o título pode encolher e quebrar linha, sem empurrar o ícone para fora', async () => {
+      await render(<Botao titulo="Pedir ajuda" icone="help-buoy-outline" onPress={jest.fn()} />);
+      const estilo = StyleSheet.flatten(screen.getByText('Pedir ajuda').props.style);
+      expect(estilo.flexShrink).toBe(1);
+      expect(estilo.textAlign).toBe('center');
+    });
+
+    // A letra do sistema vai a 310%: uma palavra como "Privacidade" passa da largura do botão em
+    // qualquer celular. Limitar a 250% ainda deixa o texto bem maior que o normal e cabendo.
+    it('limita o crescimento do título a 250% para palavras longas caberem', async () => {
+      await render(<Botao titulo="Privacidade" onPress={jest.fn()} />);
+      expect(screen.getByText('Privacidade').props.maxFontSizeMultiplier).toBe(2.5);
+    });
+
+    it('deixa mais largura para o texto: margem lateral de no máximo "medio"', async () => {
+      await render(<Botao titulo="Privacidade" onPress={jest.fn()} />);
+      const estilo = StyleSheet.flatten(
+        screen.getByRole('button', { name: 'Privacidade' }).props.style,
+      );
+      expect(estilo.paddingHorizontal).toBeLessThanOrEqual(espacos.medio);
+    });
   });
 });

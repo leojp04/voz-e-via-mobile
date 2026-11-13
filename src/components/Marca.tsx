@@ -23,5 +23,11 @@ export function Marca() {
 const styles = StyleSheet.create({
   linha: { flexDirection: 'row', alignItems: 'center', gap: espacos.pequeno },
   logo: { width: 48, height: 48, borderRadius: 12 },
-  nome: { fontSize: fontes.subtitulo, fontFamily: fontes.familia.negrito, color: cores.acao },
+  // flexShrink: com a letra do sistema no maximo o nome quebra de linha em vez de vazar da tela.
+  nome: {
+    flexShrink: 1,
+    fontSize: fontes.subtitulo,
+    fontFamily: fontes.familia.negrito,
+    color: cores.acao,
+  },
 });

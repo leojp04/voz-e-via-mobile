@@ -9,6 +9,11 @@ import { Texto } from './Texto';
 
 type Variante = 'primario' | 'secundario' | 'perigo' | 'ajuda';
 
+// Limite de crescimento do titulo quando o usuario aumenta a letra do sistema (maximo do iOS: 310%).
+// A 310% palavras longas como "Privacidade" passam da largura do botao e quebram no meio.
+// A 250% o texto ainda fica bem maior que o normal e cabe.
+const ESCALA_MAXIMA_DO_TITULO = 2.5;
+
 interface PropsBotao {
   titulo: string;
   onPress: () => void;
@@ -60,7 +65,12 @@ export function Botao({
       ) : (
         <View style={styles.conteudo}>
           {icone ? <Icone nome={icone} tamanho={24} cor={corDoTexto} /> : null}
-          <Texto style={[styles.texto, { color: corDoTexto }]}>{titulo}</Texto>
+          <Texto
+            maxFontSizeMultiplier={ESCALA_MAXIMA_DO_TITULO}
+            style={[styles.texto, { color: corDoTexto }]}
+          >
+            {titulo}
+          </Texto>
         </View>
       )}
     </Pressable>
@@ -71,7 +81,8 @@ const styles = StyleSheet.create({
   base: {
     minHeight: ALVO_MINIMO,
     minWidth: ALVO_MINIMO,
-    paddingHorizontal: espacos.grande,
+    // Margem lateral menor que o normal: com letra grande o texto precisa de cada ponto de largura.
+    paddingHorizontal: espacos.medio,
     paddingVertical: espacos.pequeno,
     alignItems: 'center',
     justifyContent: 'center',
@@ -86,5 +97,11 @@ const styles = StyleSheet.create({
   grande: { minHeight: 80 },
   inativo: { opacity: 0.6 },
   pressionado: { opacity: 0.85 },
-  texto: { fontSize: fontes.botao, fontFamily: fontes.familia.negrito },
+  // flexShrink + centralizado: o titulo quebra de linha ao lado do icone em vez de empurra-lo.
+  texto: {
+    flexShrink: 1,
+    textAlign: 'center',
+    fontSize: fontes.botao,
+    fontFamily: fontes.familia.negrito,
+  },
 });
