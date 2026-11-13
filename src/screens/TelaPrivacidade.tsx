@@ -3,16 +3,45 @@
 // Como as telas nao tem cabecalho proprio, o botao Voltar e a unica saida.
 
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
+import { useAuth } from '../contexts/AuthContext';
 import { cores, espacos, fontes } from '../theme';
+import { mensagemDeErroAoExcluir } from '../utils/mensagem-de-erro';
 import { SECOES_DE_PRIVACIDADE } from './texto-privacidade';
 
 export function TelaPrivacidade() {
   const router = useRouter();
+  const { status, excluirConta } = useAuth();
+  const [excluindo, setExcluindo] = useState(false);
+
+  async function excluir() {
+    setExcluindo(true);
+    try {
+      await excluirConta();
+      // Esta tela fica fora dos grupos protegidos, entao nao sai sozinha quando a sessao acaba.
+      router.replace('/login');
+    } catch (erro) {
+      setExcluindo(false);
+      Alert.alert('Não foi possível excluir', mensagemDeErroAoExcluir(erro));
+    }
+  }
+
+  // Dois passos de proposito: apagar a conta nao tem volta, entao o primeiro toque so pergunta.
+  function pedirConfirmacao() {
+    Alert.alert(
+      'Excluir a conta?',
+      'Isso apaga a sua conta e os seus dados. Essa ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir minha conta', style: 'destructive', onPress: () => void excluir() },
+      ],
+    );
+  }
 
   return (
     <Tela>
@@ -32,6 +61,15 @@ export function TelaPrivacidade() {
           ))}
         </View>
       ))}
+
+      {status === 'autenticado' ? (
+        <Botao
+          titulo="Excluir minha conta"
+          variante="perigo"
+          carregando={excluindo}
+          onPress={pedirConfirmacao}
+        />
+      ) : null}
 
       <Botao titulo="Voltar" variante="secundario" onPress={() => router.back()} />
     </Tela>

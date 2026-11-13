@@ -26,6 +26,11 @@ export interface ValorAuth {
   login(email: string, senha: string): Promise<void>;
   /** Apaga o token do cofre e volta ao estado anonimo. */
   logout(): Promise<void>;
+  /**
+   * Exclui a conta na API (direito do titular na LGPD) e, so se deu certo, apaga a sessao local.
+   * Se a API falhar, o erro sobe para a tela e a sessao continua: a conta ainda existe.
+   */
+  excluirConta(): Promise<void>;
   /** Token atual, lido na hora (serve de "obterToken" para o cliente HTTP). */
   obterToken(): string | null;
 }
@@ -91,11 +96,20 @@ export function AuthProvider({ api, armazenamento, children }: PropsAuthProvider
     await armazenamento.apagar();
   }, [armazenamento, aplicarSessao]);
 
+  const excluirConta = useCallback(async () => {
+    const token = sessaoRef.current?.token;
+    if (!token) throw new Error('Não há sessão ativa para excluir a conta.');
+    // Ordem importa: primeiro a API. Se ela falhar, nada local muda e o erro chega na tela.
+    await api.excluirConta(token);
+    aplicarSessao(null);
+    await armazenamento.apagar();
+  }, [api, armazenamento, aplicarSessao]);
+
   const obterToken = useCallback(() => sessaoRef.current?.token ?? null, []);
 
   const valor = useMemo<ValorAuth>(
-    () => ({ status, sessao, login, logout, obterToken }),
-    [status, sessao, login, logout, obterToken],
+    () => ({ status, sessao, login, logout, excluirConta, obterToken }),
+    [status, sessao, login, logout, excluirConta, obterToken],
   );
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

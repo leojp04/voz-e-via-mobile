@@ -123,6 +123,51 @@ describe('AuthProvider', () => {
     expect(result.current.obterToken()).toBeNull();
     expect(guardada()).toBeNull();
   });
+
+  it('excluirConta chama a API com o token, apaga o cofre e volta para "anonimo"', async () => {
+    const { armazenamento, guardada } = criarArmazenamentoEmMemoria(sessaoValida);
+    const api = criarApi();
+    (api.excluirConta as jest.Mock).mockResolvedValue(undefined);
+    const { result } = await montar(api, armazenamento);
+    await waitFor(() => expect(result.current.status).toBe('autenticado'));
+
+    await act(async () => {
+      await result.current.excluirConta();
+    });
+
+    expect(api.excluirConta).toHaveBeenCalledWith('tok-123');
+    expect(result.current.status).toBe('anonimo');
+    expect(result.current.obterToken()).toBeNull();
+    expect(guardada()).toBeNull();
+  });
+
+  it('excluirConta que falha mantém a sessão e o cofre (a conta não foi apagada)', async () => {
+    const { armazenamento, guardada } = criarArmazenamentoEmMemoria(sessaoValida);
+    const api = criarApi();
+    (api.excluirConta as jest.Mock).mockRejectedValue(new ErroApi(0, 'Network request failed'));
+    const { result } = await montar(api, armazenamento);
+    await waitFor(() => expect(result.current.status).toBe('autenticado'));
+
+    await act(async () => {
+      await expect(result.current.excluirConta()).rejects.toMatchObject({ status: 0 });
+    });
+
+    expect(result.current.status).toBe('autenticado');
+    expect(guardada()).toEqual(sessaoValida);
+  });
+
+  it('excluirConta sem sessão não chama a API e lança erro', async () => {
+    const { armazenamento } = criarArmazenamentoEmMemoria();
+    const api = criarApi();
+    const { result } = await montar(api, armazenamento);
+    await waitFor(() => expect(result.current.status).toBe('anonimo'));
+
+    await act(async () => {
+      await expect(result.current.excluirConta()).rejects.toThrow(/sessão/i);
+    });
+
+    expect(api.excluirConta).not.toHaveBeenCalled();
+  });
 });
 
 describe('useAuth', () => {

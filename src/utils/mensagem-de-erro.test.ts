@@ -1,5 +1,31 @@
 import { ErroApi } from '../services/api/erro';
-import { mensagemDeErro } from './mensagem-de-erro';
+import { mensagemDeErro, mensagemDeErroAoExcluir } from './mensagem-de-erro';
+
+describe('mensagemDeErroAoExcluir', () => {
+  it('401 fala da sessão, não de e-mail e senha (o usuário já está logado)', () => {
+    const msg = mensagemDeErroAoExcluir(new ErroApi(401, 'Unauthorized'));
+    expect(msg).toBe('Sua sessão venceu. Entre de novo para excluir a conta.');
+    expect(msg).not.toMatch(/senha/i);
+  });
+
+  it('sem conexão avisa que a conta continua existindo', () => {
+    expect(mensagemDeErroAoExcluir(new ErroApi(0, 'Network request failed'))).toBe(
+      'Sem conexão. A sua conta não foi excluída. Tente de novo.',
+    );
+  });
+
+  it('servidor com problema avisa que a conta não foi excluída', () => {
+    expect(mensagemDeErroAoExcluir(new ErroApi(503, 'Service Unavailable'))).toBe(
+      'O servidor está com problemas. A sua conta não foi excluída. Tente de novo em instantes.',
+    );
+  });
+
+  it('erro desconhecido vira mensagem genérica, sem detalhe técnico', () => {
+    const msg = mensagemDeErroAoExcluir(new TypeError('Cannot read properties of undefined'));
+    expect(msg).toBe('Algo deu errado. A sua conta não foi excluída. Tente de novo.');
+    expect(msg).not.toMatch(/undefined|TypeError/);
+  });
+});
 
 describe('mensagemDeErro', () => {
   it('401 vira "e-mail ou senha incorretos"', () => {

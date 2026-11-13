@@ -49,7 +49,7 @@ export const SECOES_DE_PRIVACIDADE: SecaoDePrivacidade[] = [
     titulo: 'Seus direitos',
     paragrafos: [
       'Conforme a LGPD (Lei Geral de Proteção de Dados), você pode ver, corrigir e apagar os seus dados.',
-      'Para excluir a sua conta, peça ao grupo pelo contato abaixo.',
+      'Para excluir a sua conta, entre no app e use o botão "Excluir minha conta" no fim desta tela. A exclusão não pode ser desfeita.',
     ],
   },
   {
