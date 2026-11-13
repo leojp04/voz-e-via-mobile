@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import { ALVO_MINIMO } from '../theme';
+import { ALVO_MINIMO, cores } from '../theme';
 import { Botao } from './Botao';
 
 describe('Botao', () => {
@@ -49,5 +49,19 @@ describe('Botao', () => {
     await render(<Botao titulo="Entrar" onPress={jest.fn()} />);
     const estilo = StyleSheet.flatten(screen.getByRole('button', { name: 'Entrar' }).props.style);
     expect(estilo.minHeight).toBeGreaterThanOrEqual(ALVO_MINIMO);
+  });
+
+  it('mostra o ícone ao lado do título sem mudar o rótulo falado', async () => {
+    await render(<Botao titulo="Pedir ajuda" icone="help-buoy-outline" onPress={jest.fn()} />);
+    expect(screen.getByRole('button', { name: 'Pedir ajuda' })).toBeOnTheScreen();
+    expect(JSON.stringify(screen.toJSON())).toContain('"accessibilityElementsHidden":true');
+  });
+
+  it('a variante "ajuda" usa a cor terracota do tema', async () => {
+    await render(<Botao titulo="Pedir ajuda" variante="ajuda" onPress={jest.fn()} />);
+    const estilo = StyleSheet.flatten(
+      screen.getByRole('button', { name: 'Pedir ajuda' }).props.style,
+    );
+    expect(estilo.backgroundColor).toBe(cores.ajuda);
   });
 });

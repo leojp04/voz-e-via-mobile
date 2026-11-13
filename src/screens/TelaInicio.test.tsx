@@ -57,6 +57,27 @@ describe('TelaInicio', () => {
     );
   });
 
+  it('o microfone é o destaque da tela e mostra a dica "Toque e fale"', async () => {
+    await montar();
+    expect(screen.getByText('Toque e fale')).toBeOnTheScreen();
+  });
+
+  it('tocar no microfone avisa "Em breve" com o nome curto da função', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await montar();
+    await fireEvent.press(screen.getByRole('button', { name: 'Falar com o assistente por voz' }));
+    expect(alerta).toHaveBeenCalledWith(
+      'Em breve',
+      'A função "Falar com o assistente" ainda não está disponível.',
+    );
+  });
+
+  it('os atalhos mostram o título curto, mas falam o rótulo completo', async () => {
+    await montar();
+    expect(screen.getByText('Reportar problema')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Reportar um problema na rua' })).toBeOnTheScreen();
+  });
+
   it('Privacidade abre a tela de política de privacidade', async () => {
     const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
     await montarTela(TelaInicio, {

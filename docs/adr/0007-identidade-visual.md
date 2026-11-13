@@ -23,7 +23,7 @@ rótulos para o leitor de tela.
   distintas entre si. Licença livre (OFL 1.1). Vem pelo pacote `@expo-google-fonts/atkinson-hyperlegible`
   e é carregada com o `expo-font`, que já estava instalado.
 - **Ícones com `@expo/vector-icons`** (Ionicons, MIT), pacote oficial do ecossistema Expo. Entram no
-  commit seguinte; ficam escondidos do leitor de tela, porque o botão já tem rótulo falado.
+  componente `Icone`; ficam escondidos do leitor de tela, porque o botão já tem rótulo falado.
 - **Componente `Texto`** (`src/components/Texto.tsx`): o `Text` do React Native já com a fonte aplicada.
 
 ## Por que um componente `Texto`
