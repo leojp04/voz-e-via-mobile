@@ -119,4 +119,28 @@ describe('API de autenticacao falsa', () => {
       expect(erro.status).toBe(401);
     });
   });
+
+  // As APIs falsas de reportes e de fotos usam isto para saber quem e o dono de cada pedido.
+  describe('idDoToken', () => {
+    it('devolve o id do usuario dono do token', async () => {
+      const api = criarAuthApiFalsa();
+      const usuario = await api.cadastrar(cadastroValido);
+      const sessao = await api.login('maria@exemplo.com', 'senha1234');
+      expect(api.idDoToken(sessao.token)).toBe(usuario.id);
+    });
+
+    it('devolve null para token desconhecido ou ausente', async () => {
+      const api = criarAuthApiFalsa();
+      expect(api.idDoToken('token-que-nao-existe')).toBeNull();
+      expect(api.idDoToken(null)).toBeNull();
+    });
+
+    it('devolve null depois que a conta e excluida', async () => {
+      const api = criarAuthApiFalsa();
+      await api.cadastrar(cadastroValido);
+      const sessao = await api.login('maria@exemplo.com', 'senha1234');
+      await api.excluirConta(sessao.token);
+      expect(api.idDoToken(sessao.token)).toBeNull();
+    });
+  });
 });

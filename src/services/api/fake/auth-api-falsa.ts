@@ -22,7 +22,16 @@ function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-export function criarAuthApiFalsa({ latenciaMs = 0 }: Opcoes = {}): AuthApi {
+/**
+ * A API de autenticacao falsa tambem sabe dizer "de quem e este token". A API real nao precisa
+ * disso (o servidor le o token); as APIs falsas de reportes usam para saber o dono de cada reporte.
+ */
+export interface AuthApiFalsa extends AuthApi {
+  /** Id do usuario dono do token, ou null se o token nao existe (ou a conta foi excluida). */
+  idDoToken(token: string | null): number | null;
+}
+
+export function criarAuthApiFalsa({ latenciaMs = 0 }: Opcoes = {}): AuthApiFalsa {
   const usuarios = new Map<number, UsuarioArmazenado>();
   const tokens = new Map<string, number>();
   let proximoId = 1;
@@ -79,6 +88,12 @@ export function criarAuthApiFalsa({ latenciaMs = 0 }: Opcoes = {}): AuthApi {
       for (const [t, dono] of tokens) {
         if (dono === id) tokens.delete(t);
       }
+    },
+
+    idDoToken(token): number | null {
+      if (!token) return null;
+      const id = tokens.get(token);
+      return id !== undefined && usuarios.has(id) ? id : null;
     },
   };
 }
