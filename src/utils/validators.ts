@@ -46,3 +46,29 @@ export function validarConsentimento(aceitou: boolean): Erro {
   if (!aceitou) return 'Para criar a conta, é preciso aceitar o uso dos seus dados.';
   return null;
 }
+
+// Mesmos limites da API .NET (a descricao tem de 10 a 500 letras); a API valida de novo.
+const DESCRICAO_MINIMA = 10;
+const DESCRICAO_MAXIMA = 500;
+
+export function validarDescricaoDoReporte(valor: string): Erro {
+  const descricao = valor.trim();
+  if (descricao === '') return 'Descreva o problema.';
+  if (descricao.length < DESCRICAO_MINIMA) {
+    return `Descreva com pelo menos ${DESCRICAO_MINIMA} letras, para a prefeitura entender.`;
+  }
+  if (descricao.length > DESCRICAO_MAXIMA) {
+    return `A descrição pode ter no máximo ${DESCRICAO_MAXIMA} caracteres.`;
+  }
+  return null;
+}
+
+export function validarCategoria(categoriaId: number | null): Erro {
+  return categoriaId === null ? 'Escolha uma categoria.' : null;
+}
+
+export function validarLocalizacao(temLocalizacao: boolean): Erro {
+  return temLocalizacao
+    ? null
+    : 'Toque em "Usar minha localização" para dizer onde está o problema.';
+}
