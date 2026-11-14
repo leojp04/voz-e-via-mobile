@@ -27,7 +27,7 @@ export default function RootLayout() {
     <AppProviders
       usarApiFalsa={usarApiFalsaDoAmbiente(process.env.EXPO_PUBLIC_USE_FAKE_API)}
       urlJava={process.env.EXPO_PUBLIC_JAVA_API_URL ?? 'http://localhost:8080'}
-      urlDotnet={process.env.EXPO_PUBLIC_DOTNET_API_URL ?? 'http://localhost:5000'}
+      urlDotnet={process.env.EXPO_PUBLIC_DOTNET_API_URL ?? 'http://localhost:5080'}
     >
       <NavegadorRaiz />
     </AppProviders>
