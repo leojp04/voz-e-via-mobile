@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { fireEvent, screen, waitFor } from 'expo-router/testing-library';
+import { Stack, useRouter } from 'expo-router';
+import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
 import { Text } from 'react-native';
 
 import { ErroApi } from '../services/api/erro';
@@ -34,8 +34,15 @@ function InicioFalso() {
   return <Text>Início de mentira</Text>;
 }
 
+// Destino de mentira do "novo reporte": deixa voltar, para testar o recarregamento da lista.
 function NovoFalso() {
-  return <Text>Destino novo reporte</Text>;
+  const router = useRouter();
+  return (
+    <>
+      <Text>Destino novo reporte</Text>
+      <Botao titulo="Voltar falso" onPress={() => router.back()} />
+    </>
+  );
 }
 
 // Detalhe de mentira: mostra o id recebido e deixa voltar, para testar o recarregamento da lista.
@@ -57,7 +64,9 @@ async function montar(configurar: (api: ReturnType<typeof criarReportesApiMock>)
     auth: criarAuthApiMock(),
     reportes,
     rotas: {
-      reportes: TelaMeusReportes,
+      // Stack de verdade (como no app): a lista continua montada enquanto outra tela abre por cima.
+      'reportes/_layout': () => <Stack screenOptions={{ headerShown: false }} />,
+      'reportes/index': TelaMeusReportes,
       'reportes/novo': NovoFalso,
       'reportes/[id]': DetalheFalso,
     },
@@ -198,6 +207,60 @@ describe('TelaMeusReportes', () => {
 
     await waitFor(() => expect(reportes.listarMeus).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('Descricao do reporte numero 7.')).toBeOnTheScreen();
+  });
+
+  it('ignora a resposta atrasada do "Ver mais" depois que a lista foi recarregada', async () => {
+    // Cenario: "Ver mais" fica pendente, a pessoa abre um reporte e volta para a lista (que
+    // recarrega). Se a resposta antiga chegar depois, nao pode desfazer a lista nova.
+    let responderAntiga: (p: Pagina<ReporteResumo>) => void = () => {};
+    const antiga = new Promise<Pagina<ReporteResumo>>((resolve) => {
+      responderAntiga = resolve;
+    });
+    const primeiraPagina = Array.from({ length: 10 }, (_, i) => resumo(12 - i));
+    const reportes = await montar((api) =>
+      api.listarMeus
+        .mockResolvedValueOnce(pagina(primeiraPagina, 1, 12))
+        .mockReturnValueOnce(antiga)
+        .mockResolvedValueOnce(pagina([resumo(12)], 1, 1)),
+    );
+    await screen.findByText('Descricao do reporte numero 12.');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
+    await fireEvent.press(cartao('VV-2026-000012'));
+    await screen.findByText('Destino detalhe');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
+    expect(await screen.findByText('1 reporte')).toBeOnTheScreen();
+    await act(async () => {
+      responderAntiga(pagina([resumo(2), resumo(1)], 2, 12));
+    });
+
+    expect(screen.queryByText('Descricao do reporte numero 2.')).not.toBeOnTheScreen();
+    expect(screen.getByText('1 reporte')).toBeOnTheScreen();
+    expect(reportes.listarMeus).toHaveBeenCalledTimes(3);
+  });
+
+  it('ignora a resposta atrasada de uma recarga antiga (recargas sobrepostas)', async () => {
+    // Cenario: a primeira carga demora; a pessoa abre "novo reporte" e volta, e a lista recarrega
+    // rapido. Quando a carga lenta, e antiga, enfim chega, nao pode sobrescrever a lista nova.
+    let responderLenta: (p: Pagina<ReporteResumo>) => void = () => {};
+    const lenta = new Promise<Pagina<ReporteResumo>>((resolve) => {
+      responderLenta = resolve;
+    });
+    const reportes = await montar((api) =>
+      api.listarMeus.mockReturnValueOnce(lenta).mockResolvedValueOnce(pagina([resumo(5)], 1, 1)),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Fazer um novo reporte' }));
+    await screen.findByText('Destino novo reporte');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
+    expect(await screen.findByText('Descricao do reporte numero 5.')).toBeOnTheScreen();
+    await act(async () => {
+      responderLenta(pagina([resumo(1)], 1, 1));
+    });
+
+    expect(screen.queryByText('Descricao do reporte numero 1.')).not.toBeOnTheScreen();
+    expect(screen.getByText('Descricao do reporte numero 5.')).toBeOnTheScreen();
+    expect(reportes.listarMeus).toHaveBeenCalledTimes(2);
   });
 
   it('"Fazer um novo reporte" leva ao formulario', async () => {

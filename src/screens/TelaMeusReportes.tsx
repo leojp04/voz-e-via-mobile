@@ -7,7 +7,7 @@
 //    a pessoa le, as paginas "andam" e o mesmo reporte poderia vir duas vezes.
 
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
@@ -34,10 +34,18 @@ export function TelaMeusReportes() {
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erroMais, setErroMais] = useState<string | null>(null);
 
+  // "Geracao" da lista: sobe a cada recarregamento e quando a tela perde o foco. Uma resposta so
+  // vale se a geracao ainda for a mesma de quando o pedido saiu; senao a lista nova seria
+  // sobrescrita por uma resposta antiga (ex.: "Ver mais" lento + abrir um reporte + voltar).
+  const geracao = useRef(0);
+
   // Busca a primeira pagina. Usada ao entrar na tela, ao voltar a ela e no "Tentar de novo".
   const carregar = useCallback(async () => {
+    const minha = ++geracao.current;
     try {
       const resposta = await reportes.listarMeus(1, TAMANHO_DA_PAGINA);
+      if (minha !== geracao.current) return;
+      setCarregandoMais(false);
       setItens(resposta.itens);
       setTotal(resposta.total);
       setPagina(1);
@@ -45,24 +53,31 @@ export function TelaMeusReportes() {
       setErro(null);
       setErroMais(null);
     } catch (falha) {
+      if (minha !== geracao.current) return;
       setErro(mensagemDeErroAoCarregar(falha));
     } finally {
-      setCarregando(false);
+      if (minha === geracao.current) setCarregando(false);
     }
   }, [reportes]);
 
   useFocusEffect(
     useCallback(() => {
       void carregar();
+      // Ao perder o foco, respostas que ainda estao a caminho deixam de valer.
+      return () => {
+        geracao.current++;
+      };
     }, [carregar]),
   );
 
   async function carregarMais() {
+    const minha = geracao.current;
     setErroMais(null);
     setCarregandoMais(true);
     try {
       const proxima = pagina + 1;
       const resposta = await reportes.listarMeus(proxima, TAMANHO_DA_PAGINA);
+      if (minha !== geracao.current) return;
       const ids = new Set(itens.map((item) => item.id));
       const juntos = [...itens, ...resposta.itens.filter((item) => !ids.has(item.id))];
       setItens(juntos);
@@ -71,9 +86,9 @@ export function TelaMeusReportes() {
       // Pagina vazia = acabou, mesmo que o total diga o contrario (evita um "Ver mais" infinito).
       setTemMais(resposta.itens.length > 0 && juntos.length < resposta.total);
     } catch (falha) {
-      setErroMais(mensagemDeErroAoCarregar(falha));
+      if (minha === geracao.current) setErroMais(mensagemDeErroAoCarregar(falha));
     } finally {
-      setCarregandoMais(false);
+      if (minha === geracao.current) setCarregandoMais(false);
     }
   }
 
