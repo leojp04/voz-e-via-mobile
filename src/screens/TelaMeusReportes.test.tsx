@@ -239,6 +239,29 @@ describe('TelaMeusReportes', () => {
     expect(reportes.listarMeus).toHaveBeenCalledTimes(3);
   });
 
+  it('se a recarga falhar com um "Ver mais" invalidado, o botao nao fica travado carregando', async () => {
+    // O "Ver mais" pendente deixa de valer quando a lista recarrega; se a recarga falhar, nada
+    // mais limparia o indicador dele, e o botao ficaria desabilitado e girando para sempre.
+    const primeiraPagina = Array.from({ length: 10 }, (_, i) => resumo(12 - i));
+    await montar((api) =>
+      api.listarMeus
+        .mockResolvedValueOnce(pagina(primeiraPagina, 1, 12))
+        .mockReturnValueOnce(new Promise(() => {}))
+        .mockRejectedValueOnce(new ErroApi(0, 'sem rede')),
+    );
+    await screen.findByText('Descricao do reporte numero 12.');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
+    await fireEvent.press(cartao('VV-2026-000012'));
+    await screen.findByText('Destino detalhe');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
+
+    expect(
+      await screen.findByText('Sem conexão. Verifique a internet e tente de novo.'),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Ver mais' })).toBeEnabled();
+  });
+
   it('ignora a resposta atrasada de uma recarga antiga (recargas sobrepostas)', async () => {
     // Cenario: a primeira carga demora; a pessoa abre "novo reporte" e volta, e a lista recarrega
     // rapido. Quando a carga lenta, e antiga, enfim chega, nao pode sobrescrever a lista nova.
