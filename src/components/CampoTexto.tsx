@@ -17,6 +17,8 @@ interface PropsCampoTexto {
   tipoTeclado?: TextInputProps['keyboardType'];
   autoCompletar?: TextInputProps['autoComplete'];
   autoCapitalizar?: TextInputProps['autoCapitalize'];
+  /** true = varias linhas (ex.: descricao de um reporte); o cursor comeca no topo. */
+  multilinha?: boolean;
 }
 
 export function CampoTexto({
@@ -28,6 +30,7 @@ export function CampoTexto({
   tipoTeclado,
   autoCompletar,
   autoCapitalizar = 'none',
+  multilinha = false,
 }: PropsCampoTexto) {
   return (
     <View style={styles.grupo}>
@@ -41,7 +44,13 @@ export function CampoTexto({
         autoComplete={autoCompletar}
         autoCapitalize={autoCapitalizar}
         autoCorrect={false}
-        style={[styles.entrada, erro ? styles.entradaComErro : null]}
+        multiline={multilinha}
+        textAlignVertical={multilinha ? 'top' : undefined}
+        style={[
+          styles.entrada,
+          multilinha ? styles.entradaMultilinha : null,
+          erro ? styles.entradaComErro : null,
+        ]}
       />
       {erro ? (
         <Texto style={styles.erro} accessibilityRole="alert" accessibilityLiveRegion="polite">
@@ -66,6 +75,8 @@ const styles = StyleSheet.create({
     color: cores.texto,
     backgroundColor: cores.fundo,
   },
+  // Mais alto (com paddingVertical, para o texto nao encostar na borda) para caber varias linhas.
+  entradaMultilinha: { minHeight: 120, paddingVertical: espacos.pequeno },
   entradaComErro: { borderColor: cores.erro },
   erro: { fontSize: fontes.rotulo, color: cores.erro },
 });
