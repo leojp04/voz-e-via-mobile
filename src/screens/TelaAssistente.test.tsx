@@ -1,9 +1,11 @@
-import { fireEvent, screen, waitFor } from 'expo-router/testing-library';
+import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
 import { Alert, Text } from 'react-native';
 
 import { obterLocalizacao } from '../services/aparelho/localizacao';
 import { ErroApi } from '../services/api/erro';
 import type { Contato, Pagina, RespostaAssistente } from '../services/api/types';
+import { falar, pararDeFalar } from '../services/voz/falar';
+import { useEscutaDeVoz, type EscutaDeVoz } from '../services/voz/use-escuta-de-voz';
 import {
   criarArmazenamentoEmMemoria,
   criarAssistenteApiMock,
@@ -22,6 +24,41 @@ jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('../utils/ligar-para');
 jest.mock('../utils/url-do-mapa');
 jest.mock('../services/aparelho/localizacao');
+// Voz (microfone e fala) e nativa: a logica da escuta ja tem teste proprio, aqui a tela recebe o
+// estado pronto e so conferimos o que ela desenha e quando manda parar de falar.
+jest.mock('../services/voz/falar');
+jest.mock('../services/voz/use-escuta-de-voz');
+
+const escuta = useEscutaDeVoz as jest.Mock;
+const alternar = jest.fn();
+const aceitarAviso = jest.fn();
+const recusarAviso = jest.fn();
+
+function simularEscuta(estado: Partial<EscutaDeVoz> = {}) {
+  escuta.mockReturnValue({
+    disponivel: true,
+    ouvindo: false,
+    precisaAviso: false,
+    erro: null,
+    alternar,
+    aceitarAviso,
+    recusarAviso,
+    ...estado,
+  });
+}
+
+/** Simula o aparelho entregando texto falado: chama o "aoTexto" que a tela deu ao hook. */
+async function aparelhoOuviu(texto: string, final = true) {
+  const { aoTexto } = escuta.mock.calls[escuta.mock.calls.length - 1][0];
+  await act(async () => aoTexto(texto, final));
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  (falar as jest.Mock).mockResolvedValue(undefined);
+  (pararDeFalar as jest.Mock).mockResolvedValue(undefined);
+  simularEscuta();
+});
 
 afterEach(() => jest.restoreAllMocks());
 
@@ -368,5 +405,213 @@ describe('TelaAssistente', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
 
     await waitFor(() => expect(screen.getByText('Início de mentira')).toBeOnTheScreen());
+  });
+});
+
+describe('TelaAssistente: voz', () => {
+  const MIC = 'Falar com o assistente por voz';
+  const LER_SEMPRE = 'Ler sempre a resposta em voz alta';
+
+  async function montarComResposta(resposta: RespostaAssistente) {
+    const assistente = await montar((api) => api.interpretar.mockResolvedValue(resposta));
+    await screen.findByRole('header', { name: 'Assistente' });
+    return assistente;
+  }
+
+  describe('microfone', () => {
+    it('mostra o botão do microfone e um toque manda o hook começar a ouvir', async () => {
+      await montar();
+      await fireEvent.press(await screen.findByRole('button', { name: MIC }));
+      expect(alternar).toHaveBeenCalledTimes(1);
+    });
+
+    it('enquanto ouve, o botão vira "Parar de ouvir"', async () => {
+      simularEscuta({ ouvindo: true });
+      await montar();
+      expect(await screen.findByRole('button', { name: 'Parar de ouvir' })).toBeOnTheScreen();
+    });
+
+    it('sem reconhecedor no aparelho, esconde o microfone e manda digitar', async () => {
+      simularEscuta({ disponivel: false });
+      await montar();
+      await screen.findByRole('header', { name: 'Assistente' });
+      expect(screen.queryByRole('button', { name: MIC })).not.toBeOnTheScreen();
+      expect(
+        screen.getByText('Voz indisponível neste aparelho. Digite o que você precisa.'),
+      ).toBeOnTheScreen();
+    });
+
+    it('com o microfone disponível, não mostra o aviso de voz indisponível', async () => {
+      await montar();
+      await screen.findByRole('header', { name: 'Assistente' });
+      expect(screen.queryByText(/Voz indisponível/)).not.toBeOnTheScreen();
+    });
+
+    it('mostra o erro da voz numa faixa de alerta', async () => {
+      simularEscuta({ erro: 'Não ouvi nada. Toque no microfone e fale de novo.' });
+      await montar();
+      expect(await screen.findByText(/Não ouvi nada/)).toBeOnTheScreen();
+    });
+  });
+
+  describe('texto falado', () => {
+    it('preenche o campo e NÃO envia sozinho (a pessoa confere e toca em Enviar)', async () => {
+      const assistente = await montar();
+      await screen.findByRole('header', { name: 'Assistente' });
+      await aparelhoOuviu('ligar para a filha');
+      expect(screen.getByLabelText('O que você precisa?')).toHaveProp(
+        'value',
+        'ligar para a filha',
+      );
+      expect(assistente.interpretar).not.toHaveBeenCalled();
+    });
+
+    it('acompanha o texto parcial enquanto a pessoa fala', async () => {
+      await montar();
+      await screen.findByRole('header', { name: 'Assistente' });
+      await aparelhoOuviu('ligar', false);
+      expect(screen.getByLabelText('O que você precisa?')).toHaveProp('value', 'ligar');
+      await aparelhoOuviu('ligar para a filha', true);
+      expect(screen.getByLabelText('O que você precisa?')).toHaveProp(
+        'value',
+        'ligar para a filha',
+      );
+    });
+
+    it('apaga a sugestão antiga, que era de outro texto', async () => {
+      await montarComResposta(reporte);
+      await digitarEEnviar('calçada quebrada');
+      await screen.findByText(reporte.respostaFalada);
+      await aparelhoOuviu('outra coisa');
+      expect(screen.queryByText(reporte.respostaFalada)).not.toBeOnTheScreen();
+    });
+
+    it('o texto falado pode ser enviado pelo botão Enviar', async () => {
+      const assistente = await montarComResposta(direito);
+      await aparelhoOuviu('quais são meus direitos');
+      await fireEvent.press(screen.getByRole('button', { name: 'Enviar ao assistente' }));
+      await screen.findByText(direito.respostaFalada);
+      expect(assistente.interpretar).toHaveBeenCalledWith({ texto: 'quais são meus direitos' });
+    });
+  });
+
+  describe('aviso antes do reconhecedor do sistema', () => {
+    it('não aparece quando não é preciso', async () => {
+      await montar();
+      await screen.findByRole('header', { name: 'Assistente' });
+      expect(screen.queryByText(/Apple ou do Google/)).not.toBeOnTheScreen();
+    });
+
+    it('explica que o sistema (Apple ou Google) pode processar o áudio e que só o texto vai para a API', async () => {
+      simularEscuta({ precisaAviso: true });
+      await montar();
+      expect(await screen.findByText(/Apple ou do Google/)).toBeOnTheScreen();
+      expect(screen.getByText(/só o texto/i)).toBeOnTheScreen();
+    });
+
+    it('"Entendi, usar a voz" aceita o aviso', async () => {
+      simularEscuta({ precisaAviso: true });
+      await montar();
+      await fireEvent.press(await screen.findByRole('button', { name: 'Entendi, usar a voz' }));
+      expect(aceitarAviso).toHaveBeenCalledTimes(1);
+    });
+
+    it('"Prefiro digitar" recusa o aviso', async () => {
+      simularEscuta({ precisaAviso: true });
+      await montar();
+      await fireEvent.press(await screen.findByRole('button', { name: 'Prefiro digitar' }));
+      expect(recusarAviso).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('ler a resposta em voz alta', () => {
+    it('o interruptor "Ler sempre a resposta" começa ligado', async () => {
+      await montar();
+      expect(await screen.findByRole('checkbox', { name: LER_SEMPRE })).toBeChecked();
+    });
+
+    it('ligado: lê a resposta mesmo quando a pergunta foi digitada', async () => {
+      await montarComResposta(direito);
+      await digitarEEnviar('meus direitos');
+      await screen.findByText(direito.respostaFalada);
+      expect(falar).toHaveBeenCalledWith(direito.respostaFalada);
+    });
+
+    it('desligado: pergunta digitada não é lida', async () => {
+      await montarComResposta(direito);
+      await fireEvent.press(screen.getByRole('checkbox', { name: LER_SEMPRE }));
+      await digitarEEnviar('meus direitos');
+      await screen.findByText(direito.respostaFalada);
+      expect(falar).not.toHaveBeenCalled();
+    });
+
+    it('desligado: pergunta feita por voz é lida', async () => {
+      await montarComResposta(direito);
+      await fireEvent.press(screen.getByRole('checkbox', { name: LER_SEMPRE }));
+      await aparelhoOuviu('meus direitos');
+      await fireEvent.press(screen.getByRole('button', { name: 'Enviar ao assistente' }));
+      await screen.findByText(direito.respostaFalada);
+      expect(falar).toHaveBeenCalledWith(direito.respostaFalada);
+    });
+
+    it('desligado: depois de falar, se a pessoa digitar por cima, volta a não ler', async () => {
+      await montarComResposta(direito);
+      await fireEvent.press(screen.getByRole('checkbox', { name: LER_SEMPRE }));
+      await aparelhoOuviu('meus direitos');
+      await digitarEEnviar('meus direitos de novo');
+      await screen.findByText(direito.respostaFalada);
+      expect(falar).not.toHaveBeenCalled();
+    });
+
+    it('"Ouvir de novo" lê a resposta outra vez, com o interruptor desligado também', async () => {
+      await montarComResposta(direito);
+      await fireEvent.press(screen.getByRole('checkbox', { name: LER_SEMPRE }));
+      await digitarEEnviar('meus direitos');
+      await screen.findByText(direito.respostaFalada);
+      await fireEvent.press(screen.getByRole('button', { name: 'Ouvir a resposta de novo' }));
+      expect(falar).toHaveBeenCalledWith(direito.respostaFalada);
+    });
+
+    it('não mostra "Ouvir de novo" quando ainda não há resposta', async () => {
+      await montar();
+      await screen.findByRole('header', { name: 'Assistente' });
+      expect(
+        screen.queryByRole('button', { name: 'Ouvir a resposta de novo' }),
+      ).not.toBeOnTheScreen();
+    });
+  });
+
+  describe('parar de falar', () => {
+    async function comRespostaNaTela() {
+      await montarComResposta(reporte);
+      await digitarEEnviar('calçada quebrada');
+      await screen.findByText(reporte.respostaFalada);
+      (pararDeFalar as jest.Mock).mockClear();
+    }
+
+    it('"Não, cancelar" para a leitura', async () => {
+      await comRespostaNaTela();
+      await fireEvent.press(screen.getByRole('button', { name: 'Não, cancelar' }));
+      expect(pararDeFalar).toHaveBeenCalled();
+    });
+
+    it('"Sim, confirmar" para a leitura antes de agir', async () => {
+      await comRespostaNaTela();
+      await fireEvent.press(screen.getByRole('button', { name: 'Sim, confirmar' }));
+      expect(pararDeFalar).toHaveBeenCalled();
+    });
+
+    it('mexer no texto para a leitura', async () => {
+      await comRespostaNaTela();
+      await fireEvent.changeText(screen.getByLabelText('O que você precisa?'), 'outra coisa');
+      expect(pararDeFalar).toHaveBeenCalled();
+    });
+
+    it('sair da tela para a leitura', async () => {
+      await comRespostaNaTela();
+      await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
+      await waitFor(() => expect(screen.getByText('Início de mentira')).toBeOnTheScreen());
+      expect(pararDeFalar).toHaveBeenCalled();
+    });
   });
 });

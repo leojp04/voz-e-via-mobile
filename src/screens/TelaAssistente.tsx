@@ -1,15 +1,18 @@
-// Tela do Assistente (por enquanto so com texto digitado; a voz entra em outra etapa). A pessoa
-// escreve o que precisa, a API interpreta e a tela MOSTRA o que entendeu. Regra de seguranca do
+// Tela do Assistente: a pessoa fala (microfone) ou digita, e a resposta pode ser lida em voz alta.
+// A fala so PREENCHE o campo; quem envia e a pessoa, depois de conferir. A API interpreta e a
+// tela MOSTRA o que entendeu. Regra de seguranca do
 // plano unico (secao 4.2): a IA nunca executa nada sozinha. Quando a resposta pede confirmacao,
 // so um toque em "Sim, confirmar" libera a acao; mexer no texto apaga a sugestao antiga, para
 // ninguem confirmar uma coisa que ja nao e o que esta escrito. Mesmo quando a API nao pede
 // confirmacao, qualquer intencao que AGE (liga, abre mapa ou outra tela) espera esse toque.
 
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
+import { BotaoMicrofone } from '../components/BotaoMicrofone';
+import { CaixaConsentimento } from '../components/CaixaConsentimento';
 import { CampoTexto } from '../components/CampoTexto';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
@@ -17,12 +20,18 @@ import { useApis } from '../contexts/ApisContext';
 import { obterLocalizacao } from '../services/aparelho/localizacao';
 import type { RespostaAssistente } from '../services/api/types';
 import { executarIntencao, intencaoTemAcao } from '../services/assistente/executar-intencao';
+import { falar, pararDeFalar } from '../services/voz/falar';
+import { useEscutaDeVoz } from '../services/voz/use-escuta-de-voz';
 import { cores, espacos, fontes } from '../theme';
 import { ligarPara } from '../utils/ligar-para';
 import { mensagemDeErroDoAssistente } from '../utils/mensagem-de-erro';
 import { abrirBuscaNoMapa } from '../utils/url-do-mapa';
 
 const MENSAGEM_TEXTO_VAZIO = 'Escreva o que você precisa.';
+const MENSAGEM_SEM_VOZ = 'Voz indisponível neste aparelho. Digite o que você precisa.';
+// Aviso antes de usar o reconhecedor do sistema (ver services/voz/reconhecimento.ts).
+const TEXTO_DO_AVISO =
+  'Este aparelho não entende voz sem internet. Para usar a voz, o serviço de fala da Apple ou do Google pode processar o seu áudio. O Voz & Via não recebe o áudio, só o texto. Você pode digitar se preferir.';
 
 export function TelaAssistente() {
   const { assistente, contatos } = useApis();
@@ -37,8 +46,32 @@ export function TelaAssistente() {
   const ocupadoAgora = useRef(false);
   const [executando, setExecutando] = useState(false);
   const executandoAgora = useRef(false);
+  // "Ler sempre" ligado: toda resposta e lida. Desligado: so a de uma pergunta feita por voz.
+  const [lerSempre, setLerSempre] = useState(true);
+  const veioPorVoz = useRef(false);
+  const voz = useEscutaDeVoz({ aoTexto: aoTextoFalado });
+
+  // Sair da tela corta a leitura em andamento.
+  useEffect(
+    () => () => {
+      void pararDeFalar();
+    },
+    [],
+  );
+
+  function aoTextoFalado(falado: string) {
+    veioPorVoz.current = true;
+    setTexto(falado);
+    setErroDoCampo(null);
+    // A sugestao antiga era de outro texto. A fala so preenche o campo: a pessoa confere e envia.
+    setResposta(null);
+    setAviso(null);
+    void pararDeFalar();
+  }
 
   function aoMudarTexto(novo: string) {
+    veioPorVoz.current = false;
+    void pararDeFalar();
     setTexto(novo);
     setErroDoCampo(null);
     // A sugestao (e o aviso da acao) eram do texto antigo: somem, para nao confundir.
@@ -54,13 +87,16 @@ export function TelaAssistente() {
       return;
     }
 
+    const porVoz = veioPorVoz.current;
     ocupadoAgora.current = true;
     setOcupado(true);
     setErroGeral(null);
     setAviso(null);
     setResposta(null);
     try {
-      setResposta(await assistente.interpretar({ texto: limpo }));
+      const nova = await assistente.interpretar({ texto: limpo });
+      setResposta(nova);
+      if (lerSempre || porVoz) void falar(nova.respostaFalada);
     } catch (falha) {
       setErroGeral(mensagemDeErroDoAssistente(falha));
     } finally {
@@ -71,6 +107,7 @@ export function TelaAssistente() {
 
   async function confirmar() {
     if (!resposta || executandoAgora.current) return;
+    void pararDeFalar();
     executandoAgora.current = true;
     setExecutando(true);
     try {
@@ -91,6 +128,7 @@ export function TelaAssistente() {
   }
 
   function voltar() {
+    void pararDeFalar();
     if (router.canGoBack()) router.back();
     else router.replace('/');
   }
@@ -100,6 +138,26 @@ export function TelaAssistente() {
       <Texto style={styles.titulo} accessibilityRole="header">
         Assistente
       </Texto>
+
+      {voz.disponivel ? (
+        <BotaoMicrofone ouvindo={voz.ouvindo} onPress={() => void voz.alternar()} />
+      ) : (
+        <Texto style={styles.dicaSemVoz}>{MENSAGEM_SEM_VOZ}</Texto>
+      )}
+
+      {voz.precisaAviso ? (
+        <View style={styles.cartao} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          <Texto style={styles.textoDoAviso}>{TEXTO_DO_AVISO}</Texto>
+          <Botao titulo="Entendi, usar a voz" onPress={() => void voz.aceitarAviso()} />
+          <Botao titulo="Prefiro digitar" variante="secundario" onPress={voz.recusarAviso} />
+        </View>
+      ) : null}
+
+      {voz.erro ? (
+        <View style={styles.faixaErro} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          <Texto style={styles.textoErro}>{voz.erro}</Texto>
+        </View>
+      ) : null}
 
       <CampoTexto
         rotulo="O que você precisa?"
@@ -135,6 +193,13 @@ export function TelaAssistente() {
           {resposta.fontes.map((fonte) => (
             <Texto key={fonte} style={styles.fonte}>{`Fonte: ${fonte}`}</Texto>
           ))}
+          <Botao
+            titulo="Ouvir de novo"
+            rotulo="Ouvir a resposta de novo"
+            variante="secundario"
+            icone="volume-high"
+            onPress={() => void falar(resposta.respostaFalada)}
+          />
           {resposta.precisaConfirmacao || intencaoTemAcao(resposta.intencao) ? (
             <View style={styles.confirmacao}>
               <Botao
@@ -146,12 +211,21 @@ export function TelaAssistente() {
               <Botao
                 titulo="Não, cancelar"
                 variante="secundario"
-                onPress={() => setResposta(null)}
+                onPress={() => {
+                  void pararDeFalar();
+                  setResposta(null);
+                }}
               />
             </View>
           ) : null}
         </View>
       ) : null}
+
+      <CaixaConsentimento
+        texto="Ler sempre a resposta em voz alta"
+        marcada={lerSempre}
+        aoAlternar={() => setLerSempre((atual) => !atual)}
+      />
 
       <Botao titulo="Voltar" variante="secundario" onPress={voltar} />
     </Tela>
@@ -170,6 +244,8 @@ const styles = StyleSheet.create({
   resposta: { fontSize: fontes.subtitulo, color: cores.texto },
   fonte: { fontSize: fontes.corpo, color: cores.textoSecundario },
   confirmacao: { gap: espacos.pequeno },
+  dicaSemVoz: { fontSize: fontes.corpo, color: cores.textoSecundario },
+  textoDoAviso: { fontSize: fontes.corpo, color: cores.texto },
   faixaErro: {
     padding: espacos.medio,
     borderRadius: 8,
