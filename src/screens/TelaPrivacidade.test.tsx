@@ -125,10 +125,22 @@ describe('TelaPrivacidade', () => {
     expect(screen.getByRole('header', { name: titulo })).toBeOnTheScreen();
   });
 
-  it('diz que não coletamos o tipo de deficiência nem guardamos o áudio', async () => {
+  it('diz que não coletamos o tipo de deficiência', async () => {
     await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
     expect(screen.getByText(/tipo de deficiência/i)).toBeOnTheScreen();
-    expect(screen.getByText(/áudio.*não sai do seu celular/i)).toBeOnTheScreen();
+  });
+
+  it('explica o áudio: no celular quando dá, e o aviso quando o sistema (Apple ou Google) entra', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(screen.getByText(/dentro dele e o áudio não sai do aparelho/i)).toBeOnTheScreen();
+    expect(screen.getByText(/avisa antes/i)).toBeOnTheScreen();
+    expect(screen.getByText(/Apple ou Google/i)).toBeOnTheScreen();
+    expect(screen.getByText(/só o texto é enviado/i)).toBeOnTheScreen();
+  });
+
+  it('não promete mais que o áudio nunca sai do celular (isso nem sempre é verdade)', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(screen.queryByText(/não sai do seu celular/i)).not.toBeOnTheScreen();
   });
 
   it('cita o direito de excluir a conta e a LGPD', async () => {

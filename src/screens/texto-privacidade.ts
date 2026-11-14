@@ -35,7 +35,8 @@ export const SECOES_DE_PRIVACIDADE: SecaoDePrivacidade[] = [
     titulo: 'O que não coletamos',
     paragrafos: [
       'Não perguntamos o tipo de deficiência nem dados de saúde.',
-      'O áudio da sua voz vira texto no próprio aparelho e não sai do seu celular. Só o texto é enviado.',
+      'A sua voz vira texto. Quando o seu celular consegue, isso acontece dentro dele e o áudio não sai do aparelho.',
+      'Se o seu celular não consegue, o app avisa antes de usar a voz. Nesse caso o serviço de fala do sistema (Apple ou Google) pode processar o áudio. Nós não recebemos nem guardamos o áudio: só o texto é enviado.',
     ],
   },
   {
