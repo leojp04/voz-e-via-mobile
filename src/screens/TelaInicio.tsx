@@ -22,10 +22,17 @@ interface AtalhoDoInicio {
   /** Frase completa lida pelo leitor de tela. */
   rotulo: string;
   icone: NomeDeIcone;
+  /** Tela que o atalho abre; sem rota, o atalho ainda avisa "Em breve". */
+  rota?: '/reportes/novo';
 }
 
-const ATALHOS_EM_BREVE: AtalhoDoInicio[] = [
-  { titulo: 'Reportar problema', rotulo: 'Reportar um problema na rua', icone: 'camera-outline' },
+const ATALHOS: AtalhoDoInicio[] = [
+  {
+    titulo: 'Reportar problema',
+    rotulo: 'Reportar um problema na rua',
+    icone: 'camera-outline',
+    rota: '/reportes/novo',
+  },
   { titulo: 'Meus reportes', rotulo: 'Meus reportes', icone: 'list-outline' },
   { titulo: 'Contatos', rotulo: 'Contatos de emergência', icone: 'call-outline' },
 ];
@@ -54,13 +61,15 @@ export function TelaInicio() {
       <BotaoMicrofone onPress={() => avisarEmBreve('Falar com o assistente')} />
 
       <View style={styles.grade}>
-        {ATALHOS_EM_BREVE.map((atalho) => (
+        {ATALHOS.map((atalho) => (
           <View key={atalho.rotulo} style={celula}>
             <AtalhoQuadrado
               titulo={atalho.titulo}
               rotulo={atalho.rotulo}
               icone={atalho.icone}
-              onPress={() => avisarEmBreve(atalho.titulo)}
+              onPress={() =>
+                atalho.rota ? router.push(atalho.rota) : avisarEmBreve(atalho.titulo)
+              }
             />
           </View>
         ))}

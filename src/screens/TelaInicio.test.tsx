@@ -78,6 +78,19 @@ describe('TelaInicio', () => {
     expect(screen.getByRole('button', { name: 'Reportar um problema na rua' })).toBeOnTheScreen();
   });
 
+  it('Reportar problema abre a tela de novo reporte (sem aviso de "Em breve")', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
+    await montarTela(TelaInicio, {
+      auth: criarAuthApiMock(),
+      armazenamento,
+      rotas: { 'reportes/novo': () => <Text>Destino novo reporte</Text> },
+    });
+    await fireEvent.press(screen.getByRole('button', { name: 'Reportar um problema na rua' }));
+    expect(await screen.findByText('Destino novo reporte')).toBeOnTheScreen();
+    expect(alerta).not.toHaveBeenCalled();
+  });
+
   it('Privacidade abre a tela de política de privacidade', async () => {
     const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
     await montarTela(TelaInicio, {
