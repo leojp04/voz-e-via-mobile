@@ -12,8 +12,9 @@ voltado a pessoas idosas e pessoas com deficiência e reúne duas partes, cada u
 > **Status:** em construção. Hoje o app tem login, cadastro, início, política de privacidade, a
 > tela "Sobre o app" (versão e **hash do commit** gravado no build,
 > [ADR 0006](docs/adr/0006-hash-do-commit-em-app-config.md)) e o fluxo de **reportes**: novo
-> reporte com foto e localização, lista "Meus reportes", detalhe, edição e cancelamento. O
-> assistente por voz e os contatos entram nas próximas etapas.
+> reporte com foto e localização, lista "Meus reportes", detalhe, edição e cancelamento, e os
+> **contatos de emergência** (lista, criar, editar e excluir). O assistente por voz e o convite
+> de cuidador entram nas próximas etapas.
 
 ## Requisitos
 
@@ -53,6 +54,20 @@ Antes de cada commit: `npm run lint`, `npm run format:check` e `npm run typechec
 Veja o [`.env.example`](.env.example). As variáveis `EXPO_PUBLIC_*` ficam dentro do app
 instalado e podem ser lidas por qualquer pessoa, por isso **não guardam segredo**. O arquivo
 `.env` real não vai para o Git.
+
+## Suposições sobre as APIs
+
+Enquanto as APIs reais não confirmam, o app assume o seguinte (o detalhe de cada ponto está no
+plano único, seções 8.1 e 8.2). Se a API divergir, a tela quebra só na integração, então
+convém confirmar antes:
+
+- **Contatos (API Java):** prioridade é um inteiro de 1 a 5, sendo 1 quem chamar primeiro.
+- **Páginas:** o app conta a partir de 1. A API Java (Spring) conta a partir de 0, e o app
+  converte só no adaptador real. A API .NET deve contar a partir de 1.
+- **Formato das listas:** `{ itens, pagina, tamanho, total }`. O `Page` padrão do Spring usa
+  outros nomes (`content`, `number`, `size`, `totalElements`), então a API Java precisa de um
+  DTO próprio ou o adaptador do app muda.
+- **Telefone:** o app envia com máscara e a API guarda só os dígitos (DDD mais 8 ou 9 números).
 
 ## Estrutura de pastas (alvo)
 
