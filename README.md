@@ -9,10 +9,11 @@ voltado a pessoas idosas e pessoas com deficiência e reúne duas partes, cada u
 - **Zeladoria de acessibilidade** (API .NET): o cidadão reporta barreiras na rua (calçada
   quebrada, rampa ausente, buraco) com foto e localização e acompanha o andamento.
 
-> **Status:** em construção. Hoje o app tem login, cadastro, início, política de privacidade e a
-> tela "Sobre o app", que mostra a versão e o **hash do commit** gravado no build
-> ([ADR 0006](docs/adr/0006-hash-do-commit-em-app-config.md)). As telas de reportes, assistente por
-> voz e contatos entram nas próximas etapas.
+> **Status:** em construção. Hoje o app tem login, cadastro, início, política de privacidade, a
+> tela "Sobre o app" (versão e **hash do commit** gravado no build,
+> [ADR 0006](docs/adr/0006-hash-do-commit-em-app-config.md)) e o fluxo de **reportes**: novo
+> reporte com foto e localização, lista "Meus reportes", detalhe, edição e cancelamento. O
+> assistente por voz e os contatos entram nas próximas etapas.
 
 ## Requisitos
 
@@ -95,10 +96,12 @@ etapa os usuários são apenas contas de teste.
 
 - **Fonte Atkinson Hyperlegible**: Braille Institute, licença SIL OFL 1.1 (pacote `@expo-google-fonts/atkinson-hyperlegible`, MIT).
 - **Ícones Ionicons**: Ionic, licença MIT (pacote `@expo/vector-icons`).
+- **Câmera e galeria (foto do reporte)**: `expo-image-picker`, licença MIT (Expo).
+- **Localização (GPS do reporte)**: `expo-location`, licença MIT (Expo).
 - **Logo e ícone do app**: desenho próprio do projeto (`assets/images/voz-e-via.svg`).
 
 ## Entrega
 
 - Vídeo (até 5 min): _link a preencher_
 - Publicação no Firebase App Distribution: _a preencher_
-- Tela "Sobre o App" com o hash do commit: _ainda não implementada_
+- Tela "Sobre o App" com o hash do commit: disponível em Início → Sobre o app
