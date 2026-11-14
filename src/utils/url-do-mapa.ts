@@ -3,7 +3,7 @@
 //  - iOS: link do Apple Maps.
 //  - Android: esquema "geo:", que abre o app de mapas que a pessoa escolheu como padrao.
 
-import { Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 
 const NOME_DO_PONTO = encodeURIComponent('Local do reporte');
 
@@ -13,4 +13,14 @@ export function urlDoMapa(latitude: number, longitude: number): string {
     return `https://maps.apple.com/?ll=${ponto}&q=${NOME_DO_PONTO}`;
   }
   return `geo:${ponto}?q=${ponto}(${NOME_DO_PONTO})`;
+}
+
+/** Abre o app de mapas no ponto; sem app de mapas, avisa em vez de falhar calado. */
+export function abrirNoMapa(latitude: number, longitude: number): void {
+  Linking.openURL(urlDoMapa(latitude, longitude)).catch(() => {
+    Alert.alert(
+      'Não foi possível abrir o mapa',
+      'Seu aparelho não tem um aplicativo de mapas disponível.',
+    );
+  });
 }

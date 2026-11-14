@@ -3,11 +3,11 @@
 // mapa", sem biblioteca de mapa: docs/adr/0009). Como no CampoDeFoto, so desenha e avisa os
 // toques; quem le o GPS e a tela (services/aparelho/localizacao.ts).
 
-import { Alert, Linking, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { LocalizacaoAtual } from '../services/aparelho/localizacao';
 import { cores, espacos, fontes } from '../theme';
-import { urlDoMapa } from '../utils/url-do-mapa';
+import { abrirNoMapa } from '../utils/url-do-mapa';
 import { Botao } from './Botao';
 import { Texto } from './Texto';
 
@@ -19,15 +19,6 @@ interface PropsBlocoLocalizacao {
   aoUsar: () => void;
   /** Mensagem a mostrar abaixo; null/ausente = sem erro. */
   erro?: string | null;
-}
-
-function abrirNoMapa(localizacao: LocalizacaoAtual) {
-  Linking.openURL(urlDoMapa(localizacao.latitude, localizacao.longitude)).catch(() => {
-    Alert.alert(
-      'Não foi possível abrir o mapa',
-      'Seu aparelho não tem um aplicativo de mapas disponível.',
-    );
-  });
 }
 
 export function BlocoLocalizacao({ localizacao, obtendo, aoUsar, erro }: PropsBlocoLocalizacao) {
@@ -56,7 +47,7 @@ export function BlocoLocalizacao({ localizacao, obtendo, aoUsar, erro }: PropsBl
             titulo="Ver no mapa"
             variante="secundario"
             icone="map-outline"
-            onPress={() => abrirNoMapa(localizacao)}
+            onPress={() => abrirNoMapa(localizacao.latitude, localizacao.longitude)}
           />
         </>
       ) : (

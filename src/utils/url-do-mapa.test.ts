@@ -1,6 +1,29 @@
-import { Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 
-import { urlDoMapa } from './url-do-mapa';
+import { abrirNoMapa, urlDoMapa } from './url-do-mapa';
+
+describe('abrirNoMapa', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('abre o app de mapas no ponto', async () => {
+    const abrir = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    abrirNoMapa(-23.5505, -46.6333);
+    expect(abrir).toHaveBeenCalledWith(urlDoMapa(-23.5505, -46.6333));
+  });
+
+  it('se nao houver app de mapas, avisa em vez de falhar calado', async () => {
+    jest.spyOn(Linking, 'openURL').mockRejectedValue(new Error('sem app'));
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+    abrirNoMapa(-23.5505, -46.6333);
+    await Promise.resolve();
+
+    expect(alerta).toHaveBeenCalledWith(
+      'Não foi possível abrir o mapa',
+      'Seu aparelho não tem um aplicativo de mapas disponível.',
+    );
+  });
+});
 
 describe('urlDoMapa', () => {
   it('no iOS abre o Apple Maps no ponto, com o nome "Local do reporte"', () => {

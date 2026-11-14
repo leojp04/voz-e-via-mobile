@@ -1,5 +1,33 @@
 import { ErroApi } from '../services/api/erro';
-import { mensagemDeErroDaFoto, mensagemDeErroDoReporte } from './mensagem-de-erro';
+import {
+  mensagemDeErroAoCarregar,
+  mensagemDeErroDaFoto,
+  mensagemDeErroDoReporte,
+} from './mensagem-de-erro';
+
+describe('mensagemDeErroAoCarregar', () => {
+  it('sem conexao: sugere verificar a internet', () => {
+    expect(mensagemDeErroAoCarregar(new ErroApi(0, 'x'))).toBe(
+      'Sem conexão. Verifique a internet e tente de novo.',
+    );
+  });
+
+  it('404: o reporte nao existe (ou nao e da pessoa)', () => {
+    expect(mensagemDeErroAoCarregar(new ErroApi(404, 'x'))).toBe('Reporte não encontrado.');
+  });
+
+  it('erro do servidor', () => {
+    expect(mensagemDeErroAoCarregar(new ErroApi(500, 'x'))).toBe(
+      'O servidor está com problemas. Tente de novo em instantes.',
+    );
+  });
+
+  it('qualquer outro erro: frase generica, nunca o texto tecnico', () => {
+    const generica = 'Não foi possível carregar. Tente de novo.';
+    expect(mensagemDeErroAoCarregar(new ErroApi(400, 'Stack trace secreto'))).toBe(generica);
+    expect(mensagemDeErroAoCarregar(new Error('TypeError: x'))).toBe(generica);
+  });
+});
 
 describe('mensagemDeErroDoReporte', () => {
   it('sem conexao: diz que o reporte NAO foi enviado', () => {

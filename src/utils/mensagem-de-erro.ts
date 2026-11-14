@@ -47,6 +47,17 @@ export function mensagemDeErroDaFoto(erro: unknown): string {
   return 'Não foi possível enviar a foto. Tente de novo.';
 }
 
+// Ao carregar uma lista ou um detalhe (so leitura): nada foi alterado, entao a frase so explica
+// por que nao apareceu e sugere tentar de novo.
+export function mensagemDeErroAoCarregar(erro: unknown): string {
+  if (ehErroApi(erro)) {
+    if (erro.status === 0) return 'Sem conexão. Verifique a internet e tente de novo.';
+    if (erro.status === 404) return 'Reporte não encontrado.';
+    if (erro.status >= 500) return 'O servidor está com problemas. Tente de novo em instantes.';
+  }
+  return 'Não foi possível carregar. Tente de novo.';
+}
+
 export function mensagemDeErro(erro: unknown): string {
   if (!ehErroApi(erro)) return MENSAGEM_GENERICA;
 
