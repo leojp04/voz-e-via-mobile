@@ -74,7 +74,10 @@ async function montar() {
     auth: criarAuthApiMock(),
     reportes,
     fotos,
-    rotas: { 'reportes/novo': TelaNovoReporte },
+    rotas: {
+      'reportes/novo': TelaNovoReporte,
+      reportes: () => <Text>Destino meus reportes</Text>,
+    },
     url: '/reportes/novo',
   });
   await screen.findByRole('radio', { name: 'Calçada quebrada' });
@@ -363,6 +366,17 @@ describe('TelaNovoReporte', () => {
       await enviar();
       await waitFor(() => expect(reportes.criar).toHaveBeenCalledTimes(2));
       expect(reportes.criar.mock.calls[1][1]).not.toBe(reportes.criar.mock.calls[0][1]);
+    });
+
+    it('"Ver meus reportes" leva para a lista, onde o reporte novo aparece', async () => {
+      await montar();
+      await preencher();
+      await enviar();
+      await screen.findByRole('header', { name: 'Reporte enviado!' });
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Ver meus reportes' }));
+
+      expect(await screen.findByText('Destino meus reportes')).toBeOnTheScreen();
     });
 
     it('"Voltar ao início" leva para o Início', async () => {

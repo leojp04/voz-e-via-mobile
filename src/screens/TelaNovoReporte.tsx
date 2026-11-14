@@ -207,7 +207,8 @@ export function TelaNovoReporte() {
         </Texto>
         <Texto style={styles.protocolo}>{`Protocolo: ${criado.protocolo}`}</Texto>
         <Texto style={styles.aviso}>Guarde este número para acompanhar o seu reporte.</Texto>
-        <Botao titulo="Fazer outro reporte" onPress={fazerOutro} />
+        <Botao titulo="Ver meus reportes" onPress={() => router.replace('/reportes')} />
+        <Botao titulo="Fazer outro reporte" variante="secundario" onPress={fazerOutro} />
         <Botao
           titulo="Voltar ao início"
           variante="secundario"

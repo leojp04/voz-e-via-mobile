@@ -23,7 +23,7 @@ interface AtalhoDoInicio {
   rotulo: string;
   icone: NomeDeIcone;
   /** Tela que o atalho abre; sem rota, o atalho ainda avisa "Em breve". */
-  rota?: '/reportes/novo';
+  rota?: '/reportes/novo' | '/reportes';
 }
 
 const ATALHOS: AtalhoDoInicio[] = [
@@ -33,7 +33,7 @@ const ATALHOS: AtalhoDoInicio[] = [
     icone: 'camera-outline',
     rota: '/reportes/novo',
   },
-  { titulo: 'Meus reportes', rotulo: 'Meus reportes', icone: 'list-outline' },
+  { titulo: 'Meus reportes', rotulo: 'Meus reportes', icone: 'list-outline', rota: '/reportes' },
   { titulo: 'Contatos', rotulo: 'Contatos de emergência', icone: 'call-outline' },
 ];
 
