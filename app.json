@@ -7,6 +7,9 @@
     "icon": "./assets/images/icon.png",
     "scheme": "vozeviamobile",
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "br.com.fiap.vozevia"
+    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#1F3A5F",
