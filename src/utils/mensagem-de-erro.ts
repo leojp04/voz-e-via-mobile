@@ -47,6 +47,40 @@ export function mensagemDeErroDaFoto(erro: unknown): string {
   return 'Não foi possível enviar a foto. Tente de novo.';
 }
 
+// Ao editar um reporte, toda frase diz se as mudancas foram ou NAO salvas. O 409 significa que o
+// status mudou (ex.: a prefeitura ja pegou o reporte) e ele nao aceita mais edicao.
+export function mensagemDeErroAoEditar(erro: unknown): string {
+  if (ehErroApi(erro)) {
+    if (erro.status === 0) return 'Sem conexão. As suas mudanças não foram salvas. Tente de novo.';
+    if (erro.status === 409) {
+      return 'Este reporte já não está em aberto e não pode mais ser editado.';
+    }
+    if (erro.status === 404) return 'Reporte não encontrado.';
+    if (erro.status === 400 || erro.status === 422) {
+      return 'Confira os dados do reporte e tente de novo.';
+    }
+    if (erro.status >= 500) {
+      return 'O servidor está com problemas. As suas mudanças não foram salvas. Tente de novo em instantes.';
+    }
+  }
+  return 'Não foi possível salvar as mudanças. Tente de novo.';
+}
+
+// Ao cancelar um reporte: a frase diz se ele foi ou NAO cancelado.
+export function mensagemDeErroAoCancelar(erro: unknown): string {
+  if (ehErroApi(erro)) {
+    if (erro.status === 0) return 'Sem conexão. O reporte não foi cancelado. Tente de novo.';
+    if (erro.status === 409) {
+      return 'Este reporte já não está em aberto e não pode mais ser cancelado.';
+    }
+    if (erro.status === 404) return 'Reporte não encontrado.';
+    if (erro.status >= 500) {
+      return 'O servidor está com problemas. O reporte não foi cancelado. Tente de novo em instantes.';
+    }
+  }
+  return 'Não foi possível cancelar o reporte. Tente de novo.';
+}
+
 // Ao carregar uma lista ou um detalhe (so leitura): nada foi alterado, entao a frase so explica
 // por que nao apareceu e sugere tentar de novo.
 export function mensagemDeErroAoCarregar(erro: unknown): string {

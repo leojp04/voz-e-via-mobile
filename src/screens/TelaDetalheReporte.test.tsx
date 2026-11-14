@@ -1,5 +1,5 @@
-import { fireEvent, screen } from 'expo-router/testing-library';
-import { Linking, Text } from 'react-native';
+import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
+import { Alert, Linking, Text } from 'react-native';
 
 import { ErroApi } from '../services/api/erro';
 import type { Reporte } from '../services/api/types';
@@ -42,6 +42,10 @@ function InicioFalso() {
   return <Text>Início de mentira</Text>;
 }
 
+function EditarFalso() {
+  return <Text>Tela de edição de mentira</Text>;
+}
+
 // A tela e montada em /reportes/<id> (e nao no "index"), para "voltar" cair no Início falso.
 async function montar(
   configurar: (api: ReturnType<typeof criarReportesApiMock>) => void,
@@ -52,7 +56,7 @@ async function montar(
   await montarTela(InicioFalso, {
     auth: criarAuthApiMock(),
     reportes,
-    rotas: { 'reportes/[id]': TelaDetalheReporte },
+    rotas: { 'reportes/[id]/index': TelaDetalheReporte, 'reportes/[id]/editar': EditarFalso },
     url: caminho,
   });
   return reportes;
@@ -174,5 +178,119 @@ describe('TelaDetalheReporte', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
 
     expect(await screen.findByText('Início de mentira')).toBeOnTheScreen();
+  });
+});
+
+// Pega o botao que o Alert oferece (ex.: "Cancelar reporte") e o aciona como o usuario faria.
+async function tocarNoAlerta(alerta: jest.SpyInstance, texto: string) {
+  const botoes = alerta.mock.calls[0][2] as { text: string; onPress?: () => void }[];
+  await act(async () => {
+    botoes.find((b) => b.text === texto)?.onPress?.();
+  });
+}
+
+const ABERTO: Reporte = {
+  ...REPORTE,
+  status: 'ABERTO',
+  atualizadoEm: CRIADO_EM,
+  historico: [{ statusAnterior: null, statusNovo: 'ABERTO', criadoEm: CRIADO_EM }],
+};
+
+describe('TelaDetalheReporte: editar e cancelar', () => {
+  it.each(['EM_ANALISE', 'EM_EXECUCAO', 'RESOLVIDO', 'CANCELADO'] as const)(
+    'com o status %s nao oferece editar nem cancelar (so ABERTO pode)',
+    async (status) => {
+      await montar((api) => api.obter.mockResolvedValue({ ...REPORTE, status }));
+      await screen.findByText('VV-2026-000007');
+      expect(screen.queryByRole('button', { name: 'Editar reporte' })).not.toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Cancelar reporte' })).not.toBeOnTheScreen();
+    },
+  );
+
+  it('reporte ABERTO oferece editar e cancelar', async () => {
+    await montar((api) => api.obter.mockResolvedValue(ABERTO));
+    expect(await screen.findByRole('button', { name: 'Editar reporte' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Cancelar reporte' })).toBeOnTheScreen();
+  });
+
+  it('"Editar reporte" abre a tela de edicao do mesmo reporte', async () => {
+    await montar((api) => api.obter.mockResolvedValue(ABERTO));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Editar reporte' }));
+    expect(await screen.findByText('Tela de edição de mentira')).toBeOnTheScreen();
+    expect(screen).toHavePathname('/reportes/7/editar');
+  });
+
+  it('"Cancelar reporte" so pergunta: nada e cancelado ao primeiro toque', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const reportes = await montar((api) => api.obter.mockResolvedValue(ABERTO));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Cancelar reporte' }));
+
+    expect(alerta).toHaveBeenCalledTimes(1);
+    expect(reportes.cancelar).not.toHaveBeenCalled();
+    expect(alerta.mock.calls[0][1]).toMatch(/não pode ser desfeita/i);
+    const botoes = alerta.mock.calls[0][2] as { text: string; style?: string }[];
+    expect(botoes.map((b) => b.text)).toEqual(['Voltar', 'Cancelar reporte']);
+    expect(botoes[0].style).toBe('cancel');
+    expect(botoes[1].style).toBe('destructive');
+  });
+
+  it('"Voltar" no aviso nao cancela nada', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const reportes = await montar((api) => api.obter.mockResolvedValue(ABERTO));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Cancelar reporte' }));
+    await tocarNoAlerta(alerta, 'Voltar');
+    expect(reportes.cancelar).not.toHaveBeenCalled();
+  });
+
+  it('confirmar cancela na API e recarrega: o status passa a Cancelado e some a acao', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const reportes = await montar((api) => {
+      api.obter.mockResolvedValueOnce(ABERTO).mockResolvedValue({ ...ABERTO, status: 'CANCELADO' });
+      api.cancelar.mockResolvedValue(undefined);
+    });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Cancelar reporte' }));
+    await tocarNoAlerta(alerta, 'Cancelar reporte');
+
+    expect(reportes.cancelar).toHaveBeenCalledWith(7);
+    expect(await screen.findByLabelText('Status: Cancelado')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Cancelar reporte' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Editar reporte' })).not.toBeOnTheScreen();
+  });
+
+  it('sem conexao ao cancelar: avisa que NAO foi cancelado e mantem as acoes', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await montar((api) => {
+      api.obter.mockResolvedValue(ABERTO);
+      api.cancelar.mockRejectedValue(new ErroApi(0, 'sem rede'));
+    });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Cancelar reporte' }));
+    await tocarNoAlerta(alerta, 'Cancelar reporte');
+
+    await waitFor(() => expect(alerta).toHaveBeenCalledTimes(2));
+    expect(alerta.mock.calls[1][0]).toBe('Não foi possível cancelar');
+    expect(alerta.mock.calls[1][1]).toBe(
+      'Sem conexão. O reporte não foi cancelado. Tente de novo.',
+    );
+    expect(screen.getByRole('button', { name: 'Cancelar reporte' })).toBeOnTheScreen();
+  });
+
+  it('409 ao cancelar: explica e recarrega para mostrar o status de verdade', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const reportes = await montar((api) => {
+      api.obter
+        .mockResolvedValueOnce(ABERTO)
+        .mockResolvedValue({ ...REPORTE, status: 'EM_ANALISE' });
+      api.cancelar.mockRejectedValue(new ErroApi(409, 'conflito'));
+    });
+    await fireEvent.press(await screen.findByRole('button', { name: 'Cancelar reporte' }));
+    await tocarNoAlerta(alerta, 'Cancelar reporte');
+
+    await waitFor(() => expect(alerta).toHaveBeenCalledTimes(2));
+    expect(alerta.mock.calls[1][1]).toBe(
+      'Este reporte já não está em aberto e não pode mais ser cancelado.',
+    );
+    expect(await screen.findByLabelText('Status: Em análise')).toBeOnTheScreen();
+    expect(reportes.obter).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('button', { name: 'Cancelar reporte' })).not.toBeOnTheScreen();
   });
 });

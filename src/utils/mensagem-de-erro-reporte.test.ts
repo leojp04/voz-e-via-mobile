@@ -1,6 +1,8 @@
 import { ErroApi } from '../services/api/erro';
 import {
+  mensagemDeErroAoCancelar,
   mensagemDeErroAoCarregar,
+  mensagemDeErroAoEditar,
   mensagemDeErroDaFoto,
   mensagemDeErroDoReporte,
 } from './mensagem-de-erro';
@@ -85,6 +87,66 @@ describe('mensagemDeErroDaFoto', () => {
   it('qualquer outro erro: frase generica', () => {
     expect(mensagemDeErroDaFoto(new Error('boom'))).toBe(
       'Não foi possível enviar a foto. Tente de novo.',
+    );
+  });
+});
+
+describe('mensagemDeErroAoEditar', () => {
+  it('sem conexao: diz que as mudancas NAO foram salvas', () => {
+    expect(mensagemDeErroAoEditar(new ErroApi(0, 'x'))).toBe(
+      'Sem conexão. As suas mudanças não foram salvas. Tente de novo.',
+    );
+  });
+
+  it('409: o reporte ja nao esta em aberto', () => {
+    expect(mensagemDeErroAoEditar(new ErroApi(409, 'x'))).toBe(
+      'Este reporte já não está em aberto e não pode mais ser editado.',
+    );
+  });
+
+  it('404: reporte nao encontrado', () => {
+    expect(mensagemDeErroAoEditar(new ErroApi(404, 'x'))).toBe('Reporte não encontrado.');
+  });
+
+  it('400 e 422: pede para conferir os dados', () => {
+    expect(mensagemDeErroAoEditar(new ErroApi(400, 'x'))).toBe(
+      'Confira os dados do reporte e tente de novo.',
+    );
+  });
+
+  it('erro do servidor e generico: nunca o texto tecnico', () => {
+    expect(mensagemDeErroAoEditar(new ErroApi(500, 'x'))).toBe(
+      'O servidor está com problemas. As suas mudanças não foram salvas. Tente de novo em instantes.',
+    );
+    expect(mensagemDeErroAoEditar(new Error('TypeError: x'))).toBe(
+      'Não foi possível salvar as mudanças. Tente de novo.',
+    );
+  });
+});
+
+describe('mensagemDeErroAoCancelar', () => {
+  it('sem conexao: diz que o reporte NAO foi cancelado', () => {
+    expect(mensagemDeErroAoCancelar(new ErroApi(0, 'x'))).toBe(
+      'Sem conexão. O reporte não foi cancelado. Tente de novo.',
+    );
+  });
+
+  it('409: o status mudou e ja nao da para cancelar', () => {
+    expect(mensagemDeErroAoCancelar(new ErroApi(409, 'x'))).toBe(
+      'Este reporte já não está em aberto e não pode mais ser cancelado.',
+    );
+  });
+
+  it('404: reporte nao encontrado', () => {
+    expect(mensagemDeErroAoCancelar(new ErroApi(404, 'x'))).toBe('Reporte não encontrado.');
+  });
+
+  it('erro do servidor e generico', () => {
+    expect(mensagemDeErroAoCancelar(new ErroApi(503, 'x'))).toBe(
+      'O servidor está com problemas. O reporte não foi cancelado. Tente de novo em instantes.',
+    );
+    expect(mensagemDeErroAoCancelar(new Error('boom'))).toBe(
+      'Não foi possível cancelar o reporte. Tente de novo.',
     );
   });
 });

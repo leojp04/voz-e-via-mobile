@@ -3,10 +3,13 @@
 // Recarrega quando a tela volta ao foco, para mostrar o que mudou (ex.: depois de editar).
 // Se o reporte nao existe ou e de outra pessoa, a API responde 404 e a tela so avisa, sem
 // revelar qual dos dois casos e.
+// Com o reporte ABERTO, a pessoa pode editar (descricao e foto) ou cancelar. Cancelar pede
+// confirmacao, porque nao tem volta. O servidor e quem decide de verdade (409 se o status mudou);
+// aqui os botoes so somem para quem nao pode usa-los.
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { EtiquetaDeStatus } from '../components/EtiquetaDeStatus';
@@ -16,7 +19,7 @@ import { useApis } from '../contexts/ApisContext';
 import type { Reporte } from '../services/api/types';
 import { cores, espacos, fontes } from '../theme';
 import { formatarData } from '../utils/formatar-data';
-import { mensagemDeErroAoCarregar } from '../utils/mensagem-de-erro';
+import { mensagemDeErroAoCancelar, mensagemDeErroAoCarregar } from '../utils/mensagem-de-erro';
 import { estiloDoStatus, rotuloDaUrgencia } from '../utils/status-do-reporte';
 import { abrirNoMapa } from '../utils/url-do-mapa';
 
@@ -32,6 +35,7 @@ export function TelaDetalheReporte() {
   const [reporte, setReporte] = useState<Reporte | null>(null);
   const [erroAoCarregar, setErroAoCarregar] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [cancelando, setCancelando] = useState(false);
 
   // Busca o reporte. Usada ao entrar na tela, ao voltar a ela e no "Tentar de novo".
   const carregar = useCallback(async () => {
@@ -51,6 +55,31 @@ export function TelaDetalheReporte() {
       void carregar();
     }, [carregar]),
   );
+
+  async function cancelarReporte() {
+    setCancelando(true);
+    try {
+      await reportes.cancelar(idDoReporte);
+    } catch (falha) {
+      Alert.alert('Não foi possível cancelar', mensagemDeErroAoCancelar(falha));
+    } finally {
+      setCancelando(false);
+    }
+    // Recarrega nos dois casos: no sucesso mostra "Cancelado"; no 409 mostra o status de verdade.
+    await carregar();
+  }
+
+  // Dois passos de proposito: cancelar nao tem volta, entao o primeiro toque so pergunta.
+  function pedirConfirmacao() {
+    Alert.alert(
+      'Cancelar o reporte?',
+      'O reporte deixa de ser analisado pela prefeitura. Essa ação não pode ser desfeita.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Cancelar reporte', style: 'destructive', onPress: () => void cancelarReporte() },
+      ],
+    );
+  }
 
   function voltar() {
     if (router.canGoBack()) router.back();
@@ -144,6 +173,23 @@ export function TelaDetalheReporte() {
             <Texto style={styles.aviso}>
               {`Atualizado em ${formatarData(reporte.atualizadoEm)}`}
             </Texto>
+          ) : null}
+
+          {reporte.status === 'ABERTO' ? (
+            <>
+              <Botao
+                titulo="Editar reporte"
+                icone="create-outline"
+                onPress={() => router.push(`/reportes/${reporte.id}/editar`)}
+                desabilitado={cancelando}
+              />
+              <Botao
+                titulo="Cancelar reporte"
+                variante="perigo"
+                onPress={pedirConfirmacao}
+                carregando={cancelando}
+              />
+            </>
           ) : null}
         </>
       ) : null}
