@@ -3,7 +3,10 @@
 // usuario e podem usar o "codigo" para sugerir outro caminho (ex.: escolher da galeria).
 // E separado do ErroApi (services/api/erro.ts), que so cobre respostas de servidor.
 
-export type CodigoErroAparelho = 'PERMISSAO_NEGADA' | 'INDISPONIVEL' | 'FORMATO_INVALIDO';
+// CONSENTIMENTO_NECESSARIO: a voz so funciona pelo reconhecedor do sistema (Apple ou Google), e
+// a pessoa ainda nao aceitou o aviso. A tela mostra o aviso e tenta de novo se ela aceitar.
+export type CodigoErroAparelho =
+  'PERMISSAO_NEGADA' | 'INDISPONIVEL' | 'FORMATO_INVALIDO' | 'CONSENTIMENTO_NECESSARIO';
 
 export class ErroAparelho extends Error {
   readonly codigo: CodigoErroAparelho;
