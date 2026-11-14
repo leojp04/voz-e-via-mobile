@@ -198,6 +198,29 @@ describe('TelaContatos', () => {
     expect(contatos.listar).toHaveBeenCalledTimes(3);
   });
 
+  it('se a recarga falhar com um "Ver mais" invalidado, o botao nao fica travado carregando', async () => {
+    // O "Ver mais" pendente deixa de valer quando a lista recarrega; se a recarga falhar, nada
+    // mais limparia o indicador dele, e o botao ficaria desabilitado e girando para sempre.
+    const primeiraPagina = Array.from({ length: 10 }, (_, i) => contato(i + 1));
+    await montar((api) =>
+      api.listar
+        .mockResolvedValueOnce(pagina(primeiraPagina, 1, 12))
+        .mockReturnValueOnce(new Promise(() => {}))
+        .mockRejectedValueOnce(new ErroApi(0, 'sem rede')),
+    );
+    await screen.findByText('apelido1');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Editar apelido1, Pessoa 1' }));
+    await screen.findByText('Destino editar contato');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
+
+    expect(
+      await screen.findByText('Sem conexão. Verifique a internet e tente de novo.'),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Ver mais' })).toBeEnabled();
+  });
+
   it('o botao Ligar abre o discador com o numero do contato', async () => {
     const abrir = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});

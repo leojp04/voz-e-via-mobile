@@ -43,10 +43,12 @@ export function TelaContatos() {
   // Busca a primeira pagina. Usada ao entrar na tela, ao voltar a ela e no "Tentar de novo".
   const carregar = useCallback(async () => {
     const minha = ++geracao.current;
+    // O "Ver mais" pendente deixa de valer; limpa o indicador dele aqui, pois a resposta antiga
+    // nao pode mais fazer isso (e a recarga pode falhar).
+    setCarregandoMais(false);
     try {
       const resposta = await contatos.listar(1, TAMANHO_DA_PAGINA);
       if (minha !== geracao.current) return;
-      setCarregandoMais(false);
       setItens(resposta.itens);
       setTotal(resposta.total);
       setPagina(1);
