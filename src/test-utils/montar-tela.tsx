@@ -10,7 +10,14 @@ import { Text } from 'react-native';
 
 import { ApisProvider } from '../contexts/ApisContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import type { AuthApi, ContatosApi, FotosApi, ReportesApi, Sessao } from '../services/api/types';
+import type {
+  AssistenteApi,
+  AuthApi,
+  ContatosApi,
+  FotosApi,
+  ReportesApi,
+  Sessao,
+} from '../services/api/types';
 import type { ArmazenamentoSessao } from '../services/armazenamento-sessao';
 
 export const sessaoDeTeste: Sessao = {
@@ -48,6 +55,10 @@ export function criarContatosApiMock(): jest.Mocked<ContatosApi> {
   };
 }
 
+export function criarAssistenteApiMock(): jest.Mocked<AssistenteApi> {
+  return { interpretar: jest.fn() };
+}
+
 export function criarArmazenamentoEmMemoria(inicial: Sessao | null = null): ArmazenamentoSessao {
   let guardada = inicial;
   return {
@@ -77,6 +88,8 @@ interface OpcoesMontagem {
   fotos?: FotosApi;
   /** API de contatos; sem ela, a tela recebe mocks vazios (jest.fn). */
   contatos?: ContatosApi;
+  /** API do assistente; sem ela, a tela recebe um mock vazio (jest.fn). */
+  assistente?: AssistenteApi;
   armazenamento?: ArmazenamentoSessao;
   /** Rotas extras (alem de "index"), para testar navegacao entre telas. */
   rotas?: Record<string, Componente>;
@@ -92,6 +105,7 @@ export async function montarTela(Tela: Componente, opcoes: OpcoesMontagem) {
     reportes: opcoes.reportes ?? criarReportesApiMock(),
     fotos: opcoes.fotos ?? criarFotosApiMock(),
     contatos: opcoes.contatos ?? criarContatosApiMock(),
+    assistente: opcoes.assistente ?? criarAssistenteApiMock(),
   };
   await renderRouter(
     {

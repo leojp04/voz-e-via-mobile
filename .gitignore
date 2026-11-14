@@ -42,12 +42,6 @@ example
 /ios
 /android
 
-# ferramentas de IA (arquivos locais, nunca versionar)
-CLAUDE.md
-CLAUDE.local.md
-AGENTS.md
-.claude/
-
 # variaveis de ambiente (o .env.example e versionado)
 .env
 .env.*

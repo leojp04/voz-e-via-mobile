@@ -186,3 +186,45 @@ export interface ContatosApi {
   /** Erros: 404, 401, 0. */
   excluir(id: number): Promise<void>;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Assistente por voz (API Java), conforme as secoes 4.2 e 8.1 do plano unico.
+// Suposicao (as respostas do time Java ainda estao pendentes): os nomes dos campos de
+// "parametros" e o formato de "fontes" abaixo seguem o exemplo do plano e precisam ser confirmados.
+// ---------------------------------------------------------------------------------------------
+
+export type Intencao =
+  | 'REPORTAR_PROBLEMA'
+  | 'CONSULTAR_REPORTES'
+  | 'EMERGENCIA'
+  | 'LIGAR_CONTATO'
+  | 'LOCAL_PROXIMO'
+  | 'DUVIDA_DIREITO'
+  | 'NAO_ENTENDI';
+
+export interface PedidoAssistente {
+  /** O que a pessoa disse ou digitou (a fala vira texto no celular; o audio nao sai do aparelho). */
+  texto: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface RespostaAssistente {
+  /** Intencao fora da lista conhecida chega ao app como NAO_ENTENDI. */
+  intencao: Intencao;
+  /**
+   * Suposicao: REPORTAR_PROBLEMA traz categoria (codigo), urgencia e descricao; LIGAR_CONTATO traz
+   * apelido; LOCAL_PROXIMO traz busca.
+   */
+  parametros: Record<string, string>;
+  /** Frase curta que o celular le em voz alta. */
+  respostaFalada: string;
+  /** Suposicao: nomes das fontes citadas (ex.: "Lei 13.146/2015, art. 53"), so em DUVIDA_DIREITO. */
+  fontes: string[];
+  precisaConfirmacao: boolean;
+}
+
+export interface AssistenteApi {
+  /** Erros: 400 (texto vazio ou longo demais), 401, 0 (sem conexao). */
+  interpretar(pedido: PedidoAssistente): Promise<RespostaAssistente>;
+}

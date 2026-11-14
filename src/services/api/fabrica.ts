@@ -3,15 +3,17 @@
 // nao sabem qual das duas recebem, porque as duas seguem o mesmo contrato (types.ts).
 
 import { criarClienteHttp } from './cliente-http';
+import { criarAssistenteApiFalsa } from './fake/assistente-api-falsa';
 import { criarAuthApiFalsa } from './fake/auth-api-falsa';
 import { criarContatosApiFalsa } from './fake/contatos-api-falsa';
 import { criarFotosApiFalsa } from './fake/fotos-api-falsa';
 import { criarReportesApiFalsa } from './fake/reportes-api-falsa';
+import { criarAssistenteApiReal } from './real/assistente-api-real';
 import { criarAuthApiReal } from './real/auth-api-real';
 import { criarContatosApiReal } from './real/contatos-api-real';
 import { criarFotosApiReal } from './real/fotos-api-real';
 import { criarReportesApiReal } from './real/reportes-api-real';
-import type { AuthApi, ContatosApi, FotosApi, ReportesApi } from './types';
+import type { AssistenteApi, AuthApi, ContatosApi, FotosApi, ReportesApi } from './types';
 
 export interface OpcoesFabrica {
   /** true = API falsa em memoria; false = API real. */
@@ -33,6 +35,7 @@ export interface Apis {
   reportes: ReportesApi;
   fotos: FotosApi;
   contatos: ContatosApi;
+  assistente: AssistenteApi;
 }
 
 export function criarApis({
@@ -57,6 +60,7 @@ export function criarApis({
       reportes: criarReportesApiFalsa(sessaoDasFalsas),
       fotos: criarFotosApiFalsa(sessaoDasFalsas),
       contatos: criarContatosApiFalsa(sessaoDasFalsas),
+      assistente: criarAssistenteApiFalsa(sessaoDasFalsas),
     };
   }
   // Dois servidores, duas URLs, mesma sessao: o token do login (Java) vale tambem no .NET.
@@ -77,6 +81,7 @@ export function criarApis({
     reportes: criarReportesApiReal(clienteDotnet),
     fotos: criarFotosApiReal(clienteDotnet),
     contatos: criarContatosApiReal(clienteJava),
+    assistente: criarAssistenteApiReal(clienteJava),
   };
 }
 

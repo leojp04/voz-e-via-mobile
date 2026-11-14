@@ -252,3 +252,56 @@ describe('criarApis: contatos', () => {
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123');
   });
 });
+
+describe('criarApis: assistente', () => {
+  const urlJava = 'http://localhost:8080';
+  const urlDotnet = 'http://localhost:5000';
+
+  it('na API falsa, o assistente funciona sem rede com o token do login', async () => {
+    const fetchImpl = jest.fn();
+    let token: string | null = null;
+    const { auth, assistente } = criarApis({
+      usarApiFalsa: true,
+      urlJava,
+      urlDotnet,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      obterToken: () => token,
+    });
+    await auth.cadastrar(dadosCadastro);
+    token = (await auth.login(dadosCadastro.email, dadosCadastro.senha)).token;
+
+    const resposta = await assistente.interpretar({ texto: 'socorro' });
+
+    expect(resposta.intencao).toBe('EMERGENCIA');
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('na API real, o assistente usa a URL do Java e manda o token', async () => {
+    const fetchImpl = jest.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            intencao: 'NAO_ENTENDI',
+            parametros: {},
+            respostaFalada: 'Pode repetir?',
+            precisaConfirmacao: false,
+            fontes: [],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    );
+    const { assistente } = criarApis({
+      usarApiFalsa: false,
+      urlJava,
+      urlDotnet,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      obterToken: () => 'abc123',
+    });
+
+    await assistente.interpretar({ texto: 'oi' });
+
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://localhost:8080/api/assistente/interpretar');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123');
+  });
+});
