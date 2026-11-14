@@ -24,3 +24,33 @@ export function abrirNoMapa(latitude: number, longitude: number): void {
     );
   });
 }
+
+export interface PontoNoMapa {
+  latitude: number;
+  longitude: number;
+}
+
+/**
+ * Endereco que abre o app de mapas ja buscando um termo (ex.: "farmácia"), perto do ponto quando
+ * ele existe. Sem ponto, o Android usa "geo:0,0" (o app de mapas busca perto do aparelho) e o iOS
+ * busca so pelo termo.
+ */
+export function urlDeBuscaNoMapa(busca: string, ponto?: PontoNoMapa): string {
+  const termo = encodeURIComponent(busca);
+  if (Platform.OS === 'ios') {
+    const base = `https://maps.apple.com/?q=${termo}`;
+    return ponto ? `${base}&ll=${ponto.latitude},${ponto.longitude}` : base;
+  }
+  const centro = ponto ? `${ponto.latitude},${ponto.longitude}` : '0,0';
+  return `geo:${centro}?q=${termo}`;
+}
+
+/** Abre o app de mapas buscando o termo; sem app de mapas, avisa em vez de falhar calado. */
+export function abrirBuscaNoMapa(busca: string, ponto?: PontoNoMapa): void {
+  Linking.openURL(urlDeBuscaNoMapa(busca, ponto)).catch(() => {
+    Alert.alert(
+      'Não foi possível abrir o mapa',
+      'Seu aparelho não tem um aplicativo de mapas disponível.',
+    );
+  });
+}
