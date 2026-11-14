@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 
 import { SeletorDeOpcao } from './SeletorDeOpcao';
 
@@ -81,5 +82,37 @@ describe('SeletorDeOpcao', () => {
       <SeletorDeOpcao rotulo="Urgência" opcoes={URGENCIAS} valor="MEDIA" aoMudar={jest.fn()} />,
     );
     expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
+  });
+
+  describe('com a letra do sistema muito grande', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    function usarEscalaDeFonte(fontScale: number) {
+      jest
+        .spyOn(Dimensions, 'get')
+        .mockReturnValue({ width: 402, height: 874, scale: 3, fontScale });
+    }
+
+    // Lado a lado, cada opcao ganha so metade da largura e palavras como "Cidadão" quebram no meio
+    // ("Cidadã/o"). Descoberto no simulador com "accessibility-extra-large".
+    it('cada opcao ocupa a linha inteira, para as palavras nao quebrarem no meio', async () => {
+      usarEscalaDeFonte(2);
+      await render(
+        <SeletorDeOpcao rotulo="Urgência" opcoes={URGENCIAS} valor="MEDIA" aoMudar={jest.fn()} />,
+      );
+      for (const radio of screen.getAllByRole('radio')) {
+        expect(StyleSheet.flatten(radio.props.style).flexBasis).toBe('100%');
+      }
+    });
+
+    it('com letra normal, as opcoes continuam lado a lado (sem linha inteira)', async () => {
+      usarEscalaDeFonte(1);
+      await render(
+        <SeletorDeOpcao rotulo="Urgência" opcoes={URGENCIAS} valor="MEDIA" aoMudar={jest.fn()} />,
+      );
+      for (const radio of screen.getAllByRole('radio')) {
+        expect(StyleSheet.flatten(radio.props.style).flexBasis).toBeUndefined();
+      }
+    });
   });
 });

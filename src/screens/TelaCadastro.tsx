@@ -5,19 +5,20 @@
 
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { CaixaConsentimento } from '../components/CaixaConsentimento';
 import { CampoTexto } from '../components/CampoTexto';
 import { Marca } from '../components/Marca';
+import { SeletorDeOpcao } from '../components/SeletorDeOpcao';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ehErroApi } from '../services/api/erro';
 import type { DadosCadastro } from '../services/api/types';
-import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes } from '../theme';
 import { mensagemDeErro } from '../utils/mensagem-de-erro';
 import {
   validarConsentimento,
@@ -150,28 +151,7 @@ export function TelaCadastro() {
         autoCompletar="new-password"
       />
 
-      <View style={styles.grupo} accessibilityRole="radiogroup" accessibilityLabel="Tipo de conta">
-        <Texto style={styles.rotulo}>Tipo de conta</Texto>
-        <View style={styles.papeis}>
-          {PAPEIS.map((opcao) => {
-            const selecionado = papel === opcao.valor;
-            return (
-              <Pressable
-                key={opcao.valor}
-                accessibilityRole="radio"
-                accessibilityLabel={opcao.titulo}
-                accessibilityState={{ selected: selecionado }}
-                onPress={() => setPapel(opcao.valor)}
-                style={[styles.papel, selecionado && styles.papelSelecionado]}
-              >
-                <Texto style={[styles.textoPapel, selecionado && styles.textoPapelSelecionado]}>
-                  {opcao.titulo}
-                </Texto>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
+      <SeletorDeOpcao rotulo="Tipo de conta" opcoes={PAPEIS} valor={papel} aoMudar={setPapel} />
 
       <CaixaConsentimento
         texto={TEXTO_CONSENTIMENTO}
@@ -204,20 +184,4 @@ const styles = StyleSheet.create({
     backgroundColor: cores.fundoErro,
   },
   textoErro: { fontSize: fontes.corpo, color: cores.erro },
-  grupo: { gap: espacos.pequeno },
-  rotulo: { fontSize: fontes.rotulo, fontFamily: fontes.familia.negrito, color: cores.texto },
-  papeis: { flexDirection: 'row', gap: espacos.medio },
-  papel: {
-    flex: 1,
-    minHeight: ALVO_MINIMO,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: cores.acao,
-    backgroundColor: cores.fundo,
-  },
-  papelSelecionado: { backgroundColor: cores.acao },
-  textoPapel: { fontSize: fontes.botao, fontFamily: fontes.familia.negrito, color: cores.acao },
-  textoPapelSelecionado: { color: cores.textoSobreAcao },
 });

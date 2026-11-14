@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from 'expo-router/testing-library';
-import { Text } from 'react-native';
+import { Dimensions, StyleSheet, Text } from 'react-native';
 
 import { ErroApi } from '../services/api/erro';
 import { criarAuthApiMock, montarTela, sessaoDeTeste } from '../test-utils/montar-tela';
@@ -169,5 +169,17 @@ describe('TelaCadastro', () => {
     await montar();
     await fireEvent.press(screen.getByRole('button', { name: 'Ler a Política de Privacidade' }));
     expect(await screen.findByText('Tela de privacidade')).toBeOnTheScreen();
+  });
+
+  it('com a letra do sistema muito grande, "Cidadão" e "Cuidador" ocupam a linha inteira (sem quebrar no meio)', async () => {
+    jest
+      .spyOn(Dimensions, 'get')
+      .mockReturnValue({ width: 402, height: 874, scale: 3, fontScale: 2 });
+    await montar();
+    for (const nome of ['Cidadão', 'Cuidador']) {
+      const radio = screen.getByRole('radio', { name: nome });
+      expect(StyleSheet.flatten(radio.props.style).flexBasis).toBe('100%');
+    }
+    jest.restoreAllMocks();
   });
 });

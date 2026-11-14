@@ -1,10 +1,13 @@
 // Escolha de UMA opcao entre poucas (categoria e urgencia do reporte). Cada opcao e um botao de
 // radio grande (toque minimo de 48 dp) e a escolhida fica preenchida; o leitor de tela anuncia
 // "selecionado". Funciona com texto ou numero como valor (ex.: id da categoria).
+// Com a letra do sistema muito grande, cada opcao ocupa a linha inteira: lado a lado ela ganha so
+// metade da largura e palavras como "Cidadão" quebram no meio (mesma regra da grade da Inicio).
 
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { colunasDaGrade } from '../utils/colunas-da-grade';
 import { Texto } from './Texto';
 
 export interface OpcaoDoSeletor<T> {
@@ -29,6 +32,8 @@ export function SeletorDeOpcao<T extends string | number>({
   aoMudar,
   erro,
 }: PropsSeletorDeOpcao<T>) {
+  const { fontScale } = useWindowDimensions();
+  const linhaInteira = colunasDaGrade(fontScale) === 1;
   return (
     <View style={styles.grupo}>
       <Texto style={styles.rotulo}>{rotulo}</Texto>
@@ -42,7 +47,11 @@ export function SeletorDeOpcao<T extends string | number>({
               accessibilityLabel={opcao.titulo}
               accessibilityState={{ selected: selecionada }}
               onPress={() => aoMudar(opcao.valor)}
-              style={[styles.opcao, selecionada && styles.opcaoSelecionada]}
+              style={[
+                styles.opcao,
+                linhaInteira && styles.opcaoInteira,
+                selecionada && styles.opcaoSelecionada,
+              ]}
             >
               <Texto style={[styles.texto, selecionada && styles.textoSelecionado]}>
                 {opcao.titulo}
@@ -75,6 +84,7 @@ const styles = StyleSheet.create({
     borderColor: cores.acao,
     backgroundColor: cores.fundo,
   },
+  opcaoInteira: { flexBasis: '100%' },
   opcaoSelecionada: { backgroundColor: cores.acao },
   texto: {
     fontSize: fontes.botao,
