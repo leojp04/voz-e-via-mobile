@@ -20,7 +20,7 @@ export interface OpcoesFabrica {
   usarApiFalsa: boolean;
   /** Endereco da API Java, ex.: "http://localhost:8080". */
   urlJava: string;
-  /** Endereco da API .NET (reportes e fotos), ex.: "http://localhost:5000". */
+  /** Endereco da API .NET (reportes e fotos), ex.: "http://localhost:5080". */
   urlDotnet: string;
   /** Devolve o token da sessao atual (ou null). Usado so pela API real. */
   obterToken?: () => string | null;
@@ -78,8 +78,8 @@ export function criarApis({
   });
   return {
     auth: criarAuthApiReal(clienteJava),
-    reportes: criarReportesApiReal(clienteDotnet),
-    fotos: criarFotosApiReal(clienteDotnet),
+    reportes: criarReportesApiReal(clienteDotnet, urlDotnet),
+    fotos: criarFotosApiReal(clienteDotnet, urlDotnet),
     contatos: criarContatosApiReal(clienteJava),
     assistente: criarAssistenteApiReal(clienteJava),
   };

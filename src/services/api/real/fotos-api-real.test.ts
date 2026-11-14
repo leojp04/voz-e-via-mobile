@@ -16,7 +16,7 @@ function criar(fetchSimulado: jest.Mock) {
     obterToken: () => 'jwt-de-teste',
     fetchImpl: fetchSimulado as unknown as typeof fetch,
   });
-  return criarFotosApiReal(cliente);
+  return criarFotosApiReal(cliente, 'http://dotnet.teste');
 }
 
 const foto = { uri: 'file:///tmp/foto.jpg', nome: 'foto.jpg', tipo: 'image/jpeg' };
@@ -28,11 +28,11 @@ describe('criarFotosApiReal', () => {
     const adicionar = jest.spyOn(FormData.prototype, 'append');
     const fetchSimulado = jest
       .fn()
-      .mockResolvedValue(resposta(201, { fotoUrl: 'https://fotos.exemplo/abc.jpg' }));
+      .mockResolvedValue(resposta(201, { fotoUrl: '/uploads/abc.jpg' }));
 
     const resultado = await criar(fetchSimulado).enviar(foto);
 
-    expect(resultado).toEqual({ fotoUrl: 'https://fotos.exemplo/abc.jpg' });
+    expect(resultado).toEqual({ fotoUrl: 'http://dotnet.teste/uploads/abc.jpg' });
     const [url, init] = fetchSimulado.mock.calls[0];
     expect(url).toBe('http://dotnet.teste/api/fotos');
     expect(init.method).toBe('POST');

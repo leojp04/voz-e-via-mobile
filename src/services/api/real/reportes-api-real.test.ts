@@ -19,7 +19,7 @@ function criar(fetchSimulado: jest.Mock) {
     obterToken: () => 'jwt-de-teste',
     fetchImpl: fetchSimulado as unknown as typeof fetch,
   });
-  return criarReportesApiReal(cliente);
+  return criarReportesApiReal(cliente, 'http://dotnet.teste');
 }
 
 const categoria: Categoria = { id: 1, codigo: 'CALCADA', nome: 'Calçada quebrada' };
@@ -61,18 +61,67 @@ describe('criarReportesApiReal', () => {
     expect(init.headers.Authorization).toBe('Bearer jwt-de-teste');
   });
 
-  it('criar faz POST em /api/reportes com o corpo e o Idempotency-Key', async () => {
-    const fetchSimulado = jest.fn().mockResolvedValue(resposta(201, reporte));
+  it('criar troca categoriaId pelo codigo da categoria e envia o Idempotency-Key', async () => {
+    const fetchSimulado = jest
+      .fn()
+      .mockResolvedValueOnce(resposta(200, [categoria]))
+      .mockResolvedValueOnce(resposta(201, { ...reporte, historico: undefined }));
 
-    const criado = await criar(fetchSimulado).criar(dadosNovos, 'chave-123');
+    const criado = await criar(fetchSimulado).criar(
+      { ...dadosNovos, fotoUrl: 'http://dotnet.teste/uploads/abc.jpg' },
+      'chave-123',
+    );
 
-    expect(criado).toEqual(reporte);
-    const [url, init] = fetchSimulado.mock.calls[0];
+    expect(criado.historico).toEqual([]);
+    const [url, init] = fetchSimulado.mock.calls[1];
     expect(url).toBe('http://dotnet.teste/api/reportes');
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body)).toEqual(dadosNovos);
+    expect(JSON.parse(init.body)).toEqual({
+      categoria: 'CALCADA',
+      descricao: dadosNovos.descricao,
+      latitude: -23.55,
+      longitude: -46.63,
+      endereco: 'Rua das Flores, 120',
+      fotoUrl: '/uploads/abc.jpg',
+      urgencia: 'ALTA',
+    });
     expect(init.headers['Idempotency-Key']).toBe('chave-123');
     expect(init.headers.Authorization).toBe('Bearer jwt-de-teste');
+  });
+
+  it('criar com categoria que nao existe devolve 400 sem chamar POST', async () => {
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(200, [categoria]));
+
+    const erro = await criar(fetchSimulado)
+      .criar({ ...dadosNovos, categoriaId: 99 }, 'chave-123')
+      .catch((e: unknown) => e);
+
+    expect(erro).toBeInstanceOf(ErroApi);
+    expect(erro).toMatchObject({ status: 400 });
+    expect(fetchSimulado).toHaveBeenCalledTimes(1);
+  });
+
+  it('criar guarda as categorias e nao as busca de novo na segunda criacao', async () => {
+    const fetchSimulado = jest
+      .fn()
+      .mockResolvedValueOnce(resposta(200, [categoria]))
+      .mockResolvedValue(resposta(201, reporte));
+    const api = criar(fetchSimulado);
+
+    await api.criar(dadosNovos, 'a');
+    await api.criar(dadosNovos, 'b');
+
+    expect(fetchSimulado).toHaveBeenCalledTimes(3);
+  });
+
+  it('obter devolve a fotoUrl completa (a API manda so o caminho /uploads/...)', async () => {
+    const fetchSimulado = jest
+      .fn()
+      .mockResolvedValue(resposta(200, { ...reporte, fotoUrl: '/uploads/abc.jpg' }));
+
+    const obtido = await criar(fetchSimulado).obter(7);
+
+    expect(obtido.fotoUrl).toBe('http://dotnet.teste/uploads/abc.jpg');
   });
 
   it('listarMeus faz GET em /api/reportes/meus com page e size', async () => {
@@ -104,15 +153,50 @@ describe('criarReportesApiReal', () => {
     expect(fetchSimulado.mock.calls[0][0]).toBe('http://dotnet.teste/api/reportes/7');
   });
 
-  it('editar faz PUT em /api/reportes/{id} com descricao e foto', async () => {
-    const fetchSimulado = jest.fn().mockResolvedValue(resposta(200, reporte));
+  it('editar reenvia endereco e foto atuais, porque o PUT da API substitui tudo', async () => {
+    const atual = { ...reporte, endereco: 'Rua das Flores, 120', fotoUrl: '/uploads/abc.jpg' };
+    const fetchSimulado = jest
+      .fn()
+      .mockResolvedValueOnce(resposta(200, atual))
+      .mockResolvedValueOnce(resposta(200, atual));
+
+    await criar(fetchSimulado).editar(7, { descricao: 'Nova descricao completa.' });
+
+    const [url, init] = fetchSimulado.mock.calls[1];
+    expect(url).toBe('http://dotnet.teste/api/reportes/7');
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(init.body)).toEqual({
+      descricao: 'Nova descricao completa.',
+      endereco: 'Rua das Flores, 120',
+      fotoUrl: '/uploads/abc.jpg',
+    });
+  });
+
+  it('editar com fotoUrl null remove a foto e mantem o endereco', async () => {
+    const atual = { ...reporte, endereco: null, fotoUrl: '/uploads/abc.jpg' };
+    const fetchSimulado = jest
+      .fn()
+      .mockResolvedValueOnce(resposta(200, atual))
+      .mockResolvedValueOnce(resposta(200, atual));
 
     await criar(fetchSimulado).editar(7, { descricao: 'Nova descricao completa.', fotoUrl: null });
 
-    const [url, init] = fetchSimulado.mock.calls[0];
-    expect(url).toBe('http://dotnet.teste/api/reportes/7');
-    expect(init.method).toBe('PUT');
-    expect(JSON.parse(init.body)).toEqual({ descricao: 'Nova descricao completa.', fotoUrl: null });
+    expect(JSON.parse(fetchSimulado.mock.calls[1][1].body)).toEqual({
+      descricao: 'Nova descricao completa.',
+      endereco: null,
+      fotoUrl: null,
+    });
+  });
+
+  it('editar com foto nova envia so o caminho relativo', async () => {
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(200, reporte));
+
+    await criar(fetchSimulado).editar(7, {
+      descricao: 'Nova descricao completa.',
+      fotoUrl: 'http://dotnet.teste/uploads/nova.png',
+    });
+
+    expect(JSON.parse(fetchSimulado.mock.calls[1][1].body).fotoUrl).toBe('/uploads/nova.png');
   });
 
   it('cancelar faz DELETE em /api/reportes/{id} e aceita 204 sem corpo', async () => {
@@ -128,6 +212,7 @@ describe('criarReportesApiReal', () => {
   it('erro da API vira ErroApi (ex.: 409 ao editar reporte que nao esta mais aberto)', async () => {
     const fetchSimulado = jest
       .fn()
+      .mockResolvedValueOnce(resposta(200, reporte))
       .mockResolvedValue(resposta(409, { mensagem: 'O reporte não está mais em aberto.' }));
 
     const erro = await criar(fetchSimulado)
