@@ -1,5 +1,10 @@
 import { criarApis, usarApiFalsaDoAmbiente } from './fabrica';
 
+// O File do expo-file-system e nativo; no teste ele vira um Blob (o FormData do Node so aceita Blob).
+jest.mock('expo-file-system', () => ({
+  File: jest.fn().mockImplementation((uri: string) => Object.assign(new Blob(['x']), { uri })),
+}));
+
 const dadosCadastro = {
   nome: 'Maria',
   email: 'maria@exemplo.com',

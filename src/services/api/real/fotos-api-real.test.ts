@@ -2,6 +2,10 @@ import { criarClienteHttp } from '../cliente-http';
 import { ErroApi } from '../erro';
 import { criarFotosApiReal } from './fotos-api-real';
 
+jest.mock('expo-file-system', () => ({
+  File: jest.fn().mockImplementation((uri: string) => Object.assign(new Blob(['x']), { uri })),
+}));
+
 function resposta(status: number, corpo?: unknown) {
   return {
     ok: status >= 200 && status < 300,
@@ -37,11 +41,11 @@ describe('criarFotosApiReal', () => {
     expect(url).toBe('http://dotnet.teste/api/fotos');
     expect(init.method).toBe('POST');
     expect(init.headers.Authorization).toBe('Bearer jwt-de-teste');
-    expect(adicionar).toHaveBeenCalledWith('arquivo', {
-      uri: foto.uri,
-      name: foto.nome,
-      type: foto.tipo,
-    });
+    expect(adicionar).toHaveBeenCalledWith(
+      'arquivo',
+      expect.objectContaining({ uri: foto.uri }),
+      foto.nome,
+    );
   });
 
   it('erro da API vira ErroApi (ex.: 400 para um tipo de arquivo nao aceito)', async () => {

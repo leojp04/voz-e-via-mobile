@@ -2,6 +2,8 @@
 // Ele acrescenta o token, converte a resposta em JSON e padroniza todo erro como ErroApi.
 // As telas e as APIs reais so conhecem este cliente, nunca o fetch direto.
 
+import { File } from 'expo-file-system';
+
 import { ErroApi } from './erro';
 
 export interface OpcoesClienteHttp {
@@ -151,12 +153,9 @@ export function criarClienteHttp({
     delete: (caminho, opcoes) => requisitar('DELETE', caminho, undefined, opcoes),
     enviarArquivo: (caminho, arquivo, opcoes) => {
       const formulario = new FormData();
-      // No React Native o arquivo entra como { uri, name, type }; o tipo do TS (Blob) nao conhece isso.
-      formulario.append('arquivo', {
-        uri: arquivo.uri,
-        name: arquivo.nome,
-        type: arquivo.tipo,
-      } as unknown as Blob);
+      // O "fetch" do Expo nao aceita o formato antigo { uri, name, type } (erro "Unsupported
+      // FormDataPart implementation"): o arquivo do aparelho entra como File do expo-file-system.
+      formulario.append('arquivo', new File(arquivo.uri) as unknown as Blob, arquivo.nome);
       return requisitar('POST', caminho, formulario, opcoes);
     },
   };

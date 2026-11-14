@@ -1,5 +1,12 @@
+import { File } from 'expo-file-system';
+
 import { criarClienteHttp } from './cliente-http';
 import { ErroApi } from './erro';
+
+// O File do expo-file-system e nativo; no teste ele vira um Blob que guarda o uri (o FormData do Node so aceita Blob).
+jest.mock('expo-file-system', () => ({
+  File: jest.fn().mockImplementation((uri: string) => Object.assign(new Blob(['x']), { uri })),
+}));
 
 // O "fetch" aqui e simulado: devolve respostas prontas, sem rede. Assim testamos so a logica do
 // cliente (cabecalhos, conversao da resposta e erros), como diz o ADR 0002.
@@ -203,14 +210,16 @@ describe('criarClienteHttp', () => {
       expect(url).toBe('http://api.teste/api/fotos');
       expect(init.method).toBe('POST');
       expect(init.body).toBeInstanceOf(FormData);
-      // No React Native o arquivo entra como { uri, name, type }. O FormData do Jest (do Node) nao
+      // O fetch do Expo (SDK atual) nao aceita o formato antigo { uri, name, type }: o arquivo entra
+      // como File do expo-file-system, com o nome informado. O FormData do Jest (do Node) nao
       // guarda esse objeto, entao o teste confere o que foi passado ao append.
+      expect(File).toHaveBeenCalledWith(foto.uri);
       expect(adicionar).toHaveBeenCalledTimes(1);
-      expect(adicionar).toHaveBeenCalledWith('arquivo', {
-        uri: foto.uri,
-        name: foto.nome,
-        type: foto.tipo,
-      });
+      expect(adicionar).toHaveBeenCalledWith(
+        'arquivo',
+        expect.objectContaining({ uri: foto.uri }),
+        foto.nome,
+      );
     });
 
     // Sem Content-Type de proposito: o fetch precisa montar o "boundary" do multipart sozinho.
