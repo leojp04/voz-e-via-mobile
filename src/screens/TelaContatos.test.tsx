@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
-import { act, fireEvent, screen } from 'expo-router/testing-library';
+import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
 import { Alert, Linking, Text } from 'react-native';
 
 import { Botao } from '../components/Botao';
@@ -219,6 +219,35 @@ describe('TelaContatos', () => {
       await screen.findByText('Sem conexão. Verifique a internet e tente de novo.'),
     ).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Ver mais' })).toBeEnabled();
+  });
+
+  it('mantem o "Ver mais" desabilitado enquanto a lista recarrega', async () => {
+    // Um "Ver mais" feito durante a recarga nasceria com a lista antiga e, ao chegar depois dela,
+    // a sobrescreveria com dados velhos; por isso o botao espera a recarga terminar.
+    let terminarRecarga: (p: Pagina<Contato>) => void = () => {};
+    const recarga = new Promise<Pagina<Contato>>((resolve) => {
+      terminarRecarga = resolve;
+    });
+    const primeiraPagina = Array.from({ length: 10 }, (_, i) => contato(i + 1));
+    const contatos = await montar((api) =>
+      api.listar
+        .mockResolvedValueOnce(pagina(primeiraPagina, 1, 12))
+        .mockReturnValueOnce(new Promise(() => {}))
+        .mockReturnValueOnce(recarga),
+    );
+    await screen.findByText('apelido1');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Editar apelido1, Pessoa 1' }));
+    await screen.findByText('Destino editar contato');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
+    await waitFor(() => expect(contatos.listar).toHaveBeenCalledTimes(3));
+    expect(screen.getByRole('button', { name: 'Ver mais' })).toBeDisabled();
+
+    await act(async () => {
+      terminarRecarga(pagina(primeiraPagina, 1, 12));
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ver mais' })).toBeEnabled());
   });
 
   it('o botao Ligar abre o discador com o numero do contato', async () => {
