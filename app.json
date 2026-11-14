@@ -30,7 +30,21 @@
           "imageWidth": 200
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O Voz & Via usa a câmera para fotografar o problema do seu reporte.",
+          "photosPermission": "O Voz & Via acessa suas fotos para você escolher a imagem do reporte.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Voz & Via usa sua localização para mostrar onde está o problema do seu reporte."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
