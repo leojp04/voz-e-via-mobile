@@ -44,6 +44,13 @@
         {
           "locationWhenInUsePermission": "O Voz & Via usa sua localização para mostrar onde está o problema do seu reporte."
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "O Voz & Via usa o microfone para ouvir o que você pede ao assistente.",
+          "speechRecognitionPermission": "O Voz & Via usa o reconhecimento de fala para entender o que você diz ao assistente."
+        }
       ]
     ],
     "experiments": {

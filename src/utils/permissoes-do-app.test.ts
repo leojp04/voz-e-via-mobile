@@ -34,4 +34,10 @@ describe('permissoes declaradas no app.json', () => {
     expect(config?.isIosBackgroundLocationEnabled).not.toBe(true);
     expect(config?.isAndroidBackgroundLocationEnabled).not.toBe(true);
   });
+
+  it('o microfone e o reconhecimento de fala tem texto em portugues que explica o uso', () => {
+    const config = configDoPlugin('expo-speech-recognition');
+    expect(config?.microphonePermission).toEqual(expect.stringContaining('microfone'));
+    expect(config?.speechRecognitionPermission).toEqual(expect.stringContaining('assistente'));
+  });
 });
