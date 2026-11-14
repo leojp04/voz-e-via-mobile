@@ -5,9 +5,11 @@
 //  - A foto sobe primeiro (POST /api/fotos) e o reporte leva so a URL (docs/adr/0008). Se o
 //    reporte falhar depois, a URL guardada evita subir a mesma foto de novo.
 //  - Camera e GPS so sao pedidos quando a pessoa toca no botao (docs/adr/0009).
+//  - O assistente por voz pode abrir a tela ja preenchida (parametros "categoria", "urgencia" e
+//    "descricao" na rota). E so uma sugestao: a pessoa revisa, usa o GPS e toca em enviar.
 // Toda mensagem diz se o reporte foi ou NAO enviado, para ninguem ficar na duvida.
 
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
@@ -41,6 +43,13 @@ const URGENCIAS: OpcaoDoSeletor<Urgencia>[] = [
   { valor: 'ALTA', titulo: 'Alta' },
 ];
 
+const CODIGOS_DE_URGENCIA: readonly string[] = URGENCIAS.map((u) => u.valor);
+
+/** Parametro de rota vem como texto ou lista; so o texto interessa. */
+function textoDaRota(valor: string | string[] | undefined): string | undefined {
+  return typeof valor === 'string' && valor.length > 0 ? valor : undefined;
+}
+
 const MENSAGEM_SEM_CATEGORIAS =
   'Não foi possível carregar as categorias. Verifique a internet e tente de novo.';
 const MENSAGEM_FALHA_NA_FOTO = 'Não foi possível usar a foto. Tente de novo.';
@@ -57,14 +66,25 @@ const SEM_ERROS: ErrosDoFormulario = { categoria: null, descricao: null, localiz
 export function TelaNovoReporte() {
   const { reportes, fotos } = useApis();
   const router = useRouter();
+  const sugestao = useLocalSearchParams<{
+    categoria?: string;
+    urgencia?: string;
+    descricao?: string;
+  }>();
+  const categoriaSugerida = textoDaRota(sugestao.categoria);
+  const urgenciaSugerida = textoDaRota(sugestao.urgencia);
 
   const [categorias, setCategorias] = useState<Categoria[] | null>(null);
   const [erroCategorias, setErroCategorias] = useState<string | null>(null);
   const [tentativaDeCategorias, setTentativaDeCategorias] = useState(0);
 
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
-  const [urgencia, setUrgencia] = useState<Urgencia>('MEDIA');
-  const [descricao, setDescricao] = useState('');
+  const [urgencia, setUrgencia] = useState<Urgencia>(
+    urgenciaSugerida && CODIGOS_DE_URGENCIA.includes(urgenciaSugerida)
+      ? (urgenciaSugerida as Urgencia)
+      : 'MEDIA',
+  );
+  const [descricao, setDescricao] = useState(textoDaRota(sugestao.descricao) ?? '');
   const [foto, setFoto] = useState<ArquivoFoto | null>(null);
   // URL da foto ja enviada ao servidor; evita subir a mesma foto de novo numa nova tentativa.
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
@@ -88,6 +108,9 @@ export function TelaNovoReporte() {
         if (!ativo) return;
         setCategorias(lista);
         setErroCategorias(null);
+        // Sugestao do assistente: so vale se o codigo existir e a pessoa ainda nao escolheu.
+        const sugerida = lista.find((c) => c.codigo === categoriaSugerida);
+        if (sugerida) setCategoriaId((atual) => atual ?? sugerida.id);
       })
       .catch(() => {
         if (ativo) setErroCategorias(MENSAGEM_SEM_CATEGORIAS);
@@ -95,7 +118,7 @@ export function TelaNovoReporte() {
     return () => {
       ativo = false;
     };
-  }, [reportes, tentativaDeCategorias]);
+  }, [reportes, tentativaDeCategorias, categoriaSugerida]);
 
   function voltar() {
     if (router.canGoBack()) router.back();

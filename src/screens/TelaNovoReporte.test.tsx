@@ -64,7 +64,7 @@ function InicioFalso() {
 }
 
 // A tela e montada em /reportes/novo (e nao no "index"), para "voltar" cair no Início falso.
-async function montar() {
+async function montar(url = '/reportes/novo') {
   const reportes = criarReportesApiMock();
   reportes.listarCategorias.mockResolvedValue(CATEGORIAS);
   reportes.criar.mockResolvedValue(REPORTE_CRIADO);
@@ -78,7 +78,7 @@ async function montar() {
       'reportes/novo': TelaNovoReporte,
       reportes: () => <Text>Destino meus reportes</Text>,
     },
-    url: '/reportes/novo',
+    url,
   });
   await screen.findByRole('radio', { name: 'Calçada quebrada' });
   return { reportes, fotos };
@@ -101,6 +101,56 @@ async function preencher() {
 beforeEach(() => jest.resetAllMocks());
 
 describe('TelaNovoReporte', () => {
+  describe('preenchido pelo assistente (parametros da rota)', () => {
+    const DESCRICAO_DO_ASSISTENTE = 'Calçada quebrada em frente ao mercado';
+    const urlDoAssistente = (extra = '') =>
+      `/reportes/novo?categoria=CALCADA&urgencia=ALTA&descricao=${encodeURIComponent(DESCRICAO_DO_ASSISTENTE)}${extra}`;
+
+    it('ja vem com a categoria, a urgencia e a descricao sugeridas', async () => {
+      await montar(urlDoAssistente());
+      await waitFor(() =>
+        expect(screen.getByRole('radio', { name: 'Calçada quebrada' })).toBeSelected(),
+      );
+      expect(screen.getByRole('radio', { name: 'Alta' })).toBeSelected();
+      expect(screen.getByLabelText('Descrição')).toHaveProp('value', DESCRICAO_DO_ASSISTENTE);
+    });
+
+    it('nao envia sozinho: falta o GPS e o toque em "Enviar reporte"', async () => {
+      const { reportes } = await montar(urlDoAssistente());
+      await waitFor(() =>
+        expect(screen.getByRole('radio', { name: 'Calçada quebrada' })).toBeSelected(),
+      );
+
+      expect(reportes.criar).not.toHaveBeenCalled();
+      await enviar();
+      expect(reportes.criar).not.toHaveBeenCalled();
+      expect(
+        screen.getByText('Toque em "Usar minha localização" para dizer onde está o problema.'),
+      ).toBeOnTheScreen();
+    });
+
+    it('categoria desconhecida e urgencia invalida sao ignoradas', async () => {
+      await montar('/reportes/novo?categoria=NAO_EXISTE&urgencia=URGENTISSIMA');
+      for (const nome of ['Calçada quebrada', 'Buraco na rua', 'Outro problema']) {
+        expect(screen.getByRole('radio', { name: nome })).not.toBeSelected();
+      }
+      expect(screen.getByRole('radio', { name: 'Média' })).toBeSelected();
+      expect(screen.getByLabelText('Descrição')).toHaveProp('value', '');
+    });
+
+    it('a pessoa ainda pode trocar o que o assistente sugeriu', async () => {
+      await montar(urlDoAssistente());
+      await waitFor(() =>
+        expect(screen.getByRole('radio', { name: 'Calçada quebrada' })).toBeSelected(),
+      );
+
+      await fireEvent.press(screen.getByRole('radio', { name: 'Buraco na rua' }));
+
+      expect(screen.getByRole('radio', { name: 'Buraco na rua' })).toBeSelected();
+      expect(screen.getByRole('radio', { name: 'Calçada quebrada' })).not.toBeSelected();
+    });
+  });
+
   it('mostra o titulo, as categorias vindas da API e a urgencia Média ja escolhida', async () => {
     const { reportes } = await montar();
     expect(screen.getByRole('header', { name: 'Novo reporte' })).toBeOnTheScreen();
