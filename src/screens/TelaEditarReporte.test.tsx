@@ -74,6 +74,7 @@ describe('TelaEditarReporte', () => {
     expect(await screen.findByRole('header', { name: 'Editar reporte' })).toBeOnTheScreen();
     expect(reportes.obter).toHaveBeenCalledWith(7);
     expect(screen.getByText('VV-2026-000007')).toBeOnTheScreen();
+    expect(screen.getByText('VV-2026-000007').props.adjustsFontSizeToFit).toBe(true);
     expect(screen.getByLabelText('Descrição').props.value).toBe(REPORTE.descricao);
     expect((await screen.findByLabelText('Foto do problema')).props.source).toEqual({
       uri: 'https://fotos.exemplo/7.jpg',

@@ -22,9 +22,8 @@ describe('CartaoReporte', () => {
     expect(screen.getByText('Buraco na rua')).toBeOnTheScreen();
     expect(screen.getByText('Aberto')).toBeOnTheScreen();
     expect(screen.getByText(reporte.descricao)).toBeOnTheScreen();
-    expect(
-      screen.getByText(`VV-2026-000007 · ${formatarData(reporte.criadoEm)}`),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('VV-2026-000007')).toBeOnTheScreen();
+    expect(screen.getByText(formatarData(reporte.criadoEm))).toBeOnTheScreen();
   });
 
   it('e um botao que o leitor de tela descreve de uma vez (protocolo, categoria e status)', async () => {
@@ -52,5 +51,12 @@ describe('CartaoReporte', () => {
       screen.getByRole('button', { name: /VV-2026-000007/ }).props.style,
     );
     expect(estilo.minHeight).toBeGreaterThanOrEqual(ALVO_MINIMO);
+  });
+
+  it('o protocolo fica numa linha so, sem quebrar no meio com letra grande', async () => {
+    await render(<CartaoReporte reporte={reporte} aoAbrir={jest.fn()} />);
+    const protocolo = screen.getByText('VV-2026-000007');
+    expect(protocolo.props.numberOfLines).toBe(1);
+    expect(protocolo.props.adjustsFontSizeToFit).toBe(true);
   });
 });

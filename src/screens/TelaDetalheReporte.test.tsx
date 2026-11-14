@@ -71,6 +71,7 @@ describe('TelaDetalheReporte', () => {
     expect(await screen.findByRole('header', { name: 'Detalhe do reporte' })).toBeOnTheScreen();
     expect(reportes.obter).toHaveBeenCalledWith(7);
     expect(screen.getByText('VV-2026-000007')).toBeOnTheScreen();
+    expect(screen.getByText('VV-2026-000007').props.adjustsFontSizeToFit).toBe(true);
     expect(screen.getByLabelText('Status: Em análise')).toBeOnTheScreen();
     expect(screen.getByText('Buraco na rua')).toBeOnTheScreen();
     expect(screen.getByText('Urgência: Alta')).toBeOnTheScreen();

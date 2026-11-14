@@ -14,6 +14,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Botao } from '../components/Botao';
 import { CampoDeFoto } from '../components/CampoDeFoto';
 import { CampoTexto } from '../components/CampoTexto';
+import { Protocolo } from '../components/Protocolo';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
@@ -192,7 +193,7 @@ export function TelaEditarReporte() {
 
       {reporte && !erro && !naoEstaAberto ? (
         <>
-          <Texto style={styles.protocolo}>{reporte.protocolo}</Texto>
+          <Protocolo valor={reporte.protocolo} style={styles.protocolo} />
           <View style={styles.caixa}>
             <Texto style={styles.categoria}>{reporte.categoria.nome}</Texto>
             <Texto style={styles.aviso}>{`Urgência: ${rotuloDaUrgencia(reporte.urgencia)}`}</Texto>

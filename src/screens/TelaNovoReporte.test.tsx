@@ -190,7 +190,9 @@ describe('TelaNovoReporte', () => {
     expect(chave).toMatch(/^[0-9a-f-]{36}$/);
     expect(fotos.enviar).not.toHaveBeenCalled();
     expect(await screen.findByRole('header', { name: 'Reporte enviado!' })).toBeOnTheScreen();
-    expect(screen.getByText('Protocolo: VV-2026-000007')).toBeOnTheScreen();
+    expect(screen.getByText('Protocolo:')).toBeOnTheScreen();
+    expect(screen.getByText('VV-2026-000007')).toBeOnTheScreen();
+    expect(screen.getByText('VV-2026-000007').props.adjustsFontSizeToFit).toBe(true);
   });
 
   it('a urgencia escolhida vai no reporte', async () => {

@@ -9,6 +9,7 @@ import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
 import { formatarData } from '../utils/formatar-data';
 import { estiloDoStatus } from '../utils/status-do-reporte';
 import { EtiquetaDeStatus } from './EtiquetaDeStatus';
+import { Protocolo } from './Protocolo';
 import { Texto } from './Texto';
 
 interface PropsCartaoReporte {
@@ -32,9 +33,8 @@ export function CartaoReporte({ reporte, aoAbrir }: PropsCartaoReporte) {
       <Texto style={styles.descricao} numberOfLines={2}>
         {reporte.descricao}
       </Texto>
-      <Texto style={styles.detalhes}>
-        {`${reporte.protocolo} · ${formatarData(reporte.criadoEm)}`}
-      </Texto>
+      <Protocolo valor={reporte.protocolo} style={styles.detalhes} />
+      <Texto style={styles.detalhes}>{formatarData(reporte.criadoEm)}</Texto>
     </Pressable>
   );
 }

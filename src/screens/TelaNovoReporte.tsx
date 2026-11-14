@@ -15,6 +15,7 @@ import { BlocoLocalizacao } from '../components/BlocoLocalizacao';
 import { Botao } from '../components/Botao';
 import { CampoDeFoto } from '../components/CampoDeFoto';
 import { CampoTexto } from '../components/CampoTexto';
+import { Protocolo } from '../components/Protocolo';
 import { SeletorDeOpcao, type OpcaoDoSeletor } from '../components/SeletorDeOpcao';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
@@ -205,7 +206,8 @@ export function TelaNovoReporte() {
         <Texto style={styles.titulo} accessibilityRole="header">
           Reporte enviado!
         </Texto>
-        <Texto style={styles.protocolo}>{`Protocolo: ${criado.protocolo}`}</Texto>
+        <Texto style={styles.aviso}>Protocolo:</Texto>
+        <Protocolo valor={criado.protocolo} style={styles.protocolo} />
         <Texto style={styles.aviso}>Guarde este número para acompanhar o seu reporte.</Texto>
         <Botao titulo="Ver meus reportes" onPress={() => router.replace('/reportes')} />
         <Botao titulo="Fazer outro reporte" variante="secundario" onPress={fazerOutro} />

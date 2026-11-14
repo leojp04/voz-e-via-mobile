@@ -13,6 +13,7 @@ import { ActivityIndicator, Alert, Image, StyleSheet, View } from 'react-native'
 
 import { Botao } from '../components/Botao';
 import { EtiquetaDeStatus } from '../components/EtiquetaDeStatus';
+import { Protocolo } from '../components/Protocolo';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
@@ -122,7 +123,7 @@ export function TelaDetalheReporte() {
 
       {reporte && !erro ? (
         <>
-          <Texto style={styles.protocolo}>{reporte.protocolo}</Texto>
+          <Protocolo valor={reporte.protocolo} style={styles.protocolo} />
           <EtiquetaDeStatus status={reporte.status} />
           <Texto style={styles.categoria}>{reporte.categoria.nome}</Texto>
           <Texto style={styles.aviso}>{`Urgência: ${rotuloDaUrgencia(reporte.urgencia)}`}</Texto>
