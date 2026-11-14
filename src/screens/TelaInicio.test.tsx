@@ -40,10 +40,10 @@ describe('TelaInicio', () => {
   it('ainda sem função: tocar num botão avisa "Em breve" em vez de parecer quebrado', async () => {
     const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     await montar();
-    await fireEvent.press(screen.getByRole('button', { name: 'Contatos de emergência' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Pedir ajuda' }));
     expect(alerta).toHaveBeenCalledWith(
       'Em breve',
-      'A função "Contatos" ainda não está disponível.',
+      'A função "Pedir ajuda" ainda não está disponível.',
     );
   });
 
@@ -101,6 +101,19 @@ describe('TelaInicio', () => {
     });
     await fireEvent.press(screen.getByRole('button', { name: 'Meus reportes' }));
     expect(await screen.findByText('Destino meus reportes')).toBeOnTheScreen();
+    expect(alerta).not.toHaveBeenCalled();
+  });
+
+  it('Contatos abre a lista de contatos de emergência (sem aviso de "Em breve")', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
+    await montarTela(TelaInicio, {
+      auth: criarAuthApiMock(),
+      armazenamento,
+      rotas: { contatos: () => <Text>Destino contatos</Text> },
+    });
+    await fireEvent.press(screen.getByRole('button', { name: 'Contatos de emergência' }));
+    expect(await screen.findByText('Destino contatos')).toBeOnTheScreen();
     expect(alerta).not.toHaveBeenCalled();
   });
 

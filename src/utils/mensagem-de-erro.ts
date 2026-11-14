@@ -102,3 +102,28 @@ export function mensagemDeErro(erro: unknown): string {
   if (erro.status >= 500) return 'O servidor está com problemas. Tente de novo em instantes.';
   return MENSAGEM_GENERICA;
 }
+
+// Ao salvar um contato de emergencia: a frase diz se ele foi ou NAO salvo.
+export function mensagemDeErroAoSalvarContato(erro: unknown): string {
+  if (ehErroApi(erro)) {
+    if (erro.status === 0) return 'Sem conexão. O contato não foi salvo. Tente de novo.';
+    if (erro.status === 404) return 'Contato não encontrado.';
+    if (erro.status === 400) return 'Confira os dados do contato. Ele não foi salvo.';
+    if (erro.status >= 500) {
+      return 'O servidor está com problemas. O contato não foi salvo. Tente de novo em instantes.';
+    }
+  }
+  return 'Não foi possível salvar o contato. Tente de novo.';
+}
+
+// Ao excluir um contato: a frase diz se ele foi ou NAO excluido.
+export function mensagemDeErroAoExcluirContato(erro: unknown): string {
+  if (ehErroApi(erro)) {
+    if (erro.status === 0) return 'Sem conexão. O contato não foi excluído. Tente de novo.';
+    if (erro.status === 404) return 'Contato não encontrado.';
+    if (erro.status >= 500) {
+      return 'O servidor está com problemas. O contato não foi excluído. Tente de novo em instantes.';
+    }
+  }
+  return 'Não foi possível excluir o contato. Tente de novo.';
+}
