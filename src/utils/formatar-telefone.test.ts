@@ -25,4 +25,14 @@ describe('formatarTelefone', () => {
   it('ignora letras e o que passa de 11 digitos', () => {
     expect(formatarTelefone('abc11988887777999')).toBe('(11) 98888-7777');
   });
+
+  it('tira o codigo do pais (+55) de um numero colado, sem trocar o destino da ligacao', () => {
+    expect(formatarTelefone('+55 (11) 98888-7777')).toBe('(11) 98888-7777');
+    expect(formatarTelefone('5511988887777')).toBe('(11) 98888-7777');
+    expect(formatarTelefone('551133334444')).toBe('(11) 3333-4444');
+  });
+
+  it('com DDD 55 (RS), um numero de 11 digitos continua inteiro', () => {
+    expect(formatarTelefone('55988887777')).toBe('(55) 98888-7777');
+  });
 });
