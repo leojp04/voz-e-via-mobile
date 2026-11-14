@@ -4,12 +4,14 @@
 
 import { criarClienteHttp } from './cliente-http';
 import { criarAuthApiFalsa } from './fake/auth-api-falsa';
+import { criarContatosApiFalsa } from './fake/contatos-api-falsa';
 import { criarFotosApiFalsa } from './fake/fotos-api-falsa';
 import { criarReportesApiFalsa } from './fake/reportes-api-falsa';
 import { criarAuthApiReal } from './real/auth-api-real';
+import { criarContatosApiReal } from './real/contatos-api-real';
 import { criarFotosApiReal } from './real/fotos-api-real';
 import { criarReportesApiReal } from './real/reportes-api-real';
-import type { AuthApi, FotosApi, ReportesApi } from './types';
+import type { AuthApi, ContatosApi, FotosApi, ReportesApi } from './types';
 
 export interface OpcoesFabrica {
   /** true = API falsa em memoria; false = API real. */
@@ -30,6 +32,7 @@ export interface Apis {
   auth: AuthApi;
   reportes: ReportesApi;
   fotos: FotosApi;
+  contatos: ContatosApi;
 }
 
 export function criarApis({
@@ -41,7 +44,7 @@ export function criarApis({
   fetchImpl,
 }: OpcoesFabrica): Apis {
   if (usarApiFalsa) {
-    // As APIs falsas de reportes e fotos descobrem o dono de cada pedido pelo token, usando a
+    // As APIs falsas de reportes, fotos e contatos descobrem o dono de cada pedido pelo token, usando a
     // memoria da autenticacao falsa (a mesma instancia, para os tokens baterem).
     const auth = criarAuthApiFalsa();
     const sessaoDasFalsas = {
@@ -53,6 +56,7 @@ export function criarApis({
       auth,
       reportes: criarReportesApiFalsa(sessaoDasFalsas),
       fotos: criarFotosApiFalsa(sessaoDasFalsas),
+      contatos: criarContatosApiFalsa(sessaoDasFalsas),
     };
   }
   // Dois servidores, duas URLs, mesma sessao: o token do login (Java) vale tambem no .NET.
@@ -72,6 +76,7 @@ export function criarApis({
     auth: criarAuthApiReal(clienteJava),
     reportes: criarReportesApiReal(clienteDotnet),
     fotos: criarFotosApiReal(clienteDotnet),
+    contatos: criarContatosApiReal(clienteJava),
   };
 }
 

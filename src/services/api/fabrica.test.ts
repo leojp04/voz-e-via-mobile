@@ -198,3 +198,57 @@ describe('usarApiFalsaDoAmbiente', () => {
     expect(usarApiFalsaDoAmbiente(undefined)).toBe(false);
   });
 });
+
+describe('criarApis: contatos', () => {
+  const urlJava = 'http://localhost:8080';
+  const urlDotnet = 'http://localhost:5000';
+  const dadosContato = {
+    nome: 'Marina Souza',
+    apelido: 'filha',
+    telefone: '11988887777',
+    prioridade: 1,
+  };
+
+  it('na API falsa, contatos funcionam sem rede com o token do login', async () => {
+    const fetchImpl = jest.fn();
+    let token: string | null = null;
+    const { auth, contatos } = criarApis({
+      usarApiFalsa: true,
+      urlJava,
+      urlDotnet,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      obterToken: () => token,
+    });
+    await auth.cadastrar(dadosCadastro);
+    token = (await auth.login(dadosCadastro.email, dadosCadastro.senha)).token;
+
+    await contatos.criar(dadosContato);
+    const pagina = await contatos.listar(1, 10);
+
+    expect(pagina.itens).toHaveLength(1);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('na API real, contatos usam a URL do Java e mandam o token', async () => {
+    const fetchImpl = jest.fn(
+      async () =>
+        new Response(JSON.stringify({ itens: [], pagina: 0, tamanho: 10, total: 0 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+    const { contatos } = criarApis({
+      usarApiFalsa: false,
+      urlJava,
+      urlDotnet,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      obterToken: () => 'abc123',
+    });
+
+    await contatos.listar(1, 10);
+
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://localhost:8080/api/contatos?page=0&size=10');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123');
+  });
+});

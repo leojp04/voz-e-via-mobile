@@ -144,3 +144,45 @@ export interface FotosApi {
   /** Envia a foto e devolve a URL guardada (o banco so guarda a URL). Erros: 400 (tipo), 401, 0. */
   enviar(arquivo: ArquivoFoto): Promise<{ fotoUrl: string }>;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Contatos de emergencia (API Java), conforme as secoes 5 e 8.1 do plano unico.
+// ---------------------------------------------------------------------------------------------
+
+export interface Contato {
+  id: number;
+  nome: string;
+  /** Como a pessoa chama o contato; o assistente usa para "ligar para minha filha". */
+  apelido: string;
+  /** So digitos, com DDD (10 ou 11). */
+  telefone: string;
+  /**
+   * Suposicao (confirmar com quem faz a API Java): inteiro de 1 a 5, sendo 1 o mais importante
+   * (primeiro a ser chamado).
+   */
+  prioridade: number;
+}
+
+export interface DadosContato {
+  nome: string;
+  apelido: string;
+  /** Pode vir com mascara, ex.: "(11) 98888-7777"; a API guarda so os digitos. */
+  telefone: string;
+  prioridade: number;
+}
+
+export interface ContatosApi {
+  /**
+   * Lista so os contatos do proprio usuario, por prioridade e depois por nome. "pagina" comeca
+   * em 1 no app (a API real converte para o 0 do Spring). Erros: 400, 401, 0.
+   */
+  listar(pagina: number, tamanho: number): Promise<Pagina<Contato>>;
+  /** Erros: 404 (nao existe ou e de outra pessoa), 401, 0. */
+  obter(id: number): Promise<Contato>;
+  /** Erros: 400 (dados invalidos, com "campos"), 401, 0. */
+  criar(dados: DadosContato): Promise<Contato>;
+  /** Erros: 400, 404, 401, 0. */
+  editar(id: number, dados: DadosContato): Promise<Contato>;
+  /** Erros: 404, 401, 0. */
+  excluir(id: number): Promise<void>;
+}
