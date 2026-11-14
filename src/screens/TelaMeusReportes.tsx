@@ -33,6 +33,8 @@ export function TelaMeusReportes() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erroMais, setErroMais] = useState<string | null>(null);
+  // true enquanto a primeira pagina recarrega: segura o "Ver mais" (ver carregar).
+  const [recarregando, setRecarregando] = useState(false);
 
   // "Geracao" da lista: sobe a cada recarregamento e quando a tela perde o foco. Uma resposta so
   // vale se a geracao ainda for a mesma de quando o pedido saiu; senao a lista nova seria
@@ -45,6 +47,9 @@ export function TelaMeusReportes() {
     // O "Ver mais" pendente deixa de valer; limpa o indicador dele aqui, pois a resposta antiga
     // nao pode mais fazer isso (e a recarga pode falhar).
     setCarregandoMais(false);
+    // Um "Ver mais" feito agora usaria a lista antiga e, ao chegar depois da recarga, a
+    // sobrescreveria; por isso o botao fica desabilitado ate a recarga terminar.
+    setRecarregando(true);
     try {
       const resposta = await reportes.listarMeus(1, TAMANHO_DA_PAGINA);
       if (minha !== geracao.current) return;
@@ -58,7 +63,10 @@ export function TelaMeusReportes() {
       if (minha !== geracao.current) return;
       setErro(mensagemDeErroAoCarregar(falha));
     } finally {
-      if (minha === geracao.current) setCarregando(false);
+      if (minha === geracao.current) {
+        setCarregando(false);
+        setRecarregando(false);
+      }
     }
   }, [reportes]);
 
@@ -155,6 +163,7 @@ export function TelaMeusReportes() {
           variante="secundario"
           onPress={() => void carregarMais()}
           carregando={carregandoMais}
+          desabilitado={recarregando}
         />
       ) : null}
 

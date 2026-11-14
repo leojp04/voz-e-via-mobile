@@ -262,6 +262,35 @@ describe('TelaMeusReportes', () => {
     expect(screen.getByRole('button', { name: 'Ver mais' })).toBeEnabled();
   });
 
+  it('mantem o "Ver mais" desabilitado enquanto a lista recarrega', async () => {
+    // Um "Ver mais" feito durante a recarga nasceria com a lista antiga e, ao chegar depois dela,
+    // a sobrescreveria com dados velhos; por isso o botao espera a recarga terminar.
+    let terminarRecarga: (p: Pagina<ReporteResumo>) => void = () => {};
+    const recarga = new Promise<Pagina<ReporteResumo>>((resolve) => {
+      terminarRecarga = resolve;
+    });
+    const primeiraPagina = Array.from({ length: 10 }, (_, i) => resumo(12 - i));
+    const reportes = await montar((api) =>
+      api.listarMeus
+        .mockResolvedValueOnce(pagina(primeiraPagina, 1, 12))
+        .mockReturnValueOnce(new Promise(() => {}))
+        .mockReturnValueOnce(recarga),
+    );
+    await screen.findByText('Descricao do reporte numero 12.');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
+    await fireEvent.press(cartao('VV-2026-000012'));
+    await screen.findByText('Destino detalhe');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
+    await waitFor(() => expect(reportes.listarMeus).toHaveBeenCalledTimes(3));
+    expect(screen.getByRole('button', { name: 'Ver mais' })).toBeDisabled();
+
+    await act(async () => {
+      terminarRecarga(pagina(primeiraPagina, 1, 12));
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ver mais' })).toBeEnabled());
+  });
+
   it('ignora a resposta atrasada de uma recarga antiga (recargas sobrepostas)', async () => {
     // Cenario: a primeira carga demora; a pessoa abre "novo reporte" e volta, e a lista recarrega
     // rapido. Quando a carga lenta, e antiga, enfim chega, nao pode sobrescrever a lista nova.
