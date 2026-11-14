@@ -14,8 +14,16 @@ let mockModulo: Record<string, jest.Mock> | null = null;
 let ouvintes: Record<string, Ouvinte> = {};
 const removerOuvinte = jest.fn();
 
+let mockCargasDaBiblioteca = 0;
+
+// Pergunta, sem lancar erro, se o modulo nativo existe neste app (no Expo Go nao existe).
+jest.mock('expo', () => ({
+  requireOptionalNativeModule: () => (mockModulo === null ? null : {}),
+}));
+
 jest.mock('expo-speech-recognition', () => ({
   get ExpoSpeechRecognitionModule() {
+    mockCargasDaBiblioteca += 1;
     if (mockModulo === null) throw new Error('modulo nativo ausente');
     return mockModulo;
   },
@@ -56,6 +64,7 @@ async function erroDe(promessa: Promise<unknown>): Promise<ErroAparelho> {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockCargasDaBiblioteca = 0;
   ouvintes = {};
   mockModulo = criarModuloFalso();
 });
@@ -64,6 +73,12 @@ describe('reconhecimentoDisponivel', () => {
   it('e falso quando o app nao tem o modulo nativo (Expo Go, web, testes)', () => {
     mockModulo = null;
     expect(reconhecimentoDisponivel()).toBe(false);
+  });
+
+  it('sem o modulo nativo, nem toca na biblioteca (no Expo Go isso abre uma tela vermelha de erro)', () => {
+    mockModulo = null;
+    reconhecimentoDisponivel();
+    expect(mockCargasDaBiblioteca).toBe(0);
   });
 
   it('e falso quando o aparelho nao tem nenhum reconhecedor de fala', () => {

@@ -10,6 +10,7 @@
 // O modulo nativo so existe no development build. Ele e carregado dentro de try/catch, a cada uso,
 // porque importa-lo no Expo Go ou na web lanca erro e derrubaria o app inteiro.
 
+import { requireOptionalNativeModule } from 'expo';
 import type { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
 
 import { ErroAparelho } from '../aparelho/erro-aparelho';
@@ -43,6 +44,10 @@ export interface ControleDeReconhecimento {
 }
 
 function carregarModulo(): ModuloDeFala | null {
+  // Antes de carregar a biblioteca, pergunta se o nativo existe. So o try/catch nao basta: em
+  // desenvolvimento o Metro trata um modulo que lanca erro ao carregar como erro FATAL e abre a
+  // tela vermelha mesmo com o erro capturado (descoberto no simulador, no Expo Go).
+  if (!requireOptionalNativeModule('ExpoSpeechRecognition')) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ExpoSpeechRecognitionModule } = require('expo-speech-recognition') as {
