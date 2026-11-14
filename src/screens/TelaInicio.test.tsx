@@ -62,14 +62,17 @@ describe('TelaInicio', () => {
     expect(screen.getByText('Toque e fale')).toBeOnTheScreen();
   });
 
-  it('tocar no microfone avisa "Em breve" com o nome curto da função', async () => {
+  it('tocar no microfone abre o assistente (sem aviso de "Em breve")', async () => {
     const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    await montar();
+    const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
+    await montarTela(TelaInicio, {
+      auth: criarAuthApiMock(),
+      armazenamento,
+      rotas: { assistente: () => <Text>Destino assistente</Text> },
+    });
     await fireEvent.press(screen.getByRole('button', { name: 'Falar com o assistente por voz' }));
-    expect(alerta).toHaveBeenCalledWith(
-      'Em breve',
-      'A função "Falar com o assistente" ainda não está disponível.',
-    );
+    expect(await screen.findByText('Destino assistente')).toBeOnTheScreen();
+    expect(alerta).not.toHaveBeenCalled();
   });
 
   it('os atalhos mostram o título curto, mas falam o rótulo completo', async () => {

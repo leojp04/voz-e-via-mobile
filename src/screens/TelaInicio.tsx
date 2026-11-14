@@ -63,7 +63,7 @@ export function TelaInicio() {
         </Texto>
       </View>
 
-      <BotaoMicrofone onPress={() => avisarEmBreve('Falar com o assistente')} />
+      <BotaoMicrofone onPress={() => router.push('/assistente')} />
 
       <View style={styles.grade}>
         {ATALHOS.map((atalho) => (
