@@ -1,6 +1,8 @@
-import { fireEvent, screen } from 'expo-router/testing-library';
+import { Stack, useRouter } from 'expo-router';
+import { act, fireEvent, screen } from 'expo-router/testing-library';
 import { Alert, Linking, Text } from 'react-native';
 
+import { Botao } from '../components/Botao';
 import { ErroApi } from '../services/api/erro';
 import type { Contato, Pagina } from '../services/api/types';
 import { criarAuthApiMock, criarContatosApiMock, montarTela } from '../test-utils/montar-tela';
@@ -30,6 +32,17 @@ function InicioFalso() {
   return <Text>Início de mentira</Text>;
 }
 
+// Destino de mentira do "Editar": deixa voltar, para testar o recarregamento da lista.
+function EditarFalso() {
+  const router = useRouter();
+  return (
+    <>
+      <Text>Destino editar contato</Text>
+      <Botao titulo="Voltar falso" onPress={() => router.back()} />
+    </>
+  );
+}
+
 // A tela e montada em /contatos (e nao no "index"), para "voltar" cair no Início falso.
 async function montar(configurar: (api: ReturnType<typeof criarContatosApiMock>) => void) {
   const contatos = criarContatosApiMock();
@@ -38,9 +51,11 @@ async function montar(configurar: (api: ReturnType<typeof criarContatosApiMock>)
     auth: criarAuthApiMock(),
     contatos,
     rotas: {
-      contatos: TelaContatos,
+      // Stack de verdade (como no app): a lista continua montada enquanto outra tela abre por cima.
+      'contatos/_layout': () => <Stack screenOptions={{ headerShown: false }} />,
+      'contatos/index': TelaContatos,
       'contatos/novo': () => <Text>Destino novo contato</Text>,
-      'contatos/[id]': () => <Text>Destino editar contato</Text>,
+      'contatos/[id]': EditarFalso,
     },
     url: '/contatos',
   });
@@ -151,6 +166,36 @@ describe('TelaContatos', () => {
       await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
       expect(await screen.findByText('apelido12')).toBeOnTheScreen();
     });
+  });
+
+  it('ignora a resposta atrasada do "Ver mais" depois que a lista foi recarregada', async () => {
+    // Cenario: "Ver mais" fica pendente, a pessoa edita/exclui um contato e volta para a lista
+    // (que recarrega). Se a resposta antiga chegar depois, nao pode desfazer a lista nova.
+    let responderAntiga: (p: Pagina<Contato>) => void = () => {};
+    const antiga = new Promise<Pagina<Contato>>((resolve) => {
+      responderAntiga = resolve;
+    });
+    const primeiraPagina = Array.from({ length: 10 }, (_, i) => contato(i + 1));
+    const contatos = await montar((api) =>
+      api.listar
+        .mockResolvedValueOnce(pagina(primeiraPagina, 1, 12))
+        .mockReturnValueOnce(antiga)
+        .mockResolvedValueOnce(pagina([contato(1)], 1, 1)),
+    );
+    await screen.findByText('apelido1');
+    await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Editar apelido1, Pessoa 1' }));
+    await screen.findByText('Destino editar contato');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
+    expect(await screen.findByText('1 contato')).toBeOnTheScreen();
+    await act(async () => {
+      responderAntiga(pagina([contato(11), contato(12)], 2, 12));
+    });
+
+    expect(screen.queryByText('apelido12')).not.toBeOnTheScreen();
+    expect(screen.getByText('1 contato')).toBeOnTheScreen();
+    expect(contatos.listar).toHaveBeenCalledTimes(3);
   });
 
   it('o botao Ligar abre o discador com o numero do contato', async () => {
