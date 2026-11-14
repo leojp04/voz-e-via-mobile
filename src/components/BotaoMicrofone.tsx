@@ -12,20 +12,25 @@ const TAMANHO = 120;
 
 interface PropsBotaoMicrofone {
   onPress: () => void;
+  /** Verdadeiro enquanto o app escuta: o botao vira "Parar de ouvir" (o mesmo toque encerra). */
+  ouvindo?: boolean;
 }
 
-export function BotaoMicrofone({ onPress }: PropsBotaoMicrofone) {
+export function BotaoMicrofone({ onPress, ouvindo = false }: PropsBotaoMicrofone) {
   return (
     <View style={styles.grupo}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Falar com o assistente por voz"
+        accessibilityLabel={ouvindo ? 'Parar de ouvir' : 'Falar com o assistente por voz'}
+        accessibilityState={{ busy: ouvindo }}
         onPress={onPress}
         style={({ pressed }) => [styles.circulo, pressed && styles.pressionado]}
       >
-        <Icone nome="mic" tamanho={56} cor={cores.textoSobreAcao} />
+        <Icone nome={ouvindo ? 'stop' : 'mic'} tamanho={56} cor={cores.textoSobreAcao} />
       </Pressable>
-      <Texto style={styles.dica}>Toque e fale</Texto>
+      <Texto style={styles.dica} accessibilityLiveRegion="polite">
+        {ouvindo ? 'Ouvindo… toque para parar' : 'Toque e fale'}
+      </Texto>
     </View>
   );
 }
