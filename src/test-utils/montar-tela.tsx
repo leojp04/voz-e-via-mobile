@@ -56,7 +56,7 @@ export function criarContatosApiMock(): jest.Mocked<ContatosApi> {
 }
 
 export function criarAssistenteApiMock(): jest.Mocked<AssistenteApi> {
-  return { interpretar: jest.fn() };
+  return { interpretar: jest.fn(), acionarEmergencia: jest.fn(), verificarMensagem: jest.fn() };
 }
 
 export function criarArmazenamentoEmMemoria(inicial: Sessao | null = null): ArmazenamentoSessao {

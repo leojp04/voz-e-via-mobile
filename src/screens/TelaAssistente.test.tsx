@@ -1,21 +1,27 @@
 import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
-import { Alert, Text } from 'react-native';
+import { Text } from 'react-native';
 
+import { ErroAparelho } from '../services/aparelho/erro-aparelho';
 import { obterLocalizacao } from '../services/aparelho/localizacao';
 import { ErroApi } from '../services/api/erro';
-import type { Contato, Pagina, RespostaAssistente } from '../services/api/types';
+import type {
+  AtendimentoProximo,
+  EntidadesDaFala,
+  RespostaAssistente,
+  ResultadoEmergencia,
+  ResultadoVerificacao,
+} from '../services/api/types';
 import { falar, pararDeFalar } from '../services/voz/falar';
 import { useEscutaDeVoz, type EscutaDeVoz } from '../services/voz/use-escuta-de-voz';
 import {
   criarArmazenamentoEmMemoria,
   criarAssistenteApiMock,
   criarAuthApiMock,
-  criarContatosApiMock,
   montarTela,
   sessaoDeTeste,
 } from '../test-utils/montar-tela';
 import { ligarPara } from '../utils/ligar-para';
-import { abrirBuscaNoMapa } from '../utils/url-do-mapa';
+import { abrirNoMapa } from '../utils/url-do-mapa';
 import { TelaAssistente } from './TelaAssistente';
 
 // O Ionicons tenta carregar um arquivo de fonte (que nao existe no Jest); o icone e decorativo.
@@ -62,64 +68,107 @@ beforeEach(() => {
 
 afterEach(() => jest.restoreAllMocks());
 
-const reporte: RespostaAssistente = {
-  intencao: 'REPORTAR_PROBLEMA',
-  parametros: { categoria: 'CALCADA', urgencia: 'ALTA', descricao: 'Calçada quebrada' },
-  respostaFalada: 'Entendi. Vou registrar uma calçada quebrada. Posso confirmar?',
+const SEM_ENTIDADES: EntidadesDaFala = {
+  tipoAtendimento: null,
+  exigeAcessibilidade: null,
+  problemaRua: null,
+  impedeCadeirante: null,
+  referenciaLocal: null,
+};
+
+function resposta(parcial: Partial<RespostaAssistente>): RespostaAssistente {
+  return {
+    intencao: 'DESCONHECIDA',
+    urgencia: null,
+    entidades: SEM_ENTIDADES,
+    mensagemFalada: 'ok',
+    confianca: 0.9,
+    atendimentos: null,
+    ...parcial,
+  };
+}
+
+const zeladoria = resposta({
+  intencao: 'ZELADORIA_REPORT',
+  urgencia: 'ALTA',
+  entidades: { ...SEM_ENTIDADES, problemaRua: 'CALCADA_DANIFICADA' },
+  mensagemFalada: 'Entendi. Vou registrar uma calçada quebrada. Posso abrir o formulário?',
+});
+
+const desconhecida = resposta({
+  intencao: 'DESCONHECIDA',
+  mensagemFalada: 'Não entendi. Pode repetir de outro jeito?',
+});
+
+const socorro = resposta({
+  intencao: 'SOCORRO',
+  urgencia: 'CRITICA',
+  mensagemFalada: 'Você precisa de ajuda? Posso avisar seus contatos agora.',
+});
+
+const verificar = resposta({
+  intencao: 'VERIFICAR_INFORMACAO',
+  mensagemFalada: 'Vou checar essa mensagem para você.',
+});
+
+const buscarSemLista = resposta({
+  intencao: 'BUSCAR_ATENDIMENTO',
+  entidades: { ...SEM_ENTIDADES, tipoAtendimento: 'FARMACIA' },
+  mensagemFalada: 'Vou procurar uma farmácia.',
+});
+
+const EMERGENCIA: ResultadoEmergencia = {
+  id: 7,
+  contatosNotificados: 2,
+  mensagemFalada: 'Avisei seus contatos. Fique onde está.',
+};
+
+const VERIFICACAO: ResultadoVerificacao = {
+  classificacao: 'PROVAVEL_GOLPE',
+  tipoGolpe: 'Falso parente',
+  sinais: ['Pede dinheiro com urgência'],
+  orientacao: 'Não faça o Pix. Ligue para a pessoa no número que você já tem.',
+  canalOficial: null,
+  mensagemFalada: 'Isso parece golpe.',
   fontes: [],
-  precisaConfirmacao: true,
 };
 
-const direito: RespostaAssistente = {
-  intencao: 'DUVIDA_DIREITO',
-  parametros: {},
-  respostaFalada: 'Pessoas com deficiência têm direito ao atendimento prioritário.',
-  fontes: ['Lei Brasileira de Inclusão (Lei 13.146/2015)'],
-  precisaConfirmacao: false,
+const farmacia: AtendimentoProximo = {
+  id: 1,
+  nome: 'Farmácia Exemplo',
+  tipo: 'FARMACIA',
+  endereco: 'Rua das Flores, 120 - Centro',
+  telefone: '1133334444',
+  latitude: -23.55,
+  longitude: -46.63,
+  distanciaMetros: 350,
+  acessibilidade: 'SIM',
+  banheiroAdaptado: null,
+  funciona24h: null,
+  aviso: null,
+  rotas: { googleMaps: 'https://maps.example/1', waze: 'https://waze.example/1', geo: 'geo:0,0' },
 };
 
-const ligar: RespostaAssistente = {
-  intencao: 'LIGAR_CONTATO',
-  parametros: { apelido: 'filha' },
-  respostaFalada: 'Quer ligar para filha?',
-  fontes: [],
-  precisaConfirmacao: true,
-};
+const CREDITO = '© Colaboradores do OpenStreetMap (ODbL)';
 
-const local: RespostaAssistente = {
-  intencao: 'LOCAL_PROXIMO',
-  parametros: { busca: 'farmácia' },
-  respostaFalada: 'Vou abrir o mapa com farmácia perto de você.',
-  fontes: [],
-  precisaConfirmacao: true,
-};
-
-// A API pode mandar precisaConfirmacao=false numa intencao que age; a tela ainda pede um toque.
-const consultar: RespostaAssistente = {
-  intencao: 'CONSULTAR_REPORTES',
-  parametros: {},
-  respostaFalada: 'Vou abrir os seus reportes.',
-  fontes: [],
-  precisaConfirmacao: false,
-};
-
-const emergencia: RespostaAssistente = {
-  intencao: 'EMERGENCIA',
-  parametros: {},
-  respostaFalada: 'Você precisa de ajuda? Posso avisar seus cuidadores agora.',
-  fontes: [],
-  precisaConfirmacao: true,
-};
-
-const AVISO_EMERGENCIA =
-  'O aviso aos cuidadores ainda não está disponível neste aplicativo. Em emergência, ligue para o SAMU: 192.';
-
-const paginaComFilha: Pagina<Contato> = {
-  itens: [{ id: 1, nome: 'Ana', apelido: 'Filha', telefone: '11933334444', prioridade: 1 }],
-  pagina: 1,
-  tamanho: 50,
-  total: 1,
-};
+function buscarComLista(parcial: Partial<NonNullable<RespostaAssistente['atendimentos']>> = {}) {
+  return resposta({
+    intencao: 'BUSCAR_ATENDIMENTO',
+    entidades: { ...SEM_ENTIDADES, tipoAtendimento: 'FARMACIA' },
+    mensagemFalada: 'Achei uma farmácia a 350 metros.',
+    atendimentos: {
+      tipo: 'FARMACIA',
+      atendimentos: [farmacia],
+      semAcessivelNoRaio: false,
+      mensagemFalada: 'Achei uma farmácia a 350 metros.',
+      orientacaoEmergencia: null,
+      telefoneEmergencia: null,
+      observacao: null,
+      creditoDados: CREDITO,
+      ...parcial,
+    },
+  });
+}
 
 function InicioFalso() {
   return <Text>Início de mentira</Text>;
@@ -129,28 +178,16 @@ function NovoReporteFalso() {
   return <Text>Novo reporte de mentira</Text>;
 }
 
-function ReportesFalso() {
-  return <Text>Reportes de mentira</Text>;
-}
+type AssistenteMock = ReturnType<typeof criarAssistenteApiMock>;
 
-async function montar(
-  configurar: (api: ReturnType<typeof criarAssistenteApiMock>) => void = () => {},
-  configurarContatos: (api: ReturnType<typeof criarContatosApiMock>) => void = () => {},
-) {
+async function montar(configurar: (api: AssistenteMock) => void = () => {}) {
   const assistente = criarAssistenteApiMock();
   configurar(assistente);
-  const contatos = criarContatosApiMock();
-  configurarContatos(contatos);
   await montarTela(InicioFalso, {
     auth: criarAuthApiMock(),
     assistente,
-    contatos,
     armazenamento: criarArmazenamentoEmMemoria(sessaoDeTeste),
-    rotas: {
-      assistente: TelaAssistente,
-      'reportes/novo': NovoReporteFalso,
-      'reportes/index': ReportesFalso,
-    },
+    rotas: { assistente: TelaAssistente, 'reportes/novo': NovoReporteFalso },
     url: '/assistente',
   });
   return assistente;
@@ -189,166 +226,49 @@ describe('TelaAssistente', () => {
     expect(assistente.interpretar).not.toHaveBeenCalled();
   });
 
-  it('envia o texto sem espaços nas pontas e mostra a resposta falada', async () => {
-    const assistente = await montar((api) => api.interpretar.mockResolvedValue(reporte));
+  it('texto com mais de 500 letras (limite do Java) mostra o erro e não chama a API', async () => {
+    const assistente = await montar();
+    await screen.findByRole('header', { name: 'Assistente' });
+
+    await digitarEEnviar('a'.repeat(501));
+
+    expect(screen.getByText('Escreva até 500 letras.')).toBeOnTheScreen();
+    expect(assistente.interpretar).not.toHaveBeenCalled();
+  });
+
+  it('envia o texto sem espaços nas pontas, SEM GPS, e mostra a resposta falada', async () => {
+    const assistente = await montar((api) => api.interpretar.mockResolvedValue(zeladoria));
     await screen.findByRole('header', { name: 'Assistente' });
 
     await digitarEEnviar('  a calçada está quebrada  ');
 
-    expect(await screen.findByText(reporte.respostaFalada)).toBeOnTheScreen();
+    expect(await screen.findByText(zeladoria.mensagemFalada)).toBeOnTheScreen();
     expect(assistente.interpretar).toHaveBeenCalledWith({ texto: 'a calçada está quebrada' });
+    // A promessa da tela de Privacidade: o GPS so e lido num toque, nunca no envio.
+    expect(obterLocalizacao).not.toHaveBeenCalled();
   });
 
-  it('quando precisa de confirmação, mostra "Sim, confirmar" e "Não, cancelar"', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(reporte));
+  it('DESCONHECIDA só mostra a frase: nenhum botão de ação', async () => {
+    await montar((api) => api.interpretar.mockResolvedValue(desconhecida));
     await screen.findByRole('header', { name: 'Assistente' });
 
-    await digitarEEnviar('calçada quebrada');
+    await digitarEEnviar('blablabla');
 
-    expect(await screen.findByRole('button', { name: 'Sim, confirmar' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Não, cancelar' })).toBeOnTheScreen();
-  });
-
-  it('quando não precisa de confirmação, não mostra os botões de confirmar', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(direito));
-    await screen.findByRole('header', { name: 'Assistente' });
-
-    await digitarEEnviar('tenho direito a passe livre?');
-
-    expect(await screen.findByText(direito.respostaFalada)).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Sim, confirmar' })).not.toBeOnTheScreen();
-  });
-
-  it('mostra as fontes citadas pela resposta', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(direito));
-    await screen.findByRole('header', { name: 'Assistente' });
-
-    await digitarEEnviar('tenho direito a passe livre?');
-
-    expect(
-      await screen.findByText('Fonte: Lei Brasileira de Inclusão (Lei 13.146/2015)'),
-    ).toBeOnTheScreen();
-  });
-
-  it('"Não, cancelar" some com a sugestão, e nada é executado', async () => {
-    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    await montar((api) => api.interpretar.mockResolvedValue(reporte));
-    await screen.findByRole('header', { name: 'Assistente' });
-    await digitarEEnviar('calçada quebrada');
-    await screen.findByText(reporte.respostaFalada);
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Não, cancelar' }));
-
-    expect(screen.queryByText(reporte.respostaFalada)).not.toBeOnTheScreen();
-    expect(alerta).not.toHaveBeenCalled();
-  });
-
-  it('nada é executado antes do toque em "Sim, confirmar"', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(ligar));
-    await screen.findByRole('header', { name: 'Assistente' });
-
-    await digitarEEnviar('ligar para minha filha');
-    await screen.findByText(ligar.respostaFalada);
-
-    expect(ligarPara).not.toHaveBeenCalled();
-    expect(screen).toHavePathname('/assistente');
-  });
-
-  it('"Sim, confirmar" em LIGAR_CONTATO abre o discador com o telefone do apelido', async () => {
-    await montar(
-      (api) => api.interpretar.mockResolvedValue(ligar),
-      (contatos) => contatos.listar.mockResolvedValue(paginaComFilha),
-    );
-    await screen.findByRole('header', { name: 'Assistente' });
-    await digitarEEnviar('ligar para minha filha');
-    await screen.findByText(ligar.respostaFalada);
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Sim, confirmar' }));
-
-    await waitFor(() => expect(ligarPara).toHaveBeenCalledWith('11933334444'));
-    // A sugestao some: nao da para confirmar a mesma acao duas vezes sem querer.
-    expect(screen.queryByRole('button', { name: 'Sim, confirmar' })).not.toBeOnTheScreen();
-  });
-
-  it('"Sim, confirmar" em LOCAL_PROXIMO abre o mapa perto de onde a pessoa está', async () => {
-    jest.mocked(obterLocalizacao).mockResolvedValue({ latitude: -23.5, longitude: -46.6 });
-    await montar((api) => api.interpretar.mockResolvedValue(local));
-    await screen.findByRole('header', { name: 'Assistente' });
-    await digitarEEnviar('farmácia perto');
-    await screen.findByText(local.respostaFalada);
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Sim, confirmar' }));
-
-    await waitFor(() =>
-      expect(abrirBuscaNoMapa).toHaveBeenCalledWith('farmácia', {
-        latitude: -23.5,
-        longitude: -46.6,
-      }),
-    );
-  });
-
-  it('"Sim, confirmar" em REPORTAR_PROBLEMA abre o formulário já preenchido', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(reporte));
-    await screen.findByRole('header', { name: 'Assistente' });
-    await digitarEEnviar('calçada quebrada');
-    await screen.findByText(reporte.respostaFalada);
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Sim, confirmar' }));
-
-    await waitFor(() => expect(screen).toHavePathname('/reportes/novo'));
-    expect(screen).toHaveSearchParams({
-      categoria: 'CALCADA',
-      urgencia: 'ALTA',
-      descricao: 'Calçada quebrada',
-    });
-  });
-
-  it('CONSULTAR_REPORTES, mesmo sem confirmação da API, espera um toque antes de abrir', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(consultar));
-    await screen.findByRole('header', { name: 'Assistente' });
-    await digitarEEnviar('meus reportes');
-    await screen.findByText(consultar.respostaFalada);
-    expect(screen).toHavePathname('/assistente');
-
-    await fireEvent.press(await screen.findByRole('button', { name: 'Sim, confirmar' }));
-
-    await waitFor(() => expect(screen).toHavePathname('/reportes'));
-  });
-
-  it('quando a ação não pode ser feita, mostra o aviso e some com a sugestão', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(emergencia));
-    await screen.findByRole('header', { name: 'Assistente' });
-    await digitarEEnviar('socorro');
-    await screen.findByText(emergencia.respostaFalada);
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Sim, confirmar' }));
-
-    expect(await screen.findByText(AVISO_EMERGENCIA)).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Sim, confirmar' })).not.toBeOnTheScreen();
-  });
-
-  it('mexer no texto apaga o aviso da ação anterior', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(emergencia));
-    await screen.findByRole('header', { name: 'Assistente' });
-    await digitarEEnviar('socorro');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Sim, confirmar' }));
-    await screen.findByText(AVISO_EMERGENCIA);
-
-    await fireEvent.changeText(screen.getByLabelText('O que você precisa?'), 'outra coisa');
-
-    expect(screen.queryByText(AVISO_EMERGENCIA)).not.toBeOnTheScreen();
+    expect(await screen.findByText(desconhecida.mensagemFalada)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Sim,/ })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Não, cancelar' })).not.toBeOnTheScreen();
   });
 
   it('mexer no texto apaga a sugestão antiga (não dá para confirmar o que não é mais o texto)', async () => {
-    await montar((api) => api.interpretar.mockResolvedValue(reporte));
+    await montar((api) => api.interpretar.mockResolvedValue(zeladoria));
     await screen.findByRole('header', { name: 'Assistente' });
     await digitarEEnviar('calçada quebrada');
-    await screen.findByText(reporte.respostaFalada);
+    await screen.findByText(zeladoria.mensagemFalada);
 
     await fireEvent.changeText(screen.getByLabelText('O que você precisa?'), 'socorro');
 
-    expect(screen.queryByText(reporte.respostaFalada)).not.toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Sim, confirmar' })).not.toBeOnTheScreen();
+    expect(screen.queryByText(zeladoria.mensagemFalada)).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Sim, abrir o formulário' })).not.toBeOnTheScreen();
   });
 
   it('erro da API mostra a frase amigável, diz que nada foi feito e não mostra sugestão', async () => {
@@ -362,14 +282,14 @@ describe('TelaAssistente', () => {
     expect(
       await screen.findByText('Sem conexão. Nada foi feito. Tente de novo.'),
     ).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Sim, confirmar' })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Sim,/ })).not.toBeOnTheScreen();
   });
 
   it('um novo envio com sucesso apaga o erro anterior', async () => {
     await montar((api) =>
       api.interpretar
         .mockRejectedValueOnce(new ErroApi(0, 'Network request failed'))
-        .mockResolvedValueOnce(direito),
+        .mockResolvedValueOnce(desconhecida),
     );
     await screen.findByRole('header', { name: 'Assistente' });
     await digitarEEnviar('direito');
@@ -377,7 +297,7 @@ describe('TelaAssistente', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Enviar ao assistente' }));
 
-    expect(await screen.findByText(direito.respostaFalada)).toBeOnTheScreen();
+    expect(await screen.findByText(desconhecida.mensagemFalada)).toBeOnTheScreen();
     expect(screen.queryByText('Sem conexão. Nada foi feito. Tente de novo.')).not.toBeOnTheScreen();
   });
 
@@ -392,9 +312,9 @@ describe('TelaAssistente', () => {
 
     await fireEvent.press(botao);
     await fireEvent.press(botao);
-    resolver(reporte);
+    resolver(zeladoria);
 
-    await screen.findByText(reporte.respostaFalada);
+    await screen.findByText(zeladoria.mensagemFalada);
     expect(assistente.interpretar).toHaveBeenCalledTimes(1);
   });
 
@@ -408,12 +328,286 @@ describe('TelaAssistente', () => {
   });
 });
 
+describe('TelaAssistente: ZELADORIA_REPORT', () => {
+  it('mostra "Sim, abrir o formulário" e "Não, cancelar", e nada acontece antes do toque', async () => {
+    await montar((api) => api.interpretar.mockResolvedValue(zeladoria));
+    await screen.findByRole('header', { name: 'Assistente' });
+
+    await digitarEEnviar('calçada quebrada');
+
+    expect(
+      await screen.findByRole('button', { name: 'Sim, abrir o formulário' }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Não, cancelar' })).toBeOnTheScreen();
+    expect(screen).toHavePathname('/assistente');
+  });
+
+  it('"Não, cancelar" some com a sugestão e fica na tela', async () => {
+    await montar((api) => api.interpretar.mockResolvedValue(zeladoria));
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('calçada quebrada');
+    await screen.findByText(zeladoria.mensagemFalada);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Não, cancelar' }));
+
+    expect(screen.queryByText(zeladoria.mensagemFalada)).not.toBeOnTheScreen();
+    expect(screen).toHavePathname('/assistente');
+  });
+
+  it('"Sim, abrir o formulário" abre o novo reporte já preenchido', async () => {
+    await montar((api) => api.interpretar.mockResolvedValue(zeladoria));
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('calçada quebrada');
+    await screen.findByText(zeladoria.mensagemFalada);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, abrir o formulário' }));
+
+    await waitFor(() => expect(screen).toHavePathname('/reportes/novo'));
+    expect(screen).toHaveSearchParams({
+      categoria: 'CALCADA',
+      urgencia: 'ALTA',
+      descricao: 'calçada quebrada',
+    });
+  });
+});
+
+describe('TelaAssistente: SOCORRO', () => {
+  async function chegarNaConfirmacao(configurar?: (api: AssistenteMock) => void) {
+    jest.mocked(obterLocalizacao).mockResolvedValue({ latitude: -23.5, longitude: -46.6 });
+    const assistente = await montar((api) => {
+      api.interpretar.mockResolvedValue(socorro);
+      api.acionarEmergencia.mockResolvedValue(EMERGENCIA);
+      configurar?.(api);
+    });
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('socorro, caí');
+    await screen.findByText(socorro.mensagemFalada);
+    return assistente;
+  }
+
+  it('só pergunta: nenhum alerta sai antes do toque em "Sim, avisar meus contatos"', async () => {
+    const assistente = await chegarNaConfirmacao();
+    expect(screen.getByRole('button', { name: 'Sim, avisar meus contatos' })).toBeOnTheScreen();
+    expect(assistente.acionarEmergencia).not.toHaveBeenCalled();
+  });
+
+  it('ao confirmar, avisa os contatos com o GPS e a frase dita, e mostra o resultado', async () => {
+    const assistente = await chegarNaConfirmacao();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, avisar meus contatos' }));
+
+    expect(await screen.findByText(EMERGENCIA.mensagemFalada)).toBeOnTheScreen();
+    expect(screen.getByText('Contatos avisados: 2')).toBeOnTheScreen();
+    expect(assistente.acionarEmergencia).toHaveBeenCalledWith({
+      latitude: -23.5,
+      longitude: -46.6,
+      textoOriginal: 'socorro, caí',
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Sim, avisar meus contatos' }),
+    ).not.toBeOnTheScreen();
+  });
+
+  it('oferece "Ligar 192" depois do aviso, e o toque abre o discador', async () => {
+    await chegarNaConfirmacao();
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, avisar meus contatos' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Ligar para o SAMU, 192' }));
+
+    expect(ligarPara).toHaveBeenCalledWith('192');
+  });
+
+  it('se o aviso falhar, diz isso e manda ligar para o SAMU (nunca finge que avisou)', async () => {
+    await chegarNaConfirmacao((api) =>
+      api.acionarEmergencia.mockRejectedValue(new ErroApi(0, 'sem conexao')),
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, avisar meus contatos' }));
+
+    expect(await screen.findByText(/Não foi possível avisar seus contatos/)).toBeOnTheScreen();
+    expect(screen.queryByText(EMERGENCIA.mensagemFalada)).not.toBeOnTheScreen();
+  });
+
+  it('se o aviso falhar, o botão "Ligar 192" continua a um toque', async () => {
+    await chegarNaConfirmacao((api) =>
+      api.acionarEmergencia.mockRejectedValue(new ErroApi(0, 'sem conexao')),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, avisar meus contatos' }));
+    await screen.findByText(/Não foi possível avisar seus contatos/);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Ligar para o SAMU, 192' }));
+
+    expect(ligarPara).toHaveBeenCalledWith('192');
+  });
+
+  it('mexer no texto apaga o resultado do alerta anterior', async () => {
+    await chegarNaConfirmacao();
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, avisar meus contatos' }));
+    await screen.findByText(EMERGENCIA.mensagemFalada);
+
+    await fireEvent.changeText(screen.getByLabelText('O que você precisa?'), 'outra coisa');
+
+    expect(screen.queryByText(EMERGENCIA.mensagemFalada)).not.toBeOnTheScreen();
+  });
+});
+
+describe('TelaAssistente: VERIFICAR_INFORMACAO', () => {
+  const MENSAGEM = 'mãe, troquei de número, faz um pix';
+
+  async function chegarNaConfirmacao(configurar?: (api: AssistenteMock) => void) {
+    const assistente = await montar((api) => {
+      api.interpretar.mockResolvedValue(verificar);
+      api.verificarMensagem.mockResolvedValue(VERIFICACAO);
+      configurar?.(api);
+    });
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar(MENSAGEM);
+    await screen.findByText(verificar.mensagemFalada);
+    return assistente;
+  }
+
+  it('só verifica depois do toque em "Sim, verificar"', async () => {
+    const assistente = await chegarNaConfirmacao();
+    expect(assistente.verificarMensagem).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Sim, verificar' })).toBeOnTheScreen();
+  });
+
+  it('ao confirmar, manda a mensagem e mostra o parecer', async () => {
+    const assistente = await chegarNaConfirmacao();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, verificar' }));
+
+    expect(await screen.findByText('Provável golpe')).toBeOnTheScreen();
+    expect(screen.getByText(VERIFICACAO.orientacao)).toBeOnTheScreen();
+    expect(assistente.verificarMensagem).toHaveBeenCalledWith({ texto: MENSAGEM });
+  });
+
+  it('se a verificação falhar, mostra o aviso e não mostra parecer', async () => {
+    await chegarNaConfirmacao((api) =>
+      api.verificarMensagem.mockRejectedValue(new ErroApi(0, 'sem conexao')),
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sim, verificar' }));
+
+    expect(await screen.findByText(/Não foi possível verificar agora/)).toBeOnTheScreen();
+    expect(screen.queryByText('Provável golpe')).not.toBeOnTheScreen();
+  });
+});
+
+describe('TelaAssistente: BUSCAR_ATENDIMENTO', () => {
+  async function buscar(resp: RespostaAssistente) {
+    const assistente = await montar((api) => api.interpretar.mockResolvedValue(resp));
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('farmácia perto de mim');
+    return assistente;
+  }
+
+  const USAR_GPS = 'Usar minha localização para achar atendimentos';
+
+  it('com a lista pronta, mostra os atendimentos e o crédito do OpenStreetMap (ODbL)', async () => {
+    await buscar(buscarComLista());
+
+    expect(await screen.findByText('Farmácia Exemplo')).toBeOnTheScreen();
+    expect(screen.getByText(CREDITO)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Sim,/ })).not.toBeOnTheScreen();
+  });
+
+  it('"Ligar" no atendimento abre o discador com o telefone dele', async () => {
+    await buscar(buscarComLista());
+
+    await fireEvent.press(
+      await screen.findByRole('button', { name: 'Ligar para Farmácia Exemplo' }),
+    );
+
+    expect(ligarPara).toHaveBeenCalledWith('1133334444');
+  });
+
+  it('"Ver no mapa" abre o app de mapas no ponto do atendimento', async () => {
+    await buscar(buscarComLista());
+
+    await fireEvent.press(
+      await screen.findByRole('button', { name: 'Ver Farmácia Exemplo no mapa' }),
+    );
+
+    expect(abrirNoMapa).toHaveBeenCalledWith(-23.55, -46.63);
+  });
+
+  it('hospital/UPA: mostra a orientação do Java e o botão para ligar ao número de emergência', async () => {
+    await buscar(
+      buscarComLista({
+        orientacaoEmergencia: 'Em emergência, ligue 192.',
+        telefoneEmergencia: '192',
+      }),
+    );
+
+    expect(await screen.findByText('Em emergência, ligue 192.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ligar para o SAMU, 192' }));
+    expect(ligarPara).toHaveBeenCalledWith('192');
+  });
+
+  it('mostra a observação do Java quando existe', async () => {
+    await buscar(buscarComLista({ observacao: 'Horários podem mudar.' }));
+    expect(await screen.findByText('Horários podem mudar.')).toBeOnTheScreen();
+  });
+
+  it('sem nenhum local acessível confirmado no raio, avisa com clareza', async () => {
+    await buscar(buscarComLista({ semAcessivelNoRaio: true }));
+    expect(
+      await screen.findByText(/Nenhum local confirmado como acessível por perto/),
+    ).toBeOnTheScreen();
+  });
+
+  it('lista vazia diz que nada foi encontrado e ainda mostra o crédito', async () => {
+    await buscar(buscarComLista({ atendimentos: [] }));
+    expect(await screen.findByText('Não encontrei atendimentos por perto.')).toBeOnTheScreen();
+    expect(screen.getByText(CREDITO)).toBeOnTheScreen();
+  });
+
+  it('sem lista (o Java não recebeu o GPS), oferece "Usar minha localização" e não lê o GPS sozinho', async () => {
+    await buscar(buscarSemLista);
+
+    expect(await screen.findByRole('button', { name: USAR_GPS })).toBeOnTheScreen();
+    expect(obterLocalizacao).not.toHaveBeenCalled();
+  });
+
+  it('"Usar minha localização" reenvia a MESMA frase com o GPS e mostra a lista', async () => {
+    jest.mocked(obterLocalizacao).mockResolvedValue({ latitude: -23.5, longitude: -46.6 });
+    const assistente = await montar((api) =>
+      api.interpretar.mockResolvedValueOnce(buscarSemLista).mockResolvedValueOnce(buscarComLista()),
+    );
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('farmácia perto de mim');
+
+    await fireEvent.press(await screen.findByRole('button', { name: USAR_GPS }));
+
+    expect(await screen.findByText('Farmácia Exemplo')).toBeOnTheScreen();
+    expect(assistente.interpretar).toHaveBeenLastCalledWith({
+      texto: 'farmácia perto de mim',
+      latitude: -23.5,
+      longitude: -46.6,
+    });
+  });
+
+  it('GPS negado: mostra o aviso do aparelho, não reenvia e o botão continua disponível', async () => {
+    jest
+      .mocked(obterLocalizacao)
+      .mockRejectedValue(new ErroAparelho('PERMISSAO_NEGADA', 'Permita o acesso à localização.'));
+    const assistente = await buscar(buscarSemLista);
+
+    await fireEvent.press(await screen.findByRole('button', { name: USAR_GPS }));
+
+    expect(await screen.findByText('Permita o acesso à localização.')).toBeOnTheScreen();
+    expect(assistente.interpretar).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: USAR_GPS })).toBeOnTheScreen();
+  });
+});
+
 describe('TelaAssistente: voz', () => {
   const MIC = 'Falar com o assistente por voz';
   const LER_SEMPRE = 'Ler sempre a resposta em voz alta';
 
-  async function montarComResposta(resposta: RespostaAssistente) {
-    const assistente = await montar((api) => api.interpretar.mockResolvedValue(resposta));
+  async function montarComResposta(resp: RespostaAssistente) {
+    const assistente = await montar((api) => api.interpretar.mockResolvedValue(resp));
     await screen.findByRole('header', { name: 'Assistente' });
     return assistente;
   }
@@ -458,39 +652,33 @@ describe('TelaAssistente: voz', () => {
     it('preenche o campo e NÃO envia sozinho (a pessoa confere e toca em Enviar)', async () => {
       const assistente = await montar();
       await screen.findByRole('header', { name: 'Assistente' });
-      await aparelhoOuviu('ligar para a filha');
-      expect(screen.getByLabelText('O que você precisa?')).toHaveProp(
-        'value',
-        'ligar para a filha',
-      );
+      await aparelhoOuviu('farmácia perto');
+      expect(screen.getByLabelText('O que você precisa?')).toHaveProp('value', 'farmácia perto');
       expect(assistente.interpretar).not.toHaveBeenCalled();
     });
 
     it('acompanha o texto parcial enquanto a pessoa fala', async () => {
       await montar();
       await screen.findByRole('header', { name: 'Assistente' });
-      await aparelhoOuviu('ligar', false);
-      expect(screen.getByLabelText('O que você precisa?')).toHaveProp('value', 'ligar');
-      await aparelhoOuviu('ligar para a filha', true);
-      expect(screen.getByLabelText('O que você precisa?')).toHaveProp(
-        'value',
-        'ligar para a filha',
-      );
+      await aparelhoOuviu('farmácia', false);
+      expect(screen.getByLabelText('O que você precisa?')).toHaveProp('value', 'farmácia');
+      await aparelhoOuviu('farmácia perto', true);
+      expect(screen.getByLabelText('O que você precisa?')).toHaveProp('value', 'farmácia perto');
     });
 
     it('apaga a sugestão antiga, que era de outro texto', async () => {
-      await montarComResposta(reporte);
+      await montarComResposta(zeladoria);
       await digitarEEnviar('calçada quebrada');
-      await screen.findByText(reporte.respostaFalada);
+      await screen.findByText(zeladoria.mensagemFalada);
       await aparelhoOuviu('outra coisa');
-      expect(screen.queryByText(reporte.respostaFalada)).not.toBeOnTheScreen();
+      expect(screen.queryByText(zeladoria.mensagemFalada)).not.toBeOnTheScreen();
     });
 
     it('o texto falado pode ser enviado pelo botão Enviar', async () => {
-      const assistente = await montarComResposta(direito);
+      const assistente = await montarComResposta(desconhecida);
       await aparelhoOuviu('quais são meus direitos');
       await fireEvent.press(screen.getByRole('button', { name: 'Enviar ao assistente' }));
-      await screen.findByText(direito.respostaFalada);
+      await screen.findByText(desconhecida.mensagemFalada);
       expect(assistente.interpretar).toHaveBeenCalledWith({ texto: 'quais são meus direitos' });
     });
   });
@@ -531,45 +719,45 @@ describe('TelaAssistente: voz', () => {
     });
 
     it('ligado: lê a resposta mesmo quando a pergunta foi digitada', async () => {
-      await montarComResposta(direito);
+      await montarComResposta(desconhecida);
       await digitarEEnviar('meus direitos');
-      await screen.findByText(direito.respostaFalada);
-      expect(falar).toHaveBeenCalledWith(direito.respostaFalada);
+      await screen.findByText(desconhecida.mensagemFalada);
+      expect(falar).toHaveBeenCalledWith(desconhecida.mensagemFalada);
     });
 
     it('desligado: pergunta digitada não é lida', async () => {
-      await montarComResposta(direito);
+      await montarComResposta(desconhecida);
       await fireEvent.press(screen.getByRole('checkbox', { name: LER_SEMPRE }));
       await digitarEEnviar('meus direitos');
-      await screen.findByText(direito.respostaFalada);
+      await screen.findByText(desconhecida.mensagemFalada);
       expect(falar).not.toHaveBeenCalled();
     });
 
     it('desligado: pergunta feita por voz é lida', async () => {
-      await montarComResposta(direito);
+      await montarComResposta(desconhecida);
       await fireEvent.press(screen.getByRole('checkbox', { name: LER_SEMPRE }));
       await aparelhoOuviu('meus direitos');
       await fireEvent.press(screen.getByRole('button', { name: 'Enviar ao assistente' }));
-      await screen.findByText(direito.respostaFalada);
-      expect(falar).toHaveBeenCalledWith(direito.respostaFalada);
+      await screen.findByText(desconhecida.mensagemFalada);
+      expect(falar).toHaveBeenCalledWith(desconhecida.mensagemFalada);
     });
 
     it('desligado: depois de falar, se a pessoa digitar por cima, volta a não ler', async () => {
-      await montarComResposta(direito);
+      await montarComResposta(desconhecida);
       await fireEvent.press(screen.getByRole('checkbox', { name: LER_SEMPRE }));
       await aparelhoOuviu('meus direitos');
       await digitarEEnviar('meus direitos de novo');
-      await screen.findByText(direito.respostaFalada);
+      await screen.findByText(desconhecida.mensagemFalada);
       expect(falar).not.toHaveBeenCalled();
     });
 
     it('"Ouvir de novo" lê a resposta outra vez, com o interruptor desligado também', async () => {
-      await montarComResposta(direito);
+      await montarComResposta(desconhecida);
       await fireEvent.press(screen.getByRole('checkbox', { name: LER_SEMPRE }));
       await digitarEEnviar('meus direitos');
-      await screen.findByText(direito.respostaFalada);
+      await screen.findByText(desconhecida.mensagemFalada);
       await fireEvent.press(screen.getByRole('button', { name: 'Ouvir a resposta de novo' }));
-      expect(falar).toHaveBeenCalledWith(direito.respostaFalada);
+      expect(falar).toHaveBeenCalledWith(desconhecida.mensagemFalada);
     });
 
     it('não mostra "Ouvir de novo" quando ainda não há resposta', async () => {
@@ -579,13 +767,27 @@ describe('TelaAssistente: voz', () => {
         screen.queryByRole('button', { name: 'Ouvir a resposta de novo' }),
       ).not.toBeOnTheScreen();
     });
+
+    it('lê também o resultado do aviso de emergência', async () => {
+      jest.mocked(obterLocalizacao).mockResolvedValue({ latitude: -23.5, longitude: -46.6 });
+      await montar((api) => {
+        api.interpretar.mockResolvedValue(socorro);
+        api.acionarEmergencia.mockResolvedValue(EMERGENCIA);
+      });
+      await digitarEEnviar('socorro');
+      await fireEvent.press(
+        await screen.findByRole('button', { name: 'Sim, avisar meus contatos' }),
+      );
+      await screen.findByText(EMERGENCIA.mensagemFalada);
+      expect(falar).toHaveBeenCalledWith(EMERGENCIA.mensagemFalada);
+    });
   });
 
   describe('parar de falar', () => {
     async function comRespostaNaTela() {
-      await montarComResposta(reporte);
+      await montarComResposta(zeladoria);
       await digitarEEnviar('calçada quebrada');
-      await screen.findByText(reporte.respostaFalada);
+      await screen.findByText(zeladoria.mensagemFalada);
       (pararDeFalar as jest.Mock).mockClear();
     }
 
@@ -595,9 +797,9 @@ describe('TelaAssistente: voz', () => {
       expect(pararDeFalar).toHaveBeenCalled();
     });
 
-    it('"Sim, confirmar" para a leitura antes de agir', async () => {
+    it('confirmar para a leitura antes de agir', async () => {
       await comRespostaNaTela();
-      await fireEvent.press(screen.getByRole('button', { name: 'Sim, confirmar' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sim, abrir o formulário' }));
       expect(pararDeFalar).toHaveBeenCalled();
     });
 
