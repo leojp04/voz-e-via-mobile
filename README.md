@@ -13,8 +13,13 @@ voltado a pessoas idosas e pessoas com deficiência e reúne duas partes, cada u
 > tela "Sobre o app" (versão e **hash do commit** gravado no build,
 > [ADR 0006](docs/adr/0006-hash-do-commit-em-app-config.md)) e o fluxo de **reportes**: novo
 > reporte com foto e localização, lista "Meus reportes", detalhe, edição e cancelamento, e os
-> **contatos de emergência** (lista, criar, editar e excluir). O assistente por voz e o convite
-> de cuidador entram nas próximas etapas.
+> **contatos de emergência** (lista, criar, editar e excluir). A tela do **assistente por voz**
+> existe (fala e leitura da resposta, [ADR 0010](docs/adr/0010-voz-expo-speech-e-reconhecimento.md))
+> e precisa de _development build_. O convite de cuidador e os alertas entram nas próximas etapas.
+>
+> **Integração:** a API .NET (reportes) já foi testada de verdade no simulador, com login de
+> teste. A API Java (login, cadastro, contatos, assistente) ainda não: até lá o app usa a API
+> falsa nessas partes.
 
 ## Requisitos
 
@@ -33,6 +38,10 @@ npx expo start
 Na saída do comando, escolha `i` (simulador iOS), `a` (emulador Android) ou leia o QR code com o
 Expo Go.
 
+A voz usa um módulo nativo e **não funciona no Expo Go**: lá a tela do assistente avisa
+"Voz indisponível" e deixa digitar. Para testar a voz, gere um _development build_ com
+`npx expo run:ios` ou `npx expo run:android`.
+
 Enquanto as APIs não estiverem no ar, deixe `EXPO_PUBLIC_USE_FAKE_API=true` no `.env`: o app usa
 uma API falsa em memória. Na entrega, o app usa apenas as APIs reais (ver
 [ADR 0004](docs/adr/0004-api-falsa-temporaria.md)).
@@ -46,8 +55,10 @@ uma API falsa em memória. Na entrega, o app usa apenas as APIs reais (ver
 | `npm run format`       | Formata o código com o Prettier                |
 | `npm run format:check` | Só confere a formatação, sem alterar nada      |
 | `npm run typecheck`    | Confere os tipos do TypeScript, sem gerar nada |
+| `npm test`             | Roda os testes automáticos com o Jest          |
 
-Antes de cada commit: `npm run lint`, `npm run format:check` e `npm run typecheck` devem passar.
+Antes de cada commit: `npm run lint`, `npm run format:check`, `npm run typecheck` e `npm test`
+devem passar.
 
 ## Variáveis de ambiente
 
@@ -62,6 +73,10 @@ plano único, seções 8.1 e 8.2). Se a API divergir, a tela quebra só na integ
 convém confirmar antes:
 
 - **Contatos (API Java):** prioridade é um inteiro de 1 a 5, sendo 1 quem chamar primeiro.
+- **Reportes (API .NET, já conferido na API real):** a porta padrão é 5080; o `POST` recebe o
+  **código** da categoria (ex.: `RAMPA`); a foto sobe antes, em `POST /api/fotos`, e a API devolve
+  só o caminho (`/uploads/...`); o `PUT` **substitui** descrição, endereço e foto, então o app
+  reenvia os valores atuais ao editar só um deles.
 - **Páginas:** o app conta a partir de 1. A API Java (Spring) conta a partir de 0, e o app
   converte só no adaptador real. A API .NET deve contar a partir de 1.
 - **Formato das listas:** `{ itens, pagina, tamanho, total }`. O `Page` padrão do Spring usa
@@ -99,6 +114,9 @@ e as consequências:
 5. [Rotas protegidas com Stack.Protected](docs/adr/0005-rotas-protegidas-com-stack-protected.md)
 6. [Hash do commit em app.config](docs/adr/0006-hash-do-commit-em-app-config.md)
 7. [Identidade visual](docs/adr/0007-identidade-visual.md)
+8. [Contrato de reportes e foto](docs/adr/0008-contrato-de-reportes-e-foto.md)
+9. [Câmera e localização](docs/adr/0009-camera-e-localizacao.md)
+10. [Voz com expo-speech e expo-speech-recognition](docs/adr/0010-voz-expo-speech-e-reconhecimento.md)
 
 ## Acessibilidade e privacidade
 
@@ -113,6 +131,9 @@ etapa os usuários são apenas contas de teste.
 - **Ícones Ionicons**: Ionic, licença MIT (pacote `@expo/vector-icons`).
 - **Câmera e galeria (foto do reporte)**: `expo-image-picker`, licença MIT (Expo).
 - **Localização (GPS do reporte)**: `expo-location`, licença MIT (Expo).
+- **Envio da foto (arquivo como `File`)**: `expo-file-system`, licença MIT (Expo).
+- **Leitura da resposta em voz alta**: `expo-speech`, licença MIT (Expo).
+- **Reconhecimento de fala**: `expo-speech-recognition`, licença MIT.
 - **Logo e ícone do app**: desenho próprio do projeto (`assets/images/voz-e-via.svg`).
 
 ## Entrega
