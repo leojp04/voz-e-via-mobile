@@ -4,7 +4,9 @@
 
 export function formatarDistancia(metros: number): string {
   if (!Number.isFinite(metros) || metros < 0) return '';
-  const arredondado = Math.round(metros / 10) * 10;
+  // Maior que zero nunca vira "0 m" (1 m arredondaria para 0): o minimo mostrado e 10 m,
+  // igual ao que a API Java fala ("a farmacia mais perto fica a 10 metros").
+  const arredondado = metros > 0 ? Math.max(10, Math.round(metros / 10) * 10) : 0;
   if (arredondado < 1000) return `${arredondado} m`;
   const km = (arredondado / 1000).toFixed(1).replace('.', ',');
   return `${km.replace(/,0$/, '')} km`;

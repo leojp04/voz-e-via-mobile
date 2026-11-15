@@ -7,6 +7,12 @@ describe('formatarDistancia', () => {
     expect(formatarDistancia(0)).toBe('0 m');
   });
 
+  it('distancia maior que zero nunca vira "0 m": o minimo mostrado e 10 m', () => {
+    expect(formatarDistancia(1)).toBe('10 m');
+    expect(formatarDistancia(4)).toBe('10 m');
+    expect(formatarDistancia(0.4)).toBe('10 m');
+  });
+
   it('mostra km com uma casa e virgula a partir de 1 km', () => {
     expect(formatarDistancia(1000)).toBe('1 km');
     expect(formatarDistancia(1250)).toBe('1,3 km');
