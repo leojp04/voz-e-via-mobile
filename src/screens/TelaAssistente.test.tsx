@@ -532,6 +532,25 @@ describe('TelaAssistente: BUSCAR_ATENDIMENTO', () => {
     expect(abrirNoMapa).toHaveBeenCalledWith(-23.55, -46.63);
   });
 
+  it('responde a pergunta "quer que eu abra o caminho?": botao abre o mapa no atendimento mais perto', async () => {
+    await buscar(buscarComLista());
+
+    await fireEvent.press(
+      await screen.findByRole('button', {
+        name: 'Abrir o caminho até Farmácia Exemplo, o mais perto de você',
+      }),
+    );
+
+    expect(abrirNoMapa).toHaveBeenCalledWith(-23.55, -46.63);
+  });
+
+  it('sem atendimentos na lista, nao oferece abrir o caminho', async () => {
+    await buscar(buscarComLista({ atendimentos: [] }));
+
+    expect(await screen.findByText('Não encontrei atendimentos por perto.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /Abrir o caminho/ })).not.toBeOnTheScreen();
+  });
+
   it('hospital/UPA: mostra a orientação do Java e o botão para ligar ao número de emergência', async () => {
     await buscar(
       buscarComLista({

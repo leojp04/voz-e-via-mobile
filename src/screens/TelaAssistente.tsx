@@ -90,14 +90,25 @@ function ListaDeAtendimentos({ dados }: { dados: AtendimentosProximos }) {
       {dados.atendimentos.length === 0 ? (
         <Texto style={styles.destaque}>Não encontrei atendimentos por perto.</Texto>
       ) : (
-        dados.atendimentos.map((atendimento) => (
-          <CartaoAtendimento
-            key={atendimento.id}
-            atendimento={atendimento}
-            aoLigar={ligarPara}
-            aoVerNoMapa={abrirNoMapa}
+        <>
+          {/* Responde a pergunta do Java ("quer que eu abra o caminho?") com um toque. */}
+          <Botao
+            titulo="Abrir caminho até o mais perto"
+            rotulo={`Abrir o caminho até ${dados.atendimentos[0].nome}, o mais perto de você`}
+            icone="navigate-outline"
+            onPress={() =>
+              abrirNoMapa(dados.atendimentos[0].latitude, dados.atendimentos[0].longitude)
+            }
           />
-        ))
+          {dados.atendimentos.map((atendimento) => (
+            <CartaoAtendimento
+              key={atendimento.id}
+              atendimento={atendimento}
+              aoLigar={ligarPara}
+              aoVerNoMapa={abrirNoMapa}
+            />
+          ))}
+        </>
       )}
       {dados.observacao ? <Texto style={styles.fonte}>{dados.observacao}</Texto> : null}
       {/* Credito exigido pela licenca ODbL do OpenStreetMap: sempre visivel junto da lista. */}
