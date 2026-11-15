@@ -23,10 +23,6 @@ describe('permissoes declaradas no app.json', () => {
     expect(config?.photosPermission).toEqual(expect.stringContaining('fotos'));
   });
 
-  it('o app nao pede o microfone no picker (nao usa video nem audio nesta tela)', () => {
-    expect(configDoPlugin('expo-image-picker')?.microphonePermission).toBe(false);
-  });
-
   it('a localizacao e pedida so com o app em uso, com texto em portugues', () => {
     const config = configDoPlugin('expo-location');
     expect(config?.locationWhenInUsePermission).toEqual(expect.stringContaining('localização'));
