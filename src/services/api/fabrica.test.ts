@@ -207,12 +207,6 @@ describe('usarApiFalsaDoAmbiente', () => {
 describe('criarApis: contatos', () => {
   const urlJava = 'http://localhost:8080';
   const urlDotnet = 'http://localhost:5000';
-  const dadosContato = {
-    nome: 'Marina Souza',
-    apelido: 'filha',
-    telefone: '11988887777',
-    prioridade: 1,
-  };
 
   it('na API falsa, contatos funcionam sem rede com o token do login', async () => {
     const fetchImpl = jest.fn();
@@ -227,20 +221,29 @@ describe('criarApis: contatos', () => {
     await auth.cadastrar(dadosCadastro);
     token = (await auth.login(dadosCadastro.email, dadosCadastro.senha)).token;
 
-    await contatos.criar(dadosContato);
     const pagina = await contatos.listar(1, 10);
 
-    expect(pagina.itens).toHaveLength(1);
+    expect(pagina.itens.length).toBeGreaterThan(0);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('na API real, contatos usam a URL do Java e mandam o token', async () => {
-    const fetchImpl = jest.fn(
-      async () =>
-        new Response(JSON.stringify({ itens: [], pagina: 0, tamanho: 10, total: 0 }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+  it('na API real, contatos usam a URL do Java (perfil em /meu) e mandam o token', async () => {
+    const json = (corpo: unknown) =>
+      new Response(JSON.stringify(corpo), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    const fetchImpl = jest.fn(async (url: string) =>
+      url.endsWith('/meu')
+        ? json({ id: 7 })
+        : json({
+            conteudo: [],
+            pagina: 0,
+            tamanho: 10,
+            totalElementos: 0,
+            totalPaginas: 0,
+            ultima: true,
+          }),
     );
     const { contatos } = criarApis({
       usarApiFalsa: false,
@@ -252,9 +255,12 @@ describe('criarApis: contatos', () => {
 
     await contatos.listar(1, 10);
 
-    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('http://localhost:8080/api/contatos?page=0&size=10');
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123');
+    const chamadas = fetchImpl.mock.calls as unknown as [string, RequestInit][];
+    expect(chamadas[0][0]).toBe('http://localhost:8080/api/v1/perfis-emergencia/meu');
+    expect(chamadas[1][0]).toBe(
+      'http://localhost:8080/api/v1/perfis-emergencia/7/contatos?page=0&size=10',
+    );
+    expect((chamadas[1][1].headers as Record<string, string>).Authorization).toBe('Bearer abc123');
   });
 });
 

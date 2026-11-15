@@ -17,7 +17,7 @@ function contato(id: number, extras: Partial<Contato> = {}): Contato {
   return {
     id,
     nome: `Pessoa ${id}`,
-    apelido: `apelido${id}`,
+    parentesco: `parentesco${id}`,
     telefone: '11988887777',
     prioridade: 1,
     ...extras,
@@ -72,7 +72,7 @@ describe('TelaContatos', () => {
   it('pede a primeira pagina (10 por vez) e mostra os contatos e o total', async () => {
     const contatos = await montar((api) =>
       api.listar.mockResolvedValue(
-        pagina([contato(1, { nome: 'Marina Souza', apelido: 'filha' }), contato(2)], 1, 2),
+        pagina([contato(1, { nome: 'Marina Souza', parentesco: 'filha' }), contato(2)], 1, 2),
       ),
     );
 
@@ -113,7 +113,7 @@ describe('TelaContatos', () => {
     ).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Tentar de novo' }));
 
-    expect(await screen.findByText('apelido1')).toBeOnTheScreen();
+    expect(await screen.findByText('parentesco1')).toBeOnTheScreen();
     expect(contatos.listar).toHaveBeenCalledTimes(2);
   });
 
@@ -130,7 +130,7 @@ describe('TelaContatos', () => {
 
     it('so aparece quando ainda ha contatos para trazer', async () => {
       await montar((api) => api.listar.mockResolvedValue(pagina([contato(1)], 1, 1)));
-      await screen.findByText('apelido1');
+      await screen.findByText('parentesco1');
       expect(screen.queryByRole('button', { name: 'Ver mais' })).not.toBeOnTheScreen();
     });
 
@@ -140,12 +140,12 @@ describe('TelaContatos', () => {
           .mockResolvedValueOnce(pagina(primeiraPagina, 1, 12))
           .mockResolvedValueOnce(pagina([contato(11), contato(12)], 2, 12)),
       );
-      await screen.findByText('apelido1');
+      await screen.findByText('parentesco1');
 
       await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
 
-      expect(await screen.findByText('apelido12')).toBeOnTheScreen();
-      expect(screen.getByText('apelido1')).toBeOnTheScreen();
+      expect(await screen.findByText('parentesco12')).toBeOnTheScreen();
+      expect(screen.getByText('parentesco1')).toBeOnTheScreen();
       expect(contatos.listar).toHaveBeenLastCalledWith(2, 10);
       expect(screen.queryByRole('button', { name: 'Ver mais' })).not.toBeOnTheScreen();
     });
@@ -156,12 +156,12 @@ describe('TelaContatos', () => {
           .mockResolvedValueOnce(pagina(primeiraPagina, 1, 12))
           .mockResolvedValueOnce(pagina([contato(10), contato(11), contato(12)], 2, 12)),
       );
-      await screen.findByText('apelido1');
+      await screen.findByText('parentesco1');
 
       await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
 
-      await screen.findByText('apelido12');
-      expect(screen.getAllByText('apelido10')).toHaveLength(1);
+      await screen.findByText('parentesco12');
+      expect(screen.getAllByText('parentesco10')).toHaveLength(1);
     });
 
     it('se falhar, mantem a lista, avisa e deixa tentar de novo', async () => {
@@ -171,16 +171,16 @@ describe('TelaContatos', () => {
           .mockRejectedValueOnce(new ErroApi(0, 'sem rede'))
           .mockResolvedValueOnce(pagina([contato(11), contato(12)], 2, 12)),
       );
-      await screen.findByText('apelido1');
+      await screen.findByText('parentesco1');
 
       await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
       expect(
         await screen.findByText('Sem conexão. Verifique a internet e tente de novo.'),
       ).toBeOnTheScreen();
-      expect(screen.getByText('apelido1')).toBeOnTheScreen();
+      expect(screen.getByText('parentesco1')).toBeOnTheScreen();
 
       await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
-      expect(await screen.findByText('apelido12')).toBeOnTheScreen();
+      expect(await screen.findByText('parentesco12')).toBeOnTheScreen();
     });
   });
 
@@ -198,7 +198,7 @@ describe('TelaContatos', () => {
         .mockReturnValueOnce(antiga)
         .mockResolvedValueOnce(pagina([contato(1)], 1, 1)),
     );
-    await screen.findByText('apelido1');
+    await screen.findByText('parentesco1');
     await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
     await act(async () => abrirOutraTela());
     await screen.findByText('Destino outra tela');
@@ -209,7 +209,7 @@ describe('TelaContatos', () => {
       responderAntiga(pagina([contato(11), contato(12)], 2, 12));
     });
 
-    expect(screen.queryByText('apelido12')).not.toBeOnTheScreen();
+    expect(screen.queryByText('parentesco12')).not.toBeOnTheScreen();
     expect(screen.getByText('1 contato')).toBeOnTheScreen();
     expect(contatos.listar).toHaveBeenCalledTimes(3);
   });
@@ -224,7 +224,7 @@ describe('TelaContatos', () => {
         .mockReturnValueOnce(new Promise(() => {}))
         .mockRejectedValueOnce(new ErroApi(0, 'sem rede')),
     );
-    await screen.findByText('apelido1');
+    await screen.findByText('parentesco1');
     await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
     await act(async () => abrirOutraTela());
     await screen.findByText('Destino outra tela');
@@ -251,7 +251,7 @@ describe('TelaContatos', () => {
         .mockReturnValueOnce(new Promise(() => {}))
         .mockReturnValueOnce(recarga),
     );
-    await screen.findByText('apelido1');
+    await screen.findByText('parentesco1');
     await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
     await act(async () => abrirOutraTela());
     await screen.findByText('Destino outra tela');
@@ -271,20 +271,31 @@ describe('TelaContatos', () => {
     jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     await montar((api) =>
       api.listar.mockResolvedValue(
-        pagina([contato(1, { nome: 'Marina Souza', apelido: 'filha' })], 1, 1),
+        pagina([contato(1, { nome: 'Marina Souza', parentesco: 'filha' })], 1, 1),
       ),
     );
     await screen.findByText('filha');
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Ligar para filha, Marina Souza' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Ligar para Marina Souza, filha' }));
 
     expect(abrir).toHaveBeenCalledWith('tel:11988887777');
+  });
+
+  it('contato sem parentesco (opcional no Java): mostra so o nome e o botao Ligar sem virgula solta', async () => {
+    await montar((api) =>
+      api.listar.mockResolvedValue(
+        pagina([contato(1, { nome: 'Dra. Helena', parentesco: null })], 1, 1),
+      ),
+    );
+
+    expect(await screen.findByText('Dra. Helena')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Ligar para Dra. Helena' })).toBeOnTheScreen();
   });
 
   it('o cidadao so consulta: nao ha botao para adicionar nem para editar (so o cuidador altera)', async () => {
     await montar((api) =>
       api.listar.mockResolvedValue(
-        pagina([contato(1, { nome: 'Marina Souza', apelido: 'filha' })], 1, 1),
+        pagina([contato(1, { nome: 'Marina Souza', parentesco: 'filha' })], 1, 1),
       ),
     );
     await screen.findByText('filha');

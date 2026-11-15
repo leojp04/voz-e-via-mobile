@@ -46,13 +46,7 @@ export function criarFotosApiMock(): jest.Mocked<FotosApi> {
 }
 
 export function criarContatosApiMock(): jest.Mocked<ContatosApi> {
-  return {
-    listar: jest.fn(),
-    obter: jest.fn(),
-    criar: jest.fn(),
-    editar: jest.fn(),
-    excluir: jest.fn(),
-  };
+  return { listar: jest.fn(), obter: jest.fn() };
 }
 
 export function criarAssistenteApiMock(): jest.Mocked<AssistenteApi> {

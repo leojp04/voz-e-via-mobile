@@ -152,39 +152,25 @@ export interface FotosApi {
 export interface Contato {
   id: number;
   nome: string;
-  /** Como a pessoa chama o contato; o assistente usa para "ligar para minha filha". */
-  apelido: string;
-  /** So digitos, com DDD (10 ou 11). */
+  /** Quem e para a pessoa (ex.: "filha"); opcional no Java (ContatoEmergenciaResponse). */
+  parentesco: string | null;
+  /** Como o Java devolve: normalizado com o codigo do pais, ex.: "+5511988887777". */
   telefone: string;
-  /**
-   * Suposicao (confirmar com quem faz a API Java): inteiro de 1 a 5, sendo 1 o mais importante
-   * (primeiro a ser chamado).
-   */
+  /** Inteiro de 1 a 10, sendo 1 o primeiro a ser avisado no socorro (ContatoEmergenciaRequest). */
   prioridade: number;
 }
 
-export interface DadosContato {
-  nome: string;
-  apelido: string;
-  /** Pode vir com mascara, ex.: "(11) 98888-7777"; a API guarda so os digitos. */
-  telefone: string;
-  prioridade: number;
-}
-
+// O cidadao so CONSULTA os contatos. No Java, criar, editar e excluir sao do cuidador (403 para o
+// cidadao), entao o app nao tem essas funcoes; o fluxo do cuidador e uma tarefa a parte.
 export interface ContatosApi {
   /**
-   * Lista so os contatos do proprio usuario, por prioridade e depois por nome. "pagina" comeca
-   * em 1 no app (a API real converte para o 0 do Spring). Erros: 400, 401, 0.
+   * Lista os contatos do perfil de emergencia do proprio usuario, por prioridade. "pagina" comeca
+   * em 1 no app (a API real converte para o 0 do Spring). Sem perfil ainda, devolve lista vazia.
+   * Erros: 401, 0.
    */
   listar(pagina: number, tamanho: number): Promise<Pagina<Contato>>;
   /** Erros: 404 (nao existe ou e de outra pessoa), 401, 0. */
   obter(id: number): Promise<Contato>;
-  /** Erros: 400 (dados invalidos, com "campos"), 401, 0. */
-  criar(dados: DadosContato): Promise<Contato>;
-  /** Erros: 400, 404, 401, 0. */
-  editar(id: number, dados: DadosContato): Promise<Contato>;
-  /** Erros: 404, 401, 0. */
-  excluir(id: number): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------------------------
