@@ -75,18 +75,24 @@ function nomeDoCampo(nome: string): string {
 }
 
 // Entende os dois formatos de erro das nossas APIs:
-//  - Java: { timestamp, status, erro, mensagem, campos: [{ campo, mensagem }] }
+//  - Java (conferido na API rodando): { type, title, status, detail, codigo, mensagemFalada,
+//    campos?: [{ campo, mensagem }] }. A "mensagemFalada" e a frase simples feita para a pessoa
+//    (e para ser lida em voz alta); o "detail" e tecnico, so entra se ela faltar.
 //  - .NET (ProblemDetails do ASP.NET): { title, status, detail?, errors?: { Campo: ["mensagem"] } }
 // O "title" do .NET vem em ingles (ex.: "One or more validation errors occurred."), entao nunca
-// e mostrado; sem "mensagem" nem "detail" vale a mensagem padrao em portugues.
+// e mostrado; sem mensagem nenhuma vale a mensagem padrao em portugues.
 function converterErro(status: number, corpo: unknown): ErroApi {
   const dados = (corpo && typeof corpo === 'object' ? corpo : {}) as {
+    mensagemFalada?: unknown;
     mensagem?: unknown;
     detail?: unknown;
     campos?: unknown;
     errors?: unknown;
   };
-  const mensagem = textoNaoVazio(dados.mensagem) ?? textoNaoVazio(dados.detail);
+  const mensagem =
+    textoNaoVazio(dados.mensagemFalada) ??
+    textoNaoVazio(dados.mensagem) ??
+    textoNaoVazio(dados.detail);
   const campos: Record<string, string> = {};
   if (Array.isArray(dados.campos)) {
     for (const item of dados.campos) {

@@ -291,6 +291,27 @@ describe('criarClienteHttp', () => {
       });
     });
 
+    it('usa a "mensagemFalada" do Java real (feita para ler em voz alta) antes do "detail"', async () => {
+      // Formato conferido na API Java rodando: detail e tecnico, mensagemFalada e para a pessoa.
+      const fetchSimulado = jest.fn().mockResolvedValue(
+        resposta(401, {
+          type: 'urn:vozviva:erro:credenciais_invalidas',
+          status: 401,
+          detail: 'E-mail ou senha inválidos.',
+          codigo: 'CREDENCIAIS_INVALIDAS',
+          mensagemFalada: 'O e-mail ou a senha não conferem. Confira e tente de novo.',
+        }),
+      );
+
+      const erro = await criar(fetchSimulado)
+        .post('/api/x', {})
+        .catch((e: unknown) => e);
+
+      expect((erro as ErroApi).message).toBe(
+        'O e-mail ou a senha não conferem. Confira e tente de novo.',
+      );
+    });
+
     it('o "mensagem" do formato do Java continua tendo prioridade', async () => {
       const fetchSimulado = jest
         .fn()
