@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { type Href, router, Stack, useRouter } from 'expo-router';
 import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
 import { Alert, Linking, Text } from 'react-native';
 
@@ -32,15 +32,22 @@ function InicioFalso() {
   return <Text>Início de mentira</Text>;
 }
 
-// Destino de mentira do "Editar": deixa voltar, para testar o recarregamento da lista.
-function EditarFalso() {
+// Outra tela de mentira, aberta por cima da lista: deixa voltar, para testar o recarregamento da
+// lista quando ela volta ao foco.
+function OutraTelaFalsa() {
   const router = useRouter();
   return (
     <>
-      <Text>Destino editar contato</Text>
+      <Text>Destino outra tela</Text>
       <Botao titulo="Voltar falso" onPress={() => router.back()} />
     </>
   );
+}
+
+// "contatos/outra" so existe neste teste (o app nao tem mais tela por cima da lista), por isso o
+// tipo de rota e forcado com "as Href".
+function abrirOutraTela() {
+  router.push('/contatos/outra' as Href);
 }
 
 // A tela e montada em /contatos (e nao no "index"), para "voltar" cair no Início falso.
@@ -54,8 +61,7 @@ async function montar(configurar: (api: ReturnType<typeof criarContatosApiMock>)
       // Stack de verdade (como no app): a lista continua montada enquanto outra tela abre por cima.
       'contatos/_layout': () => <Stack screenOptions={{ headerShown: false }} />,
       'contatos/index': TelaContatos,
-      'contatos/novo': () => <Text>Destino novo contato</Text>,
-      'contatos/[id]': EditarFalso,
+      'contatos/outra': OutraTelaFalsa,
     },
     url: '/contatos',
   });
@@ -88,9 +94,11 @@ describe('TelaContatos', () => {
     expect(await screen.findByText('Carregando contatos…')).toBeOnTheScreen();
   });
 
-  it('sem nenhum contato, explica para que servem', async () => {
+  it('sem nenhum contato, diz que o cuidador e quem cadastra', async () => {
     await montar((api) => api.listar.mockResolvedValue(pagina([], 1, 0)));
-    expect(await screen.findByText('Você ainda não cadastrou nenhum contato.')).toBeOnTheScreen();
+    expect(
+      await screen.findByText('Você ainda não tem contatos de emergência cadastrados.'),
+    ).toBeOnTheScreen();
   });
 
   it('se nao conseguir carregar, avisa e deixa tentar de novo', async () => {
@@ -192,8 +200,8 @@ describe('TelaContatos', () => {
     );
     await screen.findByText('apelido1');
     await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Editar apelido1, Pessoa 1' }));
-    await screen.findByText('Destino editar contato');
+    await act(async () => abrirOutraTela());
+    await screen.findByText('Destino outra tela');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
     expect(await screen.findByText('1 contato')).toBeOnTheScreen();
@@ -218,8 +226,8 @@ describe('TelaContatos', () => {
     );
     await screen.findByText('apelido1');
     await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Editar apelido1, Pessoa 1' }));
-    await screen.findByText('Destino editar contato');
+    await act(async () => abrirOutraTela());
+    await screen.findByText('Destino outra tela');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
 
@@ -245,8 +253,8 @@ describe('TelaContatos', () => {
     );
     await screen.findByText('apelido1');
     await fireEvent.press(screen.getByRole('button', { name: 'Ver mais' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Editar apelido1, Pessoa 1' }));
-    await screen.findByText('Destino editar contato');
+    await act(async () => abrirOutraTela());
+    await screen.findByText('Destino outra tela');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar falso' }));
     await waitFor(() => expect(contatos.listar).toHaveBeenCalledTimes(3));
@@ -273,16 +281,7 @@ describe('TelaContatos', () => {
     expect(abrir).toHaveBeenCalledWith('tel:11988887777');
   });
 
-  it('Adicionar contato abre o formulario de novo contato', async () => {
-    await montar((api) => api.listar.mockResolvedValue(pagina([], 1, 0)));
-    await screen.findByText('Você ainda não cadastrou nenhum contato.');
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Adicionar contato' }));
-
-    expect(await screen.findByText('Destino novo contato')).toBeOnTheScreen();
-  });
-
-  it('Editar abre o formulario daquele contato', async () => {
+  it('o cidadao so consulta: nao ha botao para adicionar nem para editar (so o cuidador altera)', async () => {
     await montar((api) =>
       api.listar.mockResolvedValue(
         pagina([contato(1, { nome: 'Marina Souza', apelido: 'filha' })], 1, 1),
@@ -290,14 +289,14 @@ describe('TelaContatos', () => {
     );
     await screen.findByText('filha');
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Editar filha, Marina Souza' }));
-
-    expect(await screen.findByText('Destino editar contato')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /Adicionar/ })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeOnTheScreen();
+    expect(screen.getByText(/cadastrados pelo seu cuidador/)).toBeOnTheScreen();
   });
 
   it('Voltar leva para o Início', async () => {
     await montar((api) => api.listar.mockResolvedValue(pagina([], 1, 0)));
-    await screen.findByText('Você ainda não cadastrou nenhum contato.');
+    await screen.findByText('Você ainda não tem contatos de emergência cadastrados.');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
 

@@ -115,6 +115,8 @@ export function TelaContatos() {
       <Texto style={styles.titulo} accessibilityRole="header">
         Contatos de emergência
       </Texto>
+      {/* No Java so o cuidador cria, edita e exclui contatos; o cidadao so consulta. */}
+      <Texto style={styles.aviso}>Seus contatos são cadastrados pelo seu cuidador.</Texto>
 
       {carregando ? (
         <View style={styles.carregando}>
@@ -140,18 +142,15 @@ export function TelaContatos() {
         </>
       ) : null}
 
-      {vazia ? <Texto style={styles.aviso}>Você ainda não cadastrou nenhum contato.</Texto> : null}
+      {vazia ? (
+        <Texto style={styles.aviso}>Você ainda não tem contatos de emergência cadastrados.</Texto>
+      ) : null}
 
       {itens.length > 0 ? (
         <Texto style={styles.aviso}>{total === 1 ? '1 contato' : `${total} contatos`}</Texto>
       ) : null}
       {itens.map((item) => (
-        <CartaoContato
-          key={item.id}
-          contato={item}
-          aoLigar={() => ligarPara(item.telefone)}
-          aoEditar={() => router.push(`/contatos/${item.id}`)}
-        />
+        <CartaoContato key={item.id} contato={item} aoLigar={() => ligarPara(item.telefone)} />
       ))}
 
       {erroMais ? (
@@ -169,7 +168,6 @@ export function TelaContatos() {
         />
       ) : null}
 
-      <Botao titulo="Adicionar contato" onPress={() => router.push('/contatos/novo')} />
       <Botao titulo="Voltar" variante="secundario" onPress={voltar} />
     </Tela>
   );

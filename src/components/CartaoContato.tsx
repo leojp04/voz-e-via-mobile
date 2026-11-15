@@ -13,10 +13,9 @@ import { Texto } from './Texto';
 interface PropsCartaoContato {
   contato: Contato;
   aoLigar: () => void;
-  aoEditar: () => void;
 }
 
-export function CartaoContato({ contato, aoLigar, aoEditar }: PropsCartaoContato) {
+export function CartaoContato({ contato, aoLigar }: PropsCartaoContato) {
   return (
     <View style={styles.cartao}>
       <Texto style={styles.apelido}>{contato.apelido}</Texto>
@@ -28,12 +27,6 @@ export function CartaoContato({ contato, aoLigar, aoEditar }: PropsCartaoContato
         rotulo={`Ligar para ${contato.apelido}, ${contato.nome}`}
         icone="call-outline"
         onPress={aoLigar}
-      />
-      <Botao
-        titulo="Editar"
-        rotulo={`Editar ${contato.apelido}, ${contato.nome}`}
-        variante="secundario"
-        onPress={aoEditar}
       />
     </View>
   );
