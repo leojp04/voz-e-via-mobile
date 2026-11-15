@@ -134,6 +134,11 @@ etapa os usuários são apenas contas de teste.
 - **Envio da foto (arquivo como `File`)**: `expo-file-system`, licença MIT (Expo).
 - **Leitura da resposta em voz alta**: `expo-speech`, licença MIT (Expo).
 - **Reconhecimento de fala**: `expo-speech-recognition`, licença MIT.
+- **Locais de atendimento (assistente por voz)**: os dados vêm da API Java e são do
+  **OpenStreetMap** (© Colaboradores do OpenStreetMap), licença **ODbL** (Open Database License).
+  A licença exige dar o crédito: o app mostra "© Colaboradores do OpenStreetMap (ODbL)" na tela do
+  assistente, sempre junto da lista, com o texto que a própria API devolve (`creditoDados`).
+  Mais em <https://www.openstreetmap.org/copyright>.
 - **Logo e ícone do app**: desenho próprio do projeto (`assets/images/voz-e-via.svg`).
 
 ## Integrantes do grupo
