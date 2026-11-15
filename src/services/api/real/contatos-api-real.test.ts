@@ -39,10 +39,18 @@ const contato: Contato = {
 
 describe('criarContatosApiReal', () => {
   it('listar converte a pagina do app (1) para a do Spring (0) e de volta', async () => {
-    // O Spring conta as paginas a partir de 0; o app, a partir de 1.
-    const fetchSimulado = jest
-      .fn()
-      .mockResolvedValue(resposta(200, { itens: [contato], pagina: 1, tamanho: 2, total: 3 }));
+    // O Spring conta as paginas a partir de 0; o app, a partir de 1. Formato real do Java:
+    // conteudo e totalElementos (conferido na API rodando).
+    const fetchSimulado = jest.fn().mockResolvedValue(
+      resposta(200, {
+        conteudo: [contato],
+        pagina: 1,
+        tamanho: 2,
+        totalElementos: 3,
+        totalPaginas: 2,
+        ultima: true,
+      }),
+    );
 
     const pagina = await criar(fetchSimulado).listar(2, 2);
 

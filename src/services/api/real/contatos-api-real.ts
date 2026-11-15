@@ -3,17 +3,19 @@
 // Caminhos conforme o plano unico (secao 8.1).
 
 import type { ClienteHttp } from '../cliente-http';
-import type { Contato, ContatosApi, Pagina } from '../types';
+import type { Contato, ContatosApi } from '../types';
+import { paraPagina, type PaginaDoJava } from './pagina-do-java';
 
 export function criarContatosApiReal(cliente: ClienteHttp): ContatosApi {
   return {
-    // O Spring (Pageable) conta as paginas a partir de 0 e o app, a partir de 1. A conversao
-    // fica so aqui, para as telas nunca precisarem saber disso.
+    // O Spring (Pageable) conta as paginas a partir de 0 e o app, a partir de 1, e os nomes dos
+    // campos tambem mudam (conteudo, totalElementos). A conversao fica em paraPagina, para as
+    // telas nunca precisarem saber disso.
     async listar(pagina, tamanho) {
-      const resultado = await cliente.get<Pagina<Contato>>(
+      const resultado = await cliente.get<PaginaDoJava<Contato>>(
         `/api/contatos?page=${pagina - 1}&size=${tamanho}`,
       );
-      return { ...resultado, pagina: resultado.pagina + 1 };
+      return paraPagina(resultado);
     },
 
     obter: (id) => cliente.get<Contato>(`/api/contatos/${id}`),
