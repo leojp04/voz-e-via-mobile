@@ -34,10 +34,17 @@ function resposta(status: number, corpo?: unknown) {
 // Servidor falso: o login responde 200 (ou 401, se loginOk for false) e qualquer outra rota
 // responde 401, como faria a API Java com um token vencido.
 function criarFetchFalso(loginOk: boolean) {
+  // Resposta no formato real do Java: accessToken e usuario.papel.
+  const respostaDoJava = {
+    accessToken: sessaoValida.token,
+    tokenType: 'Bearer',
+    expiraEm: sessaoValida.expiraEm,
+    usuario: { id: 1, nome: 'Maria', email: 'maria@exemplo.com', papel: 'CIDADAO' },
+  };
   return jest.fn(async (url: string) =>
-    url.endsWith('/api/auth/login')
+    url.endsWith('/api/v1/auth/login')
       ? loginOk
-        ? resposta(200, sessaoValida)
+        ? resposta(200, respostaDoJava)
         : resposta(401, { mensagem: 'E-mail ou senha incorretos.' })
       : resposta(401, { mensagem: 'Sessao vencida.' }),
   );

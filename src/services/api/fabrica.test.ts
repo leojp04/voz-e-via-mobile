@@ -54,7 +54,7 @@ describe('criarApis', () => {
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl).toHaveBeenCalledWith(
-      'http://localhost:8080/api/auth/cadastro',
+      'http://localhost:8080/api/v1/auth/cadastro',
       expect.objectContaining({ method: 'POST' }),
     );
   });
@@ -172,7 +172,7 @@ describe('criarApis: reportes e fotos', () => {
     await auth.cadastrar(dadosCadastro);
 
     expect(fetchImpl).toHaveBeenCalledWith(
-      'http://localhost:8080/api/auth/cadastro',
+      'http://localhost:8080/api/v1/auth/cadastro',
       expect.anything(),
     );
   });

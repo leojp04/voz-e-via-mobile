@@ -31,19 +31,26 @@ const dadosCadastro: DadosCadastro = {
 };
 
 describe('criarAuthApiReal', () => {
-  it('login faz POST em /api/auth/login com e-mail e senha e devolve a sessao', async () => {
+  it('login faz POST em /api/v1/auth/login e converte a resposta do Java na sessao do app', async () => {
+    // Formato real do Java (conferido na API rodando): accessToken e usuario.papel.
+    const respostaDoJava = {
+      accessToken: 'jwt-de-teste',
+      tokenType: 'Bearer',
+      expiraEm: '2026-11-11T20:00:00Z',
+      usuario: { id: 42, nome: 'Maria', email: 'maria@exemplo.com', papel: 'CIDADAO' },
+    };
     const sessao: Sessao = {
       token: 'jwt-de-teste',
       expiraEm: '2026-11-11T20:00:00Z',
       usuario: { id: 42, nome: 'Maria', role: 'CIDADAO' },
     };
-    const fetchSimulado = jest.fn().mockResolvedValue(resposta(200, sessao));
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(200, respostaDoJava));
 
     const resultado = await criar(fetchSimulado).login('maria@exemplo.com', 'senha-segura-1');
 
     expect(resultado).toEqual(sessao);
     const [url, init] = fetchSimulado.mock.calls[0];
-    expect(url).toBe('http://java.teste/api/auth/login');
+    expect(url).toBe('http://java.teste/api/v1/auth/login');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body)).toEqual({ email: 'maria@exemplo.com', senha: 'senha-segura-1' });
   });
@@ -61,17 +68,25 @@ describe('criarAuthApiReal', () => {
     expect(erro).toMatchObject({ status: 401, message: 'E-mail ou senha incorretos.' });
   });
 
-  it('cadastrar faz POST em /api/auth/cadastro e devolve o usuario criado', async () => {
-    const criado = { id: 7, nome: 'Maria', role: 'CIDADAO' };
-    const fetchSimulado = jest.fn().mockResolvedValue(resposta(201, criado));
+  it('cadastrar faz POST em /api/v1/auth/cadastro com "papel" (sem telefone) e devolve o usuario', async () => {
+    const criadoNoJava = { id: 7, nome: 'Maria', email: 'maria@exemplo.com', papel: 'CIDADAO' };
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(201, criadoNoJava));
 
     const resultado = await criar(fetchSimulado).cadastrar(dadosCadastro);
 
-    expect(resultado).toEqual(criado);
+    expect(resultado).toEqual({ id: 7, nome: 'Maria', role: 'CIDADAO' });
     const [url, init] = fetchSimulado.mock.calls[0];
-    expect(url).toBe('http://java.teste/api/auth/cadastro');
+    expect(url).toBe('http://java.teste/api/v1/auth/cadastro');
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body)).toEqual(dadosCadastro);
+    // O Java nao guarda o telefone do usuario, entao ele nem sai do celular. O consentimento vai,
+    // para o Java gravar o aceite (pedido ao Pedro).
+    expect(JSON.parse(init.body)).toEqual({
+      nome: 'Maria',
+      email: 'maria@exemplo.com',
+      senha: 'senha-segura-1',
+      papel: 'CIDADAO',
+      consentimento: true,
+    });
   });
 
   it('cadastrar com e-mail repetido lanca ErroApi 409', async () => {
@@ -86,13 +101,13 @@ describe('criarAuthApiReal', () => {
     expect(erro).toMatchObject({ status: 409, message: 'Este e-mail já está cadastrado.' });
   });
 
-  it('excluirConta faz DELETE em /api/usuarios/me com o token recebido', async () => {
+  it('excluirConta faz DELETE em /api/v1/auth/eu com o token recebido', async () => {
     const fetchSimulado = jest.fn().mockResolvedValue(resposta(204));
 
     await criar(fetchSimulado).excluirConta('jwt-de-teste');
 
     const [url, init] = fetchSimulado.mock.calls[0];
-    expect(url).toBe('http://java.teste/api/usuarios/me');
+    expect(url).toBe('http://java.teste/api/v1/auth/eu');
     expect(init.method).toBe('DELETE');
     expect(init.headers.Authorization).toBe('Bearer jwt-de-teste');
   });
