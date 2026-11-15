@@ -109,6 +109,14 @@ describe('TelaContatos', () => {
     expect(contatos.listar).toHaveBeenCalledTimes(2);
   });
 
+  it('se a API devolver 404, a frase fala de contato (e nao de reporte)', async () => {
+    // Visto no simulador contra o Java real: o caminho errado dava "Reporte nao encontrado.".
+    await montar((api) => api.listar.mockRejectedValue(new ErroApi(404, 'nao existe')));
+
+    expect(await screen.findByText('Contato não encontrado.')).toBeOnTheScreen();
+    expect(screen.queryByText('Reporte não encontrado.')).not.toBeOnTheScreen();
+  });
+
   describe('Ver mais', () => {
     const primeiraPagina = Array.from({ length: 10 }, (_, i) => contato(i + 1));
 

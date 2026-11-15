@@ -18,7 +18,7 @@ import { useApis } from '../contexts/ApisContext';
 import type { Contato } from '../services/api/types';
 import { cores, espacos, fontes } from '../theme';
 import { ligarPara } from '../utils/ligar-para';
-import { mensagemDeErroAoCarregar } from '../utils/mensagem-de-erro';
+import { mensagemDeErroAoCarregarContatos } from '../utils/mensagem-de-erro';
 
 const TAMANHO_DA_PAGINA = 10;
 
@@ -62,7 +62,7 @@ export function TelaContatos() {
       setErroMais(null);
     } catch (falha) {
       if (minha !== geracao.current) return;
-      setErro(mensagemDeErroAoCarregar(falha));
+      setErro(mensagemDeErroAoCarregarContatos(falha));
     } finally {
       if (minha === geracao.current) {
         setCarregando(false);
@@ -97,7 +97,7 @@ export function TelaContatos() {
       // Pagina vazia = acabou, mesmo que o total diga o contrario (evita um "Ver mais" infinito).
       setTemMais(resposta.itens.length > 0 && juntos.length < resposta.total);
     } catch (falha) {
-      if (minha === geracao.current) setErroMais(mensagemDeErroAoCarregar(falha));
+      if (minha === geracao.current) setErroMais(mensagemDeErroAoCarregarContatos(falha));
     } finally {
       if (minha === geracao.current) setCarregandoMais(false);
     }

@@ -92,6 +92,14 @@ export function mensagemDeErroAoCarregar(erro: unknown): string {
   return 'Não foi possível carregar. Tente de novo.';
 }
 
+// Ao carregar contatos (lista ou um contato): igual a mensagemDeErroAoCarregar, mas o 404 fala de
+// contato. Antes as telas de contatos reaproveitavam a dos reportes e mostravam "Reporte nao
+// encontrado." (visto no simulador contra a API Java real).
+export function mensagemDeErroAoCarregarContatos(erro: unknown): string {
+  if (ehErroApi(erro) && erro.status === 404) return 'Contato não encontrado.';
+  return mensagemDeErroAoCarregar(erro);
+}
+
 export function mensagemDeErro(erro: unknown): string {
   if (!ehErroApi(erro)) return MENSAGEM_GENERICA;
 
