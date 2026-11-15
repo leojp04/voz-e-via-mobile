@@ -1,11 +1,26 @@
 // API do assistente FALSA, em memoria (ver docs/adr/0004). Nao usa IA: reconhece palavras-chave
-// para o app poder ser testado sem a API Java. Imita as regras da API real (plano unico, secoes
-// 4.2 e 8.1): exige sessao (401), texto de 1 a 500 letras (400) e devolve a mesma estrutura.
+// para o app poder ser testado sem a API Java. Imita o contrato REAL do Java (5 intencoes, em
+// /api/v1/voz/intencoes, /api/v1/emergencias e /api/v1/verificacoes): exige sessao (401), valida
+// tamanhos (400) e devolve a mesma estrutura.
+// A API falsa de emergencia NAO avisa ninguem (contatosNotificados = 0), para o app nao prometer
+// o que so a API real faz.
 
 import { ErroApi } from '../erro';
-import type { AssistenteApi, PedidoAssistente, RespostaAssistente } from '../types';
+import type {
+  AssistenteApi,
+  AtendimentoProximo,
+  AtendimentosProximos,
+  EntidadesDaFala,
+  PedidoAssistente,
+  ProblemaRua,
+  ResultadoVerificacao,
+  RespostaAssistente,
+  TipoAtendimento,
+} from '../types';
 
 const TEXTO_MAXIMO = 500;
+const EMERGENCIA_MAXIMO = 300;
+const VERIFICACAO_MAXIMO = 2000;
 
 interface Opcoes {
   /** Devolve o token da sessao atual (ou null). */
@@ -23,99 +38,185 @@ function simplificar(texto: string): string {
   return texto.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-const CATEGORIAS: { codigo: string; palavra: RegExp }[] = [
-  { codigo: 'CALCADA', palavra: /\bcalcadas?\b/ },
-  { codigo: 'RAMPA', palavra: /\brampas?\b/ },
-  { codigo: 'BURACO', palavra: /\bburacos?\b/ },
-  { codigo: 'ILUMINACAO', palavra: /\b(iluminacao|poste|postes)\b/ },
-  { codigo: 'SEMAFORO_SONORO', palavra: /\bsemaforos?\b/ },
-  { codigo: 'PISO_TATIL', palavra: /\bpiso tatil\b/ },
-  { codigo: 'LIXO', palavra: /\b(lixo|entulho)\b/ },
+const PROBLEMAS: { problema: ProblemaRua; palavra: RegExp }[] = [
+  { problema: 'CALCADA_DANIFICADA', palavra: /\bcalcadas?\b/ },
+  { problema: 'RAMPA_BLOQUEADA', palavra: /\brampas?\b/ },
+  { problema: 'BURACO', palavra: /\bburacos?\b/ },
+  { problema: 'ILUMINACAO', palavra: /\b(iluminacao|poste|postes)\b/ },
+  { problema: 'LIXO_OU_ENTULHO', palavra: /\b(lixo|entulho)\b/ },
+  { problema: 'ARVORE_CAIDA', palavra: /\barvores?\b/ },
+  { problema: 'ALAGAMENTO', palavra: /\b(alagamento|alagou|enchente)\b/ },
 ];
 
-const LOCAIS: Record<string, string> = {
-  farmacia: 'farmácia',
-  hospital: 'hospital',
-  mercado: 'mercado',
-  padaria: 'padaria',
-  banco: 'banco',
-  posto: 'posto de saúde',
+const ATENDIMENTOS: { tipo: TipoAtendimento; palavra: RegExp }[] = [
+  { tipo: 'HOSPITAL', palavra: /\bhospital\b/ },
+  { tipo: 'UPA', palavra: /\bupa\b/ },
+  { tipo: 'UBS', palavra: /\b(ubs|posto de saude)\b/ },
+  { tipo: 'FARMACIA', palavra: /\bfarmacia\b/ },
+  { tipo: 'CRAS', palavra: /\bcras\b/ },
+  { tipo: 'DELEGACIA', palavra: /\bdelegacia\b/ },
+  { tipo: 'DEFENSORIA', palavra: /\bdefensoria\b/ },
+];
+
+const NOME_DO_TIPO: Record<TipoAtendimento, string> = {
+  HOSPITAL: 'Hospital',
+  UPA: 'UPA',
+  UBS: 'UBS',
+  FARMACIA: 'Farmácia',
+  CRAS: 'CRAS',
+  DELEGACIA: 'Delegacia',
+  DEFENSORIA: 'Defensoria Pública',
 };
 
-function primeira(texto: string): string {
-  const limpo = texto.trim();
-  return limpo.charAt(0).toUpperCase() + limpo.slice(1);
-}
+const SEM_ENTIDADES: EntidadesDaFala = {
+  tipoAtendimento: null,
+  exigeAcessibilidade: null,
+  problemaRua: null,
+  impedeCadeirante: null,
+  referenciaLocal: null,
+};
 
 function resposta(
-  parcial: Partial<RespostaAssistente> & Pick<RespostaAssistente, 'intencao' | 'respostaFalada'>,
+  parcial: Partial<RespostaAssistente> & Pick<RespostaAssistente, 'intencao' | 'mensagemFalada'>,
 ): RespostaAssistente {
-  return { parametros: {}, fontes: [], precisaConfirmacao: false, ...parcial };
+  return {
+    urgencia: null,
+    entidades: SEM_ENTIDADES,
+    confianca: 0.9,
+    atendimentos: null,
+    ...parcial,
+  };
 }
 
-function interpretar(texto: string): RespostaAssistente {
-  const t = simplificar(texto);
+function montarAtendimentos(
+  tipo: TipoAtendimento,
+  latitude: number,
+  longitude: number,
+): AtendimentosProximos {
+  const nome = NOME_DO_TIPO[tipo];
+  const urgencia = tipo === 'HOSPITAL' || tipo === 'UPA';
+  const local = (id: number, metros: number, confirmada: boolean): AtendimentoProximo => ({
+    id,
+    nome: `${nome} Exemplo ${id}`,
+    tipo,
+    endereco: `Rua Exemplo, ${id * 100}`,
+    telefone: '1130000000',
+    latitude: latitude + id * 0.002,
+    longitude: longitude + id * 0.002,
+    distanciaMetros: metros,
+    acessibilidade: confirmada ? 'SIM' : 'DESCONHECIDA',
+    banheiroAdaptado: confirmada ? true : null,
+    funciona24h: urgencia ? true : null,
+    aviso: confirmada ? null : 'Acessibilidade não informada. Ligue antes de ir.',
+    rotas: {
+      googleMaps: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
+      waze: `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`,
+      geo: `geo:${latitude},${longitude}`,
+    },
+  });
+  return {
+    tipo,
+    atendimentos: [local(1, 450, true), local(2, 1200, false)],
+    semAcessivelNoRaio: false,
+    mensagemFalada: `${nome} mais perto: ${nome} Exemplo 1, a 450 metros.`,
+    orientacaoEmergencia: urgencia ? 'Em urgência, ligue 192 (SAMU).' : null,
+    telefoneEmergencia: urgencia ? '192' : null,
+    observacao: 'Dados de exemplo da API falsa.',
+    creditoDados: '© Colaboradores do OpenStreetMap (licença ODbL)',
+  };
+}
 
-  if (/\bdireito\b/.test(t)) {
-    return resposta({
-      intencao: 'DUVIDA_DIREITO',
-      respostaFalada:
-        'Pela lei, pessoas com deficiência e idosas têm direitos ao transporte e ao atendimento prioritário.',
-      fontes: ['Lei Brasileira de Inclusão (Lei 13.146/2015)'],
-    });
-  }
+function interpretar(pedido: PedidoAssistente): RespostaAssistente {
+  const t = simplificar(pedido.texto);
+  const cadeira = /\b(cadeira|cadeirante|andador|rampa)\b/.test(t);
 
-  const ligar = t.match(/\bligar (?:para|pra) (?:a |o |minha |meu )?([a-z]+)/);
-  if (ligar) {
+  // Antes do socorro: "a calcada esta quebrada, quase cai" e um reporte, nao um pedido de ajuda.
+  const problema = PROBLEMAS.find((p) => p.palavra.test(t));
+  if (problema) {
     return resposta({
-      intencao: 'LIGAR_CONTATO',
-      parametros: { apelido: ligar[1] },
-      respostaFalada: `Quer ligar para ${ligar[1]}?`,
-      precisaConfirmacao: true,
-    });
-  }
-
-  const local = Object.keys(LOCAIS).find((chave) => new RegExp(`\\b${chave}\\b`).test(t));
-  if (local && /\b(perto|proxim[oa])\b/.test(t)) {
-    return resposta({
-      intencao: 'LOCAL_PROXIMO',
-      parametros: { busca: LOCAIS[local] },
-      respostaFalada: `Vou abrir o mapa com ${LOCAIS[local]} perto de você.`,
-      precisaConfirmacao: true,
-    });
-  }
-
-  if (/\b(minha reclamacao|minhas reclamacoes|meus reportes|meu reporte)\b/.test(t)) {
-    return resposta({
-      intencao: 'CONSULTAR_REPORTES',
-      respostaFalada: 'Vou abrir os seus reportes.',
-    });
-  }
-
-  // Antes da emergencia: "a calcada esta quebrada, quase cai" e um reporte, nao um pedido de ajuda.
-  const categoria = CATEGORIAS.find((c) => c.palavra.test(t));
-  if (categoria) {
-    const urgencia = /\b(cai|caiu|perigo|perigoso|risco|enorme)\b/.test(t) ? 'ALTA' : 'MEDIA';
-    return resposta({
-      intencao: 'REPORTAR_PROBLEMA',
-      parametros: { categoria: categoria.codigo, urgencia, descricao: primeira(texto) },
-      respostaFalada: `Entendi. Vou registrar o problema com urgência ${urgencia === 'ALTA' ? 'alta' : 'média'}. Posso confirmar?`,
-      precisaConfirmacao: true,
+      intencao: 'ZELADORIA_REPORT',
+      urgencia: /\b(cai|caiu|perigo|perigoso|risco|enorme)\b/.test(t) ? 'ALTA' : 'MEDIA',
+      entidades: {
+        ...SEM_ENTIDADES,
+        problemaRua: problema.problema,
+        impedeCadeirante: cadeira ? true : null,
+      },
+      mensagemFalada: 'Entendi. Vou abrir o formulário do reporte para você conferir.',
     });
   }
 
   if (/\b(socorro|cai|caiu)\b/.test(t) || /\bpreciso de ajuda\b/.test(t)) {
     return resposta({
-      intencao: 'EMERGENCIA',
-      respostaFalada: 'Você precisa de ajuda? Posso avisar seus cuidadores agora.',
-      precisaConfirmacao: true,
+      intencao: 'SOCORRO',
+      urgencia: 'CRITICA',
+      mensagemFalada: 'Você precisa de ajuda? Posso avisar seus contatos agora.',
+    });
+  }
+
+  const atendimento = ATENDIMENTOS.find((a) => a.palavra.test(t));
+  if (atendimento && /\b(perto|proxim[oa])\b/.test(t)) {
+    const temPonto = pedido.latitude !== undefined && pedido.longitude !== undefined;
+    const lista = temPonto
+      ? montarAtendimentos(atendimento.tipo, pedido.latitude as number, pedido.longitude as number)
+      : null;
+    return resposta({
+      intencao: 'BUSCAR_ATENDIMENTO',
+      entidades: {
+        ...SEM_ENTIDADES,
+        tipoAtendimento: atendimento.tipo,
+        exigeAcessibilidade: cadeira ? true : null,
+      },
+      mensagemFalada:
+        lista?.mensagemFalada ?? `Vou procurar ${NOME_DO_TIPO[atendimento.tipo]} perto de você.`,
+      atendimentos: lista,
+    });
+  }
+
+  if (/\b(golpe|golpista|fraude|mensagem suspeita|e verdade)\b/.test(t)) {
+    return resposta({
+      intencao: 'VERIFICAR_INFORMACAO',
+      mensagemFalada: 'Cole ou fale a mensagem que você recebeu, e eu confiro para você.',
     });
   }
 
   return resposta({
-    intencao: 'NAO_ENTENDI',
-    respostaFalada: 'Não entendi. Pode repetir ou usar os botões da tela inicial?',
+    intencao: 'DESCONHECIDA',
+    confianca: 0,
+    mensagemFalada: 'Não entendi. Pode repetir ou usar os botões da tela inicial?',
   });
+}
+
+function verificar(texto: string): ResultadoVerificacao {
+  const t = simplificar(texto);
+  const sinais: string[] = [];
+  if (/https?:\/\//.test(t) || /\blink\b/.test(t)) sinais.push('A mensagem traz um link.');
+  if (/\b(hoje|urgente|imediatamente|ultimo dia)\b/.test(t)) sinais.push('Pede pressa.');
+  if (/\b(bloquead|cancelad|suspens)/.test(t)) sinais.push('Ameaça bloquear algo seu.');
+  if (/\b(pix|senha|codigo|cartao)\b/.test(t)) sinais.push('Pede dinheiro ou dados pessoais.');
+
+  if (sinais.length >= 2) {
+    return {
+      classificacao: 'PROVAVEL_GOLPE',
+      tipoGolpe: 'OUTRO',
+      sinais,
+      orientacao: 'Não clique em links nem passe dados. Ligue para o canal oficial da empresa.',
+      canalOficial: 'Use o telefone que está no site ou no cartão da empresa.',
+      mensagemFalada: 'Isso parece golpe. Não clique no link e não passe seus dados.',
+      fontes: [
+        { titulo: 'Orientação de exemplo', orgao: 'API falsa', url: 'https://exemplo.test' },
+      ],
+    };
+  }
+  // Sem sinais claros a API falsa nunca diz "seguro": so a API real analisa de verdade.
+  return {
+    classificacao: 'NAO_E_POSSIVEL_AVALIAR',
+    tipoGolpe: null,
+    sinais,
+    orientacao: 'Na dúvida, não clique em links e fale com alguém de confiança.',
+    canalOficial: null,
+    mensagemFalada: 'Não consegui avaliar. Na dúvida, não clique em links.',
+    fontes: [],
+  };
 }
 
 export function criarAssistenteApiFalsa({
@@ -125,6 +226,7 @@ export function criarAssistenteApiFalsa({
   aoNaoAutorizado,
 }: Opcoes): AssistenteApi {
   const esperar = () => (latenciaMs > 0 ? new Promise((r) => setTimeout(r, latenciaMs)) : null);
+  let proximoIdEmergencia = 1;
 
   const exigirSessao = (): void => {
     const token = obterToken();
@@ -136,14 +238,37 @@ export function criarAssistenteApiFalsa({
   };
 
   return {
-    async interpretar(pedido: PedidoAssistente): Promise<RespostaAssistente> {
+    async interpretar(pedido) {
       await esperar();
       exigirSessao();
       const texto = pedido.texto.trim();
       if (texto.length < 1 || texto.length > TEXTO_MAXIMO) {
         throw new ErroApi(400, `O texto deve ter de 1 a ${TEXTO_MAXIMO} letras.`);
       }
-      return interpretar(texto);
+      return interpretar({ ...pedido, texto });
+    },
+
+    async acionarEmergencia(pedido) {
+      await esperar();
+      exigirSessao();
+      if ((pedido.textoOriginal?.length ?? 0) > EMERGENCIA_MAXIMO) {
+        throw new ErroApi(400, `A frase pode ter no máximo ${EMERGENCIA_MAXIMO} letras.`);
+      }
+      return {
+        id: proximoIdEmergencia++,
+        contatosNotificados: 0,
+        mensagemFalada: 'Pedido de socorro registrado. Em emergência, ligue 192.',
+      };
+    },
+
+    async verificarMensagem(pedido) {
+      await esperar();
+      exigirSessao();
+      const texto = pedido.texto.trim();
+      if (texto.length < 1 || texto.length > VERIFICACAO_MAXIMO) {
+        throw new ErroApi(400, `A mensagem deve ter de 1 a ${VERIFICACAO_MAXIMO} letras.`);
+      }
+      return verificar(texto);
     },
   };
 }

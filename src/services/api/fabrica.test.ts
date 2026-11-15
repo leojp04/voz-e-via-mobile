@@ -277,7 +277,7 @@ describe('criarApis: assistente', () => {
 
     const resposta = await assistente.interpretar({ texto: 'socorro' });
 
-    expect(resposta.intencao).toBe('EMERGENCIA');
+    expect(resposta.intencao).toBe('SOCORRO');
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -286,11 +286,8 @@ describe('criarApis: assistente', () => {
       async () =>
         new Response(
           JSON.stringify({
-            intencao: 'NAO_ENTENDI',
-            parametros: {},
-            respostaFalada: 'Pode repetir?',
-            precisaConfirmacao: false,
-            fontes: [],
+            intencao: 'DESCONHECIDA',
+            mensagemFalada: 'Pode repetir?',
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         ),
@@ -306,7 +303,7 @@ describe('criarApis: assistente', () => {
     await assistente.interpretar({ texto: 'oi' });
 
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('http://localhost:8080/api/assistente/interpretar');
+    expect(url).toBe('http://localhost:8080/api/v1/voz/intencoes');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123');
   });
 });

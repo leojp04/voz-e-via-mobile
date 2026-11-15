@@ -1,41 +1,98 @@
 // API do assistente REAL: fala com a API Java pelo cliente HTTP (docs/adr/0002).
-// Implementa o mesmo contrato AssistenteApi da API falsa. Caminho conforme o plano unico (secao 8.1).
+// Implementa o mesmo contrato AssistenteApi da API falsa. Caminhos e campos lidos do codigo do
+// Java: VozController, EmergenciaController e GolpeController (rotas /api/v1/...).
 
 import type { ClienteHttp } from '../cliente-http';
-import type { AssistenteApi, Intencao, RespostaAssistente } from '../types';
+import type {
+  AssistenteApi,
+  AtendimentosProximos,
+  ClassificacaoGolpe,
+  EntidadesDaFala,
+  Intencao,
+  ResultadoEmergencia,
+  ResultadoVerificacao,
+  RespostaAssistente,
+} from '../types';
 
 const INTENCOES: readonly Intencao[] = [
-  'REPORTAR_PROBLEMA',
-  'CONSULTAR_REPORTES',
-  'EMERGENCIA',
-  'LIGAR_CONTATO',
-  'LOCAL_PROXIMO',
-  'DUVIDA_DIREITO',
-  'NAO_ENTENDI',
+  'SOCORRO',
+  'BUSCAR_ATENDIMENTO',
+  'VERIFICAR_INFORMACAO',
+  'ZELADORIA_REPORT',
+  'DESCONHECIDA',
 ];
 
-// A resposta vem de uma IA: o app nao confia no formato. Intencao desconhecida vira NAO_ENTENDI
-// (nunca executa uma acao que nao conhece) e campo ausente vira um valor seguro. Na duvida, pede
-// confirmacao.
+const CLASSIFICACOES: readonly ClassificacaoGolpe[] = [
+  'SEM_SINAIS_DE_RISCO',
+  'NAO_E_POSSIVEL_AVALIAR',
+  'SUSPEITA',
+  'PROVAVEL_GOLPE',
+];
+
+const SEM_ENTIDADES: EntidadesDaFala = {
+  tipoAtendimento: null,
+  exigeAcessibilidade: null,
+  problemaRua: null,
+  impedeCadeirante: null,
+  referenciaLocal: null,
+};
+
+// A resposta vem de uma IA: o app nao confia no formato. Intencao desconhecida vira DESCONHECIDA
+// (nunca executa uma acao que nao conhece) e campo ausente vira um valor seguro.
 function normalizar(bruta: Partial<RespostaAssistente>): RespostaAssistente {
-  const intencao = INTENCOES.find((i) => i === bruta.intencao) ?? 'NAO_ENTENDI';
   return {
-    intencao,
-    parametros: bruta.parametros ?? {},
-    respostaFalada: bruta.respostaFalada ?? '',
+    intencao: INTENCOES.find((i) => i === bruta.intencao) ?? 'DESCONHECIDA',
+    urgencia: bruta.urgencia ?? null,
+    entidades: { ...SEM_ENTIDADES, ...bruta.entidades },
+    mensagemFalada: bruta.mensagemFalada ?? '',
+    confianca: bruta.confianca ?? 0,
+    atendimentos: (bruta.atendimentos as AtendimentosProximos | null | undefined) ?? null,
+  };
+}
+
+// Sem resposta clara, nunca dizemos "sem risco": o app prefere avisar que nao deu para avaliar.
+function normalizarVerificacao(bruta: Partial<ResultadoVerificacao>): ResultadoVerificacao {
+  return {
+    classificacao:
+      CLASSIFICACOES.find((c) => c === bruta.classificacao) ?? 'NAO_E_POSSIVEL_AVALIAR',
+    tipoGolpe: bruta.tipoGolpe ?? null,
+    sinais: bruta.sinais ?? [],
+    orientacao: bruta.orientacao ?? '',
+    canalOficial: bruta.canalOficial ?? null,
+    mensagemFalada: bruta.mensagemFalada ?? '',
     fontes: bruta.fontes ?? [],
-    precisaConfirmacao: bruta.precisaConfirmacao ?? true,
   };
 }
 
 export function criarAssistenteApiReal(cliente: ClienteHttp): AssistenteApi {
   return {
-    async interpretar(pedido) {
+    async interpretar({ texto, latitude, longitude }) {
+      const temPonto = latitude !== undefined && longitude !== undefined;
       const resposta = await cliente.post<Partial<RespostaAssistente>>(
-        '/api/assistente/interpretar',
-        pedido,
+        '/api/v1/voz/intencoes',
+        temPonto ? { texto, localizacao: { latitude, longitude } } : { texto },
       );
       return normalizar(resposta);
+    },
+
+    async acionarEmergencia(pedido) {
+      const resposta = await cliente.post<Partial<ResultadoEmergencia>>(
+        '/api/v1/emergencias',
+        pedido,
+      );
+      return {
+        id: resposta.id as number,
+        contatosNotificados: resposta.contatosNotificados ?? 0,
+        mensagemFalada: resposta.mensagemFalada ?? '',
+      };
+    },
+
+    async verificarMensagem(pedido) {
+      const resposta = await cliente.post<Partial<ResultadoVerificacao>>(
+        '/api/v1/verificacoes',
+        pedido,
+      );
+      return normalizarVerificacao(resposta);
     },
   };
 }

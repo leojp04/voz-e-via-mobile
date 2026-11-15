@@ -188,43 +188,131 @@ export interface ContatosApi {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Assistente por voz (API Java), conforme as secoes 4.2 e 8.1 do plano unico.
-// Suposicao (as respostas do time Java ainda estao pendentes): os nomes dos campos de
-// "parametros" e o formato de "fontes" abaixo seguem o exemplo do plano e precisam ser confirmados.
+// Assistente por voz (API Java). Contrato REAL, lido do codigo do Java (Intencao, IntencaoResponse,
+// EntidadesFala, AtendimentosProximosResponse, EmergenciaResponse, VerificacaoResponse).
+// O Java decide a acao de cada intencao no servidor: o app so escolhe a tela pela intencao.
 // ---------------------------------------------------------------------------------------------
 
 export type Intencao =
-  | 'REPORTAR_PROBLEMA'
-  | 'CONSULTAR_REPORTES'
-  | 'EMERGENCIA'
-  | 'LIGAR_CONTATO'
-  | 'LOCAL_PROXIMO'
-  | 'DUVIDA_DIREITO'
-  | 'NAO_ENTENDI';
+  'SOCORRO' | 'BUSCAR_ATENDIMENTO' | 'VERIFICAR_INFORMACAO' | 'ZELADORIA_REPORT' | 'DESCONHECIDA';
+
+/** Urgencia da fala (o Java tem um nivel a mais que o reporte: CRITICA). */
+export type UrgenciaDaFala = Urgencia | 'CRITICA';
+
+export type TipoAtendimento =
+  'HOSPITAL' | 'UPA' | 'UBS' | 'FARMACIA' | 'CRAS' | 'DELEGACIA' | 'DEFENSORIA';
+
+export type ProblemaRua =
+  | 'BURACO'
+  | 'CALCADA_DANIFICADA'
+  | 'RAMPA_BLOQUEADA'
+  | 'ILUMINACAO'
+  | 'LIXO_OU_ENTULHO'
+  | 'ARVORE_CAIDA'
+  | 'ALAGAMENTO'
+  | 'OUTRO';
+
+export type Acessibilidade = 'SIM' | 'PARCIAL' | 'NAO' | 'DESCONHECIDA';
+
+/** O que o Java extraiu da fala. Campo que nao se aplica a intencao vem null. */
+export interface EntidadesDaFala {
+  tipoAtendimento: TipoAtendimento | null;
+  exigeAcessibilidade: boolean | null;
+  problemaRua: ProblemaRua | null;
+  impedeCadeirante: boolean | null;
+  referenciaLocal: string | null;
+}
+
+export interface AtendimentoProximo {
+  id: number;
+  nome: string;
+  tipo: TipoAtendimento;
+  endereco: string;
+  telefone: string | null;
+  latitude: number;
+  longitude: number;
+  distanciaMetros: number;
+  acessibilidade: Acessibilidade;
+  banheiroAdaptado: boolean | null;
+  funciona24h: boolean | null;
+  /** Alerta sobre a acessibilidade (ex.: "ligue antes"); null quando confirmada. */
+  aviso: string | null;
+  rotas: { googleMaps: string; waze: string; geo: string };
+}
+
+export interface AtendimentosProximos {
+  tipo: TipoAtendimento;
+  atendimentos: AtendimentoProximo[];
+  semAcessivelNoRaio: boolean;
+  mensagemFalada: string;
+  /** "Ligue 192" (so hospital e UPA). */
+  orientacaoEmergencia: string | null;
+  telefoneEmergencia: string | null;
+  observacao: string | null;
+  /** Credito exigido pela licenca ODbL do OpenStreetMap: precisa aparecer na tela. */
+  creditoDados: string;
+}
 
 export interface PedidoAssistente {
   /** O que a pessoa disse ou digitou (a fala vira texto no celular; o audio nao sai do aparelho). */
   texto: string;
+  /** Opcionais, sempre juntas: so servem para o Java ja trazer os atendimentos proximos. */
   latitude?: number;
   longitude?: number;
 }
 
 export interface RespostaAssistente {
-  /** Intencao fora da lista conhecida chega ao app como NAO_ENTENDI. */
+  /** Intencao fora da lista conhecida chega ao app como DESCONHECIDA. */
   intencao: Intencao;
-  /**
-   * Suposicao: REPORTAR_PROBLEMA traz categoria (codigo), urgencia e descricao; LIGAR_CONTATO traz
-   * apelido; LOCAL_PROXIMO traz busca.
-   */
-  parametros: Record<string, string>;
+  urgencia: UrgenciaDaFala | null;
+  entidades: EntidadesDaFala;
   /** Frase curta que o celular le em voz alta. */
-  respostaFalada: string;
-  /** Suposicao: nomes das fontes citadas (ex.: "Lei 13.146/2015, art. 53"), so em DUVIDA_DIREITO. */
-  fontes: string[];
-  precisaConfirmacao: boolean;
+  mensagemFalada: string;
+  /** De 0 a 1. */
+  confianca: number;
+  /** So em BUSCAR_ATENDIMENTO com localizacao. */
+  atendimentos: AtendimentosProximos | null;
+}
+
+export interface PedidoEmergencia {
+  latitude?: number;
+  longitude?: number;
+  /** A frase dita, quando o acionamento veio por voz (ate 300 letras). */
+  textoOriginal?: string;
+}
+
+export interface ResultadoEmergencia {
+  id: number;
+  contatosNotificados: number;
+  mensagemFalada: string;
+}
+
+export type ClassificacaoGolpe =
+  'SEM_SINAIS_DE_RISCO' | 'NAO_E_POSSIVEL_AVALIAR' | 'SUSPEITA' | 'PROVAVEL_GOLPE';
+
+export type CanalMensagem = 'WHATSAPP' | 'SMS' | 'LIGACAO' | 'EMAIL' | 'OUTRO';
+
+export interface PedidoVerificacao {
+  /** A mensagem suspeita (ate 2000 letras); o Java nao a grava. */
+  texto: string;
+  canal?: CanalMensagem;
+}
+
+export interface ResultadoVerificacao {
+  classificacao: ClassificacaoGolpe;
+  tipoGolpe: string | null;
+  sinais: string[];
+  orientacao: string;
+  canalOficial: string | null;
+  mensagemFalada: string;
+  fontes: { titulo: string; orgao: string; url: string }[];
 }
 
 export interface AssistenteApi {
-  /** Erros: 400 (texto vazio ou longo demais), 401, 0 (sem conexao). */
+  /** POST /api/v1/voz/intencoes. Erros: 400 (texto vazio ou longo demais), 401, 0 (sem conexao). */
   interpretar(pedido: PedidoAssistente): Promise<RespostaAssistente>;
+  /** POST /api/v1/emergencias. So depois de a pessoa confirmar na tela. */
+  acionarEmergencia(pedido: PedidoEmergencia): Promise<ResultadoEmergencia>;
+  /** POST /api/v1/verificacoes ("isso e golpe?"). */
+  verificarMensagem(pedido: PedidoVerificacao): Promise<ResultadoVerificacao>;
 }
