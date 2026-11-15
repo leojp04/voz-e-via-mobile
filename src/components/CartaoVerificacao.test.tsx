@@ -5,7 +5,7 @@ import { CartaoVerificacao } from './CartaoVerificacao';
 
 const resultado: ResultadoVerificacao = {
   classificacao: 'PROVAVEL_GOLPE',
-  tipoGolpe: 'Falso parente',
+  tipoGolpe: 'FALSO_PARENTE',
   sinais: ['Pede dinheiro com urgência', 'Número desconhecido'],
   orientacao: 'Não faça o Pix. Ligue para a pessoa no número que você já tem.',
   canalOficial: 'Disque 100',
@@ -39,6 +39,30 @@ describe('CartaoVerificacao', () => {
       screen.getByText('Não faça o Pix. Ligue para a pessoa no número que você já tem.'),
     ).toBeOnTheScreen();
     expect(screen.getByText('Canal oficial: Disque 100')).toBeOnTheScreen();
+  });
+
+  it.each([
+    ['FALSO_BENEFICIO', 'Falso benefício'],
+    ['FALSA_CENTRAL_BANCO', 'Falsa central do banco'],
+    ['FALSO_PARENTE', 'Falso parente'],
+    ['FALSA_COBRANCA', 'Falsa cobrança'],
+    ['PREMIO_FALSO', 'Falso prêmio'],
+    ['FALSA_ENTREGA', 'Falsa entrega'],
+    ['FALSO_SERVICO_SAUDE', 'Falso serviço de saúde'],
+    ['LINK_MALICIOSO', 'Link malicioso'],
+    ['OUTRO', 'Outro tipo de golpe'],
+  ])('tipo de golpe %s aparece como texto legivel: "%s"', async (codigo, texto) => {
+    await montar({ tipoGolpe: codigo });
+    expect(screen.getByText(texto)).toBeOnTheScreen();
+    expect(screen.queryByText(codigo)).toBeNull();
+  });
+
+  it('esconde o tipo quando e NENHUM ou um codigo que o app nao conhece (nunca mostra o codigo cru)', async () => {
+    await montar({ tipoGolpe: 'NENHUM' });
+    expect(screen.queryByText('NENHUM')).toBeNull();
+    expect(screen.queryByText('Outro tipo de golpe')).toBeNull();
+    await montar({ tipoGolpe: 'TIPO_NOVO_DO_JAVA' });
+    expect(screen.queryByText('TIPO_NOVO_DO_JAVA')).toBeNull();
   });
 
   it('mostra as fontes com titulo e orgao', async () => {

@@ -16,6 +16,20 @@ const TEXTO_DA_CLASSIFICACAO: Record<ClassificacaoGolpe, string> = {
   SEM_SINAIS_DE_RISCO: 'Sem sinais de risco',
 };
 
+// O Java manda o tipo como codigo (PREMIO_FALSO). A pessoa le texto: cada codigo conhecido vira uma
+// frase. NENHUM e codigo que o app nao conhece ficam de fora, para nunca aparecer um codigo cru.
+const TEXTO_DO_TIPO_DE_GOLPE: Record<string, string> = {
+  FALSO_BENEFICIO: 'Falso benefício',
+  FALSA_CENTRAL_BANCO: 'Falsa central do banco',
+  FALSO_PARENTE: 'Falso parente',
+  FALSA_COBRANCA: 'Falsa cobrança',
+  PREMIO_FALSO: 'Falso prêmio',
+  FALSA_ENTREGA: 'Falsa entrega',
+  FALSO_SERVICO_SAUDE: 'Falso serviço de saúde',
+  LINK_MALICIOSO: 'Link malicioso',
+  OUTRO: 'Outro tipo de golpe',
+};
+
 const AVISO_SEM_SINAIS =
   'Isso não garante que a mensagem seja segura. Na dúvida, não clique em links nem passe dados.';
 
@@ -24,10 +38,11 @@ interface PropsCartaoVerificacao {
 }
 
 export function CartaoVerificacao({ resultado }: PropsCartaoVerificacao) {
+  const tipoDeGolpe = resultado.tipoGolpe ? TEXTO_DO_TIPO_DE_GOLPE[resultado.tipoGolpe] : undefined;
   return (
     <View style={styles.cartao} accessibilityLiveRegion="polite">
       <Texto style={styles.classificacao}>{TEXTO_DA_CLASSIFICACAO[resultado.classificacao]}</Texto>
-      {resultado.tipoGolpe ? <Texto style={styles.destaque}>{resultado.tipoGolpe}</Texto> : null}
+      {tipoDeGolpe ? <Texto style={styles.destaque}>{tipoDeGolpe}</Texto> : null}
       {resultado.classificacao === 'SEM_SINAIS_DE_RISCO' ? (
         <Texto style={styles.texto}>{AVISO_SEM_SINAIS}</Texto>
       ) : null}
