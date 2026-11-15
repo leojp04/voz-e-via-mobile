@@ -136,6 +136,16 @@ etapa os usuários são apenas contas de teste.
 - **Reconhecimento de fala**: `expo-speech-recognition`, licença MIT.
 - **Logo e ícone do app**: desenho próprio do projeto (`assets/images/voz-e-via.svg`).
 
+## Integrantes do grupo
+
+| Nome                          | RM       |
+| ----------------------------- | -------- |
+| Fabrício Henrique Pereira     | RM563237 |
+| Henrique Sinkevicius Maran    | RM562977 |
+| Leonardo José Pereira         | RM563065 |
+| Miguel Henrique Oliveira Dias | RM565492 |
+| Pedro Henrique de Oliveira    | RM562312 |
+
 ## Entrega
 
 - Vídeo (até 5 min): _link a preencher_
