@@ -1,207 +1,208 @@
 import { ErroApi } from '../api/erro';
-import type { Contato, ContatosApi, RespostaAssistente } from '../api/types';
+import type {
+  EntidadesDaFala,
+  RespostaAssistente,
+  ResultadoEmergencia,
+  ResultadoVerificacao,
+} from '../api/types';
 import { executarIntencao, intencaoTemAcao, type Dependencias } from './executar-intencao';
 
-function contato(id: number, apelido: string, telefone = '11988887777'): Contato {
-  return { id, nome: `Nome ${id}`, apelido, telefone, prioridade: 1 };
-}
+const SEM_ENTIDADES: EntidadesDaFala = {
+  tipoAtendimento: null,
+  exigeAcessibilidade: null,
+  problemaRua: null,
+  impedeCadeirante: null,
+  referenciaLocal: null,
+};
 
 function resposta(parcial: Partial<RespostaAssistente> = {}): RespostaAssistente {
   return {
-    intencao: 'NAO_ENTENDI',
-    parametros: {},
-    respostaFalada: 'ok',
-    fontes: [],
-    precisaConfirmacao: false,
+    intencao: 'DESCONHECIDA',
+    urgencia: null,
+    entidades: SEM_ENTIDADES,
+    mensagemFalada: 'ok',
+    confianca: 0.9,
+    atendimentos: null,
     ...parcial,
   };
 }
 
-function montar(contatos: Contato[] = []) {
-  const listar = jest.fn<ReturnType<ContatosApi['listar']>, Parameters<ContatosApi['listar']>>(
-    async (pagina, tamanho) => ({
-      itens: contatos.slice((pagina - 1) * tamanho, pagina * tamanho),
-      pagina,
-      tamanho,
-      total: contatos.length,
-    }),
-  );
+const EMERGENCIA: ResultadoEmergencia = {
+  id: 7,
+  contatosNotificados: 2,
+  mensagemFalada: 'Avisei 2 contatos.',
+};
+
+const VERIFICACAO: ResultadoVerificacao = {
+  classificacao: 'PROVAVEL_GOLPE',
+  tipoGolpe: 'Falso parente',
+  sinais: ['Pede dinheiro com urgência'],
+  orientacao: 'Não faça o Pix. Ligue para a pessoa.',
+  canalOficial: null,
+  mensagemFalada: 'Isso parece golpe.',
+  fontes: [],
+};
+
+function montar() {
   const deps = {
-    contatos: { listar } as unknown as ContatosApi,
-    ligarPara: jest.fn(),
-    abrirBuscaNoMapa: jest.fn(),
+    assistente: {
+      acionarEmergencia: jest.fn().mockResolvedValue(EMERGENCIA),
+      verificarMensagem: jest.fn().mockResolvedValue(VERIFICACAO),
+    },
     obterLocalizacao: jest.fn().mockResolvedValue({ latitude: -23.5, longitude: -46.6 }),
     navegar: jest.fn(),
   } satisfies Dependencias;
-  return { deps, listar };
+  return deps;
 }
 
 describe('intencaoTemAcao', () => {
-  it('so DUVIDA_DIREITO e NAO_ENTENDI nao tem acao (so mostram a resposta)', () => {
-    expect(intencaoTemAcao('DUVIDA_DIREITO')).toBe(false);
-    expect(intencaoTemAcao('NAO_ENTENDI')).toBe(false);
-    for (const i of [
-      'LIGAR_CONTATO',
-      'LOCAL_PROXIMO',
-      'REPORTAR_PROBLEMA',
-      'CONSULTAR_REPORTES',
-      'EMERGENCIA',
-    ] as const) {
-      expect(intencaoTemAcao(i)).toBe(true);
-    }
+  it('SOCORRO, VERIFICAR_INFORMACAO e ZELADORIA_REPORT pedem botao de acao', () => {
+    expect(intencaoTemAcao('SOCORRO')).toBe(true);
+    expect(intencaoTemAcao('VERIFICAR_INFORMACAO')).toBe(true);
+    expect(intencaoTemAcao('ZELADORIA_REPORT')).toBe(true);
+  });
+
+  it('BUSCAR_ATENDIMENTO e DESCONHECIDA so mostram a resposta (a lista ja veio do Java)', () => {
+    expect(intencaoTemAcao('BUSCAR_ATENDIMENTO')).toBe(false);
+    expect(intencaoTemAcao('DESCONHECIDA')).toBe(false);
   });
 });
 
-describe('executarIntencao - LIGAR_CONTATO', () => {
-  const pedido = (apelido?: string) =>
-    resposta({ intencao: 'LIGAR_CONTATO', parametros: apelido ? { apelido } : {} });
+describe('executarIntencao - SOCORRO', () => {
+  const pedido = resposta({ intencao: 'SOCORRO', urgencia: 'CRITICA' });
 
-  it('acha o contato pelo apelido (sem diferenciar maiuscula nem acento) e abre o discador', async () => {
-    const { deps } = montar([contato(1, 'Mãe', '11911112222'), contato(2, 'Filha', '11933334444')]);
-    const resultado = await executarIntencao(pedido('FILHA'), deps);
-    expect(deps.ligarPara).toHaveBeenCalledWith('11933334444');
-    expect(resultado).toEqual({ tipo: 'feito' });
-  });
-
-  it('acha "mae" para o apelido "Mãe"', async () => {
-    const { deps } = montar([contato(1, 'Mãe', '11911112222')]);
-    await executarIntencao(pedido('mae'), deps);
-    expect(deps.ligarPara).toHaveBeenCalledWith('11911112222');
-  });
-
-  it('procura nas varias paginas de contatos', async () => {
-    const muitos = Array.from({ length: 120 }, (_, i) => contato(i + 1, `apelido${i + 1}`));
-    const { deps, listar } = montar(muitos);
-    await executarIntencao(pedido('apelido115'), deps);
-    expect(listar.mock.calls.length).toBeGreaterThan(1);
-    expect(deps.ligarPara).toHaveBeenCalledWith('11988887777');
-  });
-
-  it('apelido que nao existe: avisa e nao liga', async () => {
-    const { deps } = montar([contato(1, 'Filha')]);
-    const resultado = await executarIntencao(pedido('vizinho'), deps);
-    expect(deps.ligarPara).not.toHaveBeenCalled();
-    expect(resultado).toEqual({
-      tipo: 'aviso',
-      mensagem: 'Não encontrei "vizinho" nos seus contatos. Abra Contatos para conferir o apelido.',
-    });
-  });
-
-  it('dois contatos com o mesmo apelido: nao escolhe por conta propria', async () => {
-    const { deps } = montar([contato(1, 'Filha'), contato(2, 'filha')]);
-    const resultado = await executarIntencao(pedido('filha'), deps);
-    expect(deps.ligarPara).not.toHaveBeenCalled();
-    expect(resultado).toEqual({
-      tipo: 'aviso',
-      mensagem: 'Você tem mais de um contato chamado "filha". Abra Contatos e ligue pelo botão.',
-    });
-  });
-
-  it('sem apelido na resposta: avisa', async () => {
-    const { deps } = montar([contato(1, 'Filha')]);
-    const resultado = await executarIntencao(pedido(), deps);
-    expect(resultado.tipo).toBe('aviso');
-    expect(deps.ligarPara).not.toHaveBeenCalled();
-  });
-
-  it('falha ao listar contatos (sem internet): avisa que nao ligou', async () => {
-    const { deps, listar } = montar();
-    listar.mockRejectedValue(new ErroApi(0, 'sem conexao'));
-    const resultado = await executarIntencao(pedido('filha'), deps);
-    expect(deps.ligarPara).not.toHaveBeenCalled();
-    expect(resultado).toEqual({
-      tipo: 'aviso',
-      mensagem:
-        'Não foi possível consultar seus contatos agora. Verifique a internet e tente de novo.',
-    });
-  });
-});
-
-describe('executarIntencao - LOCAL_PROXIMO', () => {
-  const pedido = (busca?: string) =>
-    resposta({ intencao: 'LOCAL_PROXIMO', parametros: busca ? { busca } : {} });
-
-  it('abre o mapa buscando perto da localizacao atual', async () => {
-    const { deps } = montar();
-    const resultado = await executarIntencao(pedido('farmácia'), deps);
-    expect(deps.abrirBuscaNoMapa).toHaveBeenCalledWith('farmácia', {
+  it('aciona a emergencia com a localizacao e a frase dita, e oferece ligar para o 192', async () => {
+    const deps = montar();
+    const resultado = await executarIntencao(pedido, 'socorro, caí e não consigo levantar', deps);
+    expect(deps.assistente.acionarEmergencia).toHaveBeenCalledWith({
       latitude: -23.5,
       longitude: -46.6,
+      textoOriginal: 'socorro, caí e não consigo levantar',
     });
-    expect(resultado).toEqual({ tipo: 'feito' });
-  });
-
-  it('sem GPS (permissao negada), abre o mapa so com a busca', async () => {
-    const { deps } = montar();
-    deps.obterLocalizacao.mockRejectedValue(new Error('negada'));
-    const resultado = await executarIntencao(pedido('farmácia'), deps);
-    expect(deps.abrirBuscaNoMapa).toHaveBeenCalledWith('farmácia', undefined);
-    expect(resultado).toEqual({ tipo: 'feito' });
-  });
-
-  it('sem termo de busca: avisa e nao abre o mapa', async () => {
-    const { deps } = montar();
-    const resultado = await executarIntencao(pedido(), deps);
-    expect(resultado.tipo).toBe('aviso');
-    expect(deps.abrirBuscaNoMapa).not.toHaveBeenCalled();
-  });
-});
-
-describe('executarIntencao - REPORTAR_PROBLEMA', () => {
-  it('abre o formulario de novo reporte ja preenchido (a pessoa ainda revisa e envia)', async () => {
-    const { deps } = montar();
-    const resultado = await executarIntencao(
-      resposta({
-        intencao: 'REPORTAR_PROBLEMA',
-        parametros: { categoria: 'CALCADA', urgencia: 'ALTA', descricao: 'Calçada quebrada' },
-      }),
-      deps,
-    );
-    expect(deps.navegar).toHaveBeenCalledWith({
-      pathname: '/reportes/novo',
-      params: { categoria: 'CALCADA', urgencia: 'ALTA', descricao: 'Calçada quebrada' },
-    });
-    expect(resultado).toEqual({ tipo: 'feito' });
-  });
-
-  it('manda so os parametros que vieram', async () => {
-    const { deps } = montar();
-    await executarIntencao(
-      resposta({ intencao: 'REPORTAR_PROBLEMA', parametros: { descricao: 'Algo' } }),
-      deps,
-    );
-    expect(deps.navegar).toHaveBeenCalledWith({
-      pathname: '/reportes/novo',
-      params: { descricao: 'Algo' },
-    });
-  });
-});
-
-describe('executarIntencao - demais intencoes', () => {
-  it('CONSULTAR_REPORTES abre a lista de reportes', async () => {
-    const { deps } = montar();
-    const resultado = await executarIntencao(resposta({ intencao: 'CONSULTAR_REPORTES' }), deps);
-    expect(deps.navegar).toHaveBeenCalledWith({ pathname: '/reportes' });
-    expect(resultado).toEqual({ tipo: 'feito' });
-  });
-
-  it('EMERGENCIA: nao finge que avisou; diz que ainda nao esta disponivel e lembra o 192', async () => {
-    const { deps } = montar();
-    const resultado = await executarIntencao(resposta({ intencao: 'EMERGENCIA' }), deps);
     expect(resultado).toEqual({
-      tipo: 'aviso',
-      mensagem:
-        'O aviso aos cuidadores ainda não está disponível neste aplicativo. Em emergência, ligue para o SAMU: 192.',
+      tipo: 'emergencia',
+      resultado: EMERGENCIA,
+      telefoneEmergencia: '192',
     });
-    expect(deps.ligarPara).not.toHaveBeenCalled();
   });
 
-  it.each(['DUVIDA_DIREITO', 'NAO_ENTENDI'] as const)('%s nao executa nada', async (intencao) => {
-    const { deps } = montar();
-    const resultado = await executarIntencao(resposta({ intencao }), deps);
-    expect(resultado).toEqual({ tipo: 'nada' });
-    expect(deps.navegar).not.toHaveBeenCalled();
-    expect(deps.ligarPara).not.toHaveBeenCalled();
-    expect(deps.abrirBuscaNoMapa).not.toHaveBeenCalled();
+  it('sem GPS ainda aciona a emergencia, so que sem coordenadas', async () => {
+    const deps = montar();
+    deps.obterLocalizacao.mockRejectedValue(new Error('permissao negada'));
+    await executarIntencao(pedido, 'socorro', deps);
+    expect(deps.assistente.acionarEmergencia).toHaveBeenCalledWith({ textoOriginal: 'socorro' });
   });
+
+  it('corta a frase dita em 300 letras, o limite da API', async () => {
+    const deps = montar();
+    await executarIntencao(pedido, 'a'.repeat(500), deps);
+    const enviado = deps.assistente.acionarEmergencia.mock.calls[0][0];
+    expect(enviado.textoOriginal).toHaveLength(300);
+  });
+
+  it('se a API falhar, avisa e manda ligar para o SAMU: nunca finge que avisou alguem', async () => {
+    const deps = montar();
+    deps.assistente.acionarEmergencia.mockRejectedValue(new ErroApi(0, 'sem conexao'));
+    const resultado = await executarIntencao(pedido, 'socorro', deps);
+    expect(resultado.tipo).toBe('aviso');
+    expect(resultado.tipo === 'aviso' && resultado.mensagem).toContain('192');
+  });
+});
+
+describe('executarIntencao - VERIFICAR_INFORMACAO', () => {
+  const pedido = resposta({ intencao: 'VERIFICAR_INFORMACAO' });
+
+  it('manda a mensagem para verificacao e devolve o parecer', async () => {
+    const deps = montar();
+    const resultado = await executarIntencao(
+      pedido,
+      '  mãe, troquei de número, faz um pix  ',
+      deps,
+    );
+    expect(deps.assistente.verificarMensagem).toHaveBeenCalledWith({
+      texto: 'mãe, troquei de número, faz um pix',
+    });
+    expect(resultado).toEqual({ tipo: 'verificacao', resultado: VERIFICACAO });
+  });
+
+  it('sem texto nao chama a API e orienta a colar a mensagem', async () => {
+    const deps = montar();
+    const resultado = await executarIntencao(pedido, '   ', deps);
+    expect(deps.assistente.verificarMensagem).not.toHaveBeenCalled();
+    expect(resultado.tipo).toBe('aviso');
+  });
+
+  it('mensagem com mais de 2000 letras avisa em vez de enviar', async () => {
+    const deps = montar();
+    const resultado = await executarIntencao(pedido, 'a'.repeat(2001), deps);
+    expect(deps.assistente.verificarMensagem).not.toHaveBeenCalled();
+    expect(resultado.tipo).toBe('aviso');
+  });
+
+  it('se a API falhar, avisa para tentar de novo', async () => {
+    const deps = montar();
+    deps.assistente.verificarMensagem.mockRejectedValue(new ErroApi(0, 'sem conexao'));
+    const resultado = await executarIntencao(pedido, 'mensagem', deps);
+    expect(resultado.tipo).toBe('aviso');
+  });
+});
+
+describe('executarIntencao - ZELADORIA_REPORT', () => {
+  const pedido = (problemaRua: EntidadesDaFala['problemaRua'], extra = {}) =>
+    resposta({
+      intencao: 'ZELADORIA_REPORT',
+      entidades: { ...SEM_ENTIDADES, problemaRua },
+      ...extra,
+    });
+
+  it.each([
+    ['BURACO', 'BURACO'],
+    ['CALCADA_DANIFICADA', 'CALCADA'],
+    ['RAMPA_BLOQUEADA', 'RAMPA'],
+    ['ILUMINACAO', 'ILUMINACAO'],
+    ['LIXO_OU_ENTULHO', 'LIXO'],
+    ['ARVORE_CAIDA', 'OUTRO'],
+    ['ALAGAMENTO', 'OUTRO'],
+    ['OUTRO', 'OUTRO'],
+  ] as const)(
+    'problemaRua %s abre o formulario com a categoria %s',
+    async (problema, categoria) => {
+      const deps = montar();
+      const resultado = await executarIntencao(pedido(problema), 'tem um problema', deps);
+      expect(deps.navegar).toHaveBeenCalledWith({
+        pathname: '/reportes/novo',
+        params: { categoria, descricao: 'tem um problema' },
+      });
+      expect(resultado).toEqual({ tipo: 'feito' });
+    },
+  );
+
+  it('leva a urgencia para o formulario e troca CRITICA por ALTA (o reporte nao tem CRITICA)', async () => {
+    const deps = montar();
+    await executarIntencao(pedido('BURACO', { urgencia: 'CRITICA' }), 'buraco', deps);
+    expect(deps.navegar).toHaveBeenCalledWith({
+      pathname: '/reportes/novo',
+      params: { categoria: 'BURACO', urgencia: 'ALTA', descricao: 'buraco' },
+    });
+  });
+
+  it('sem problema identificado nem texto, abre o formulario em branco', async () => {
+    const deps = montar();
+    await executarIntencao(pedido(null), '  ', deps);
+    expect(deps.navegar).toHaveBeenCalledWith({ pathname: '/reportes/novo', params: {} });
+  });
+});
+
+describe('executarIntencao - BUSCAR_ATENDIMENTO e DESCONHECIDA', () => {
+  it.each(['BUSCAR_ATENDIMENTO', 'DESCONHECIDA'] as const)(
+    '%s nao faz nada alem de mostrar',
+    async (intencao) => {
+      const deps = montar();
+      const resultado = await executarIntencao(resposta({ intencao }), 'farmácia', deps);
+      expect(resultado).toEqual({ tipo: 'nada' });
+      expect(deps.navegar).not.toHaveBeenCalled();
+      expect(deps.assistente.acionarEmergencia).not.toHaveBeenCalled();
+      expect(deps.assistente.verificarMensagem).not.toHaveBeenCalled();
+    },
+  );
 });
