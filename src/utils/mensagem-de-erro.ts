@@ -128,6 +128,23 @@ export function mensagemDeErroAoExcluirContato(erro: unknown): string {
   return 'Não foi possível excluir o contato. Tente de novo.';
 }
 
+// Ao salvar o perfil de emergencia: a frase diz se ele foi ou NAO salvo. Nunca repete o conteudo
+// (dado de saude).
+export function mensagemDeErroAoSalvarPerfil(erro: unknown): string {
+  if (ehErroApi(erro)) {
+    if (erro.status === 0) return 'Sem conexão. O perfil não foi salvo. Tente de novo.';
+    if (erro.status === 400) return 'Confira os dados do perfil. Ele não foi salvo.';
+    if (erro.status === 404) return 'Perfil não encontrado. Ele não foi salvo.';
+    if (erro.status === 409) {
+      return 'Você já tem um perfil. Abra "Meu perfil" para editar. Nada foi salvo.';
+    }
+    if (erro.status >= 500) {
+      return 'O servidor está com problemas. O perfil não foi salvo. Tente de novo em instantes.';
+    }
+  }
+  return 'Não foi possível salvar o perfil. Tente de novo.';
+}
+
 export function mensagemDeErro(erro: unknown): string {
   if (!ehErroApi(erro)) return MENSAGEM_GENERICA;
 

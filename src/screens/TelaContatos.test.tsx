@@ -4,11 +4,12 @@ import { Alert, Linking, Text } from 'react-native';
 
 import { Botao } from '../components/Botao';
 import { ErroApi } from '../services/api/erro';
-import type { Contato, Pagina } from '../services/api/types';
+import type { Contato, Pagina, PerfilEmergencia } from '../services/api/types';
 import {
   criarArmazenamentoEmMemoria,
   criarAuthApiMock,
   criarContatosApiMock,
+  criarPerfisApiMock,
   montarTela,
   sessaoDeTeste,
 } from '../test-utils/montar-tela';
@@ -16,6 +17,11 @@ import { TelaContatos } from './TelaContatos';
 
 // O Ionicons tenta carregar um arquivo de fonte (que nao existe no Jest); o icone e decorativo.
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+
+beforeEach(() => {
+  perfisDoTeste = criarPerfisApiMock();
+  perfisDoTeste.meu.mockResolvedValue(perfilExistente);
+});
 
 afterEach(() => jest.restoreAllMocks());
 
@@ -57,17 +63,30 @@ function abrirOutraTela() {
 }
 
 // A tela e montada em /contatos (e nao no "index"), para "voltar" cair no Início falso.
+const perfilExistente: PerfilEmergencia = {
+  id: 5,
+  mobilidade: 'NAO_INFORMADO',
+  condicoesSaude: null,
+  medicamentos: null,
+  observacoes: null,
+};
+
+// Por padrao a pessoa ja tem perfil; os testes de "sem perfil" trocam o mock de meu().
+let perfisDoTeste = criarPerfisApiMock();
+
 async function montar(configurar: (api: ReturnType<typeof criarContatosApiMock>) => void) {
   const contatos = criarContatosApiMock();
   configurar(contatos);
   await montarTela(InicioFalso, {
     auth: criarAuthApiMock(),
     contatos,
+    perfis: perfisDoTeste,
     rotas: {
       // Stack de verdade (como no app): a lista continua montada enquanto outra tela abre por cima.
       'contatos/_layout': () => <Stack screenOptions={{ headerShown: false }} />,
       'contatos/index': TelaContatos,
       'contatos/outra': OutraTelaFalsa,
+      perfil: () => <Text>Tela do perfil de mentira</Text>,
       'contatos/novo': () => <Text>Formulário de mentira: novo</Text>,
       'contatos/[id]': FormularioDeEdicaoFalso,
     },
@@ -82,6 +101,72 @@ function FormularioDeEdicaoFalso() {
 }
 
 describe('TelaContatos', () => {
+  describe('perfil de emergencia', () => {
+    it('sem perfil, oferece "Criar meu perfil de emergencia" e esconde "Novo contato"', async () => {
+      perfisDoTeste.meu.mockResolvedValue(null);
+      await montar((api) => api.listar.mockResolvedValue(pagina([], 1, 0)));
+
+      expect(
+        await screen.findByRole('button', { name: 'Criar meu perfil de emergência' }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByText(/Para cadastrar contatos, crie primeiro seu perfil/),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Novo contato' })).not.toBeOnTheScreen();
+      expect(screen.queryByText(/Você ainda não tem contatos/)).not.toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Meu perfil' })).not.toBeOnTheScreen();
+    });
+
+    it('o botao "Criar meu perfil" abre a tela do perfil', async () => {
+      perfisDoTeste.meu.mockResolvedValue(null);
+      await montar((api) => api.listar.mockResolvedValue(pagina([], 1, 0)));
+
+      await fireEvent.press(
+        await screen.findByRole('button', { name: 'Criar meu perfil de emergência' }),
+      );
+
+      expect(await screen.findByText('Tela do perfil de mentira')).toBeOnTheScreen();
+    });
+
+    it('com perfil mas sem contatos, mostra o aviso de lista vazia, "Novo contato" e "Meu perfil"', async () => {
+      await montar((api) => api.listar.mockResolvedValue(pagina([], 1, 0)));
+
+      expect(
+        await screen.findByText('Você ainda não tem contatos de emergência cadastrados.'),
+      ).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Novo contato' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Meu perfil' })).toBeOnTheScreen();
+      expect(
+        screen.queryByRole('button', { name: 'Criar meu perfil de emergência' }),
+      ).not.toBeOnTheScreen();
+    });
+
+    it('com contatos, ja sabe que ha perfil: mostra "Meu perfil" sem consultar o perfil', async () => {
+      await montar((api) => api.listar.mockResolvedValue(pagina([contato(1)], 1, 1)));
+
+      await fireEvent.press(await screen.findByRole('button', { name: 'Meu perfil' }));
+
+      expect(await screen.findByText('Tela do perfil de mentira')).toBeOnTheScreen();
+      expect(perfisDoTeste.meu).not.toHaveBeenCalled();
+    });
+
+    it('se nao conseguir saber do perfil, avisa e deixa tentar de novo', async () => {
+      perfisDoTeste.meu
+        .mockRejectedValueOnce(new ErroApi(0, 'sem rede'))
+        .mockResolvedValueOnce(null);
+      await montar((api) => api.listar.mockResolvedValue(pagina([], 1, 0)));
+
+      expect(
+        await screen.findByText('Sem conexão. Verifique a internet e tente de novo.'),
+      ).toBeOnTheScreen();
+      await fireEvent.press(screen.getByRole('button', { name: 'Tentar de novo' }));
+
+      expect(
+        await screen.findByRole('button', { name: 'Criar meu perfil de emergência' }),
+      ).toBeOnTheScreen();
+    });
+  });
+
   it('pede a primeira pagina (10 por vez) e mostra os contatos e o total', async () => {
     const contatos = await montar((api) =>
       api.listar.mockResolvedValue(

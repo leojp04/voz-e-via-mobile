@@ -56,9 +56,12 @@ function AvisoDoCuidador() {
 }
 
 function ListaDeContatos() {
-  const { contatos } = useApis();
+  const { contatos, perfis } = useApis();
   const router = useRouter();
 
+  // null = ainda nao se sabe; false = a pessoa nao criou o perfil (no Java os contatos ficam
+  // dentro do perfil, entao sem perfil nao da para cadastrar contato).
+  const [temPerfil, setTemPerfil] = useState<boolean | null>(null);
   const [itens, setItens] = useState<Contato[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
@@ -87,6 +90,11 @@ function ListaDeContatos() {
     try {
       const resposta = await contatos.listar(1, TAMANHO_DA_PAGINA);
       if (minha !== geracao.current) return;
+      // Lista com contatos prova que ha perfil. Lista vazia pode ser "sem perfil" (o Java devolve
+      // 404 e o app mostra vazio) ou "perfil sem contatos": so ai pergunta ao perfil.
+      const ha = resposta.total > 0 ? true : (await perfis.meu()) !== null;
+      if (minha !== geracao.current) return;
+      setTemPerfil(ha);
       setItens(resposta.itens);
       setTotal(resposta.total);
       setPagina(1);
@@ -102,7 +110,7 @@ function ListaDeContatos() {
         setRecarregando(false);
       }
     }
-  }, [contatos]);
+  }, [contatos, perfis]);
 
   useFocusEffect(
     useCallback(() => {
@@ -141,10 +149,12 @@ function ListaDeContatos() {
     else router.replace('/');
   }
 
-  const vazia = !carregando && !erro && itens.length === 0;
   const listaPronta = !carregando && !erro;
-  const limiteAtingido = listaPronta && total >= MAXIMO_DE_CONTATOS;
-  const podeAdicionar = listaPronta && total < MAXIMO_DE_CONTATOS;
+  const semPerfil = listaPronta && temPerfil === false;
+  const comPerfil = listaPronta && temPerfil === true;
+  const vazia = comPerfil && itens.length === 0;
+  const limiteAtingido = comPerfil && total >= MAXIMO_DE_CONTATOS;
+  const podeAdicionar = comPerfil && total < MAXIMO_DE_CONTATOS;
 
   return (
     <Tela>
@@ -158,6 +168,26 @@ function ListaDeContatos() {
           icone="add-circle-outline"
           onPress={() => router.push('/contatos/novo')}
         />
+      ) : null}
+      {comPerfil ? (
+        <Botao
+          titulo="Meu perfil"
+          variante="secundario"
+          icone="person-circle-outline"
+          onPress={() => router.push('/perfil')}
+        />
+      ) : null}
+      {semPerfil ? (
+        <>
+          <Texto style={styles.aviso}>
+            Para cadastrar contatos, crie primeiro seu perfil de emergência.
+          </Texto>
+          <Botao
+            titulo="Criar meu perfil de emergência"
+            icone="person-add-outline"
+            onPress={() => router.push('/perfil')}
+          />
+        </>
       ) : null}
       {limiteAtingido ? (
         <Texto style={styles.aviso}>Você já tem 10 contatos. Exclua um para adicionar outro.</Texto>
