@@ -125,7 +125,7 @@ const EMERGENCIA: ResultadoEmergencia = {
 
 const VERIFICACAO: ResultadoVerificacao = {
   classificacao: 'PROVAVEL_GOLPE',
-  tipoGolpe: 'Falso parente',
+  tipoGolpe: 'FALSO_PARENTE',
   sinais: ['Pede dinheiro com urgência'],
   orientacao: 'Não faça o Pix. Ligue para a pessoa no número que você já tem.',
   canalOficial: null,
