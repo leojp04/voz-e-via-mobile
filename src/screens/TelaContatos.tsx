@@ -15,6 +15,7 @@ import { CartaoContato } from '../components/CartaoContato';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
+import { useAuth } from '../contexts/AuthContext';
 import type { Contato } from '../services/api/types';
 import { cores, espacos, fontes } from '../theme';
 import { ligarPara } from '../utils/ligar-para';
@@ -22,7 +23,37 @@ import { mensagemDeErroAoCarregarContatos } from '../utils/mensagem-de-erro';
 
 const TAMANHO_DA_PAGINA = 10;
 
+// No Java, GET /perfis-emergencia/meu so aceita CIDADAO (403 para o cuidador). Por isso o cuidador
+// nem chega a consultar a lista: ve um aviso em vez de um erro.
 export function TelaContatos() {
+  const { status, sessao } = useAuth();
+  // Enquanto o app le a sessao do cofre ainda nao se sabe o papel: nao consulta a API antes disso.
+  if (status === 'carregando') return null;
+  if (sessao?.usuario.role === 'CUIDADOR') return <AvisoDoCuidador />;
+  return <ListaDeContatos />;
+}
+
+function AvisoDoCuidador() {
+  const router = useRouter();
+  return (
+    <Tela>
+      <Texto style={styles.titulo} accessibilityRole="header">
+        Contatos de emergência
+      </Texto>
+      <Texto style={styles.aviso}>
+        Esta tela mostra os contatos de quem usa o app como cidadão. Em breve você poderá gerenciar
+        os contatos das pessoas que acompanha.
+      </Texto>
+      <Botao
+        titulo="Voltar"
+        variante="secundario"
+        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      />
+    </Tela>
+  );
+}
+
+function ListaDeContatos() {
   const { contatos } = useApis();
   const router = useRouter();
 

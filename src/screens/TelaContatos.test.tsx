@@ -5,7 +5,13 @@ import { Alert, Linking, Text } from 'react-native';
 import { Botao } from '../components/Botao';
 import { ErroApi } from '../services/api/erro';
 import type { Contato, Pagina } from '../services/api/types';
-import { criarAuthApiMock, criarContatosApiMock, montarTela } from '../test-utils/montar-tela';
+import {
+  criarArmazenamentoEmMemoria,
+  criarAuthApiMock,
+  criarContatosApiMock,
+  montarTela,
+  sessaoDeTeste,
+} from '../test-utils/montar-tela';
 import { TelaContatos } from './TelaContatos';
 
 // O Ionicons tenta carregar um arquivo de fonte (que nao existe no Jest); o icone e decorativo.
@@ -303,6 +309,29 @@ describe('TelaContatos', () => {
     expect(screen.queryByRole('button', { name: /Adicionar/ })).not.toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeOnTheScreen();
     expect(screen.getByText(/cadastrados pelo seu cuidador/)).toBeOnTheScreen();
+  });
+
+  // No Java, GET /perfis-emergencia/meu e so do CIDADAO (403 para o cuidador): chama-lo mostraria
+  // um erro. O cuidador ve um aviso e a API de contatos nem e consultada.
+  it('para o cuidador, explica a tela e nao consulta a API de contatos', async () => {
+    const contatos = criarContatosApiMock();
+    await montarTela(InicioFalso, {
+      auth: criarAuthApiMock(),
+      contatos,
+      armazenamento: criarArmazenamentoEmMemoria({
+        ...sessaoDeTeste,
+        usuario: { ...sessaoDeTeste.usuario, role: 'CUIDADOR' },
+      }),
+      rotas: { 'contatos/index': TelaContatos },
+      url: '/contatos',
+    });
+
+    expect(
+      await screen.findByText(/Esta tela mostra os contatos de quem usa o app como cidadão/),
+    ).toBeOnTheScreen();
+    expect(contatos.listar).not.toHaveBeenCalled();
+    expect(screen.queryByText('Carregando contatos…')).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Tentar de novo' })).not.toBeOnTheScreen();
   });
 
   it('Voltar leva para o Início', async () => {
