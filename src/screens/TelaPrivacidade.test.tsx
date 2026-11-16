@@ -130,6 +130,41 @@ describe('TelaPrivacidade', () => {
     expect(screen.getByText(/tipo de deficiência/i)).toBeOnTheScreen();
   });
 
+  it('tem a seção de dados de saúde como cabeçalho', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(screen.getByRole('header', { name: 'Dados de saúde (opcionais)' })).toBeOnTheScreen();
+  });
+
+  it('diz que condições de saúde, medicamentos e mobilidade são dados de saúde e opcionais', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(
+      screen.getByText(/condições de saúde, medicamentos e mobilidade.*dados de saúde/i),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(/você escolhe se informa/i)).toBeOnTheScreen();
+  });
+
+  it('diz que esses dados só vão na mensagem de socorro aos contatos', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(
+      screen.getByText(/só vão na mensagem de socorro enviada aos seus contatos/i),
+    ).toBeOnTheScreen();
+  });
+
+  it('não afirma mais que deixamos de coletar dados de saúde', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(screen.queryByText(/nem dados de saúde/i)).not.toBeOnTheScreen();
+  });
+
+  it('a frase de exclusão lista o que some e avisa que os reportes não somem junto', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(
+      screen.getByText(
+        /perfil de emergência, contatos, pedidos de socorro, avisos e histórico de voz/i,
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(/reportes de zeladoria não são apagados/i)).toBeOnTheScreen();
+  });
+
   it('explica o áudio: no celular quando dá, e o aviso quando o sistema (Apple ou Google) entra', async () => {
     await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
     expect(screen.getByText(/dentro dele e o áudio não sai do aparelho/i)).toBeOnTheScreen();
@@ -146,6 +181,6 @@ describe('TelaPrivacidade', () => {
   it('cita o direito de excluir a conta e a LGPD', async () => {
     await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
     expect(screen.getByText(/excluir a sua conta/i)).toBeOnTheScreen();
-    expect(screen.getByText(/LGPD/)).toBeOnTheScreen();
+    expect(screen.getAllByText(/LGPD/).length).toBeGreaterThan(0);
   });
 });

@@ -32,9 +32,17 @@ export const SECOES_DE_PRIVACIDADE: SecaoDePrivacidade[] = [
     ],
   },
   {
+    titulo: 'Dados de saúde (opcionais)',
+    paragrafos: [
+      'No perfil de emergência você pode informar condições de saúde, medicamentos e mobilidade. São dados de saúde, considerados sensíveis pela LGPD.',
+      'Você escolhe se informa. Pode deixar tudo em branco, e a mobilidade começa em "Prefiro não informar".',
+      'Esses dados só vão na mensagem de socorro enviada aos seus contatos de emergência quando você pede ajuda. Não aparecem em reportes nem são usados para outra finalidade.',
+    ],
+  },
+  {
     titulo: 'O que não coletamos',
     paragrafos: [
-      'Não perguntamos o tipo de deficiência nem dados de saúde.',
+      'Não pedimos laudo, diagnóstico nem o tipo de deficiência.',
       'A sua voz vira texto. Quando o seu celular consegue, isso acontece dentro dele e o áudio não sai do aparelho.',
       'Se o seu celular não consegue, o app avisa antes de usar a voz. Nesse caso o serviço de fala do sistema (Apple ou Google) pode processar o áudio. Nós não recebemos nem guardamos o áudio: só o texto é enviado.',
     ],
@@ -51,6 +59,8 @@ export const SECOES_DE_PRIVACIDADE: SecaoDePrivacidade[] = [
     paragrafos: [
       'Conforme a LGPD (Lei Geral de Proteção de Dados), você pode ver, corrigir e apagar os seus dados.',
       'Para excluir a sua conta, entre no app e use o botão "Excluir minha conta" no fim desta tela. A exclusão não pode ser desfeita.',
+      'Ao excluir, apagamos a sua conta, o perfil de emergência, contatos, pedidos de socorro, avisos e histórico de voz.',
+      'Os reportes de zeladoria não são apagados junto: eles ficam com a equipe da zeladoria. Se quiser tirá-los, cancele cada reporte antes de excluir a conta.',
     ],
   },
   {
