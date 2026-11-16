@@ -221,10 +221,62 @@ describe('criarApis: contatos', () => {
     await auth.cadastrar(dadosCadastro);
     token = (await auth.login(dadosCadastro.email, dadosCadastro.senha)).token;
 
-    const pagina = await contatos.listar(1, 10);
-
-    expect(pagina.itens.length).toBeGreaterThan(0);
+    // Como no Java, sem perfil de emergencia a lista vem vazia e nao da para criar contato.
+    expect((await contatos.listar(1, 10)).total).toBe(0);
+    await expect(
+      contatos.criar({ nome: 'Joana', telefone: '11955554444', parentesco: null, prioridade: 1 }),
+    ).rejects.toMatchObject({ status: 404 });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('na API falsa, depois de criar o perfil o cidadao ja pode ter contatos', async () => {
+    let token: string | null = null;
+    const { auth, perfis, contatos } = criarApis({
+      usarApiFalsa: true,
+      urlJava,
+      urlDotnet,
+      obterToken: () => token,
+    });
+    await auth.cadastrar(dadosCadastro);
+    token = (await auth.login(dadosCadastro.email, dadosCadastro.senha)).token;
+    await perfis.criar({
+      mobilidade: 'NAO_INFORMADO',
+      condicoesSaude: null,
+      medicamentos: null,
+      observacoes: null,
+    });
+
+    await contatos.criar({
+      nome: 'Joana',
+      telefone: '11955554444',
+      parentesco: null,
+      prioridade: 1,
+    });
+
+    expect((await contatos.listar(1, 10)).total).toBe(1);
+  });
+
+  it('na API real, perfis usam a URL do Java e mandam o token', async () => {
+    const fetchImpl = jest.fn(
+      async () =>
+        new Response(JSON.stringify({ id: 7 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+    const { perfis } = criarApis({
+      usarApiFalsa: false,
+      urlJava,
+      urlDotnet,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      obterToken: () => 'abc123',
+    });
+
+    await perfis.meu();
+
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://localhost:8080/api/v1/perfis-emergencia/meu');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123');
   });
 
   it('na API real, contatos usam a URL do Java (perfil em /meu) e mandam o token', async () => {

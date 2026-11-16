@@ -43,6 +43,13 @@ interface Opcoes {
   latenciaMs?: number;
   /** Chamado quando ha token mas ele nao vale (sessao vencida), como o 401 da API real. */
   aoNaoAutorizado?: () => void;
+  /**
+   * Diz se a pessoa ja tem perfil de emergencia (os contatos ficam dentro dele). Sem perfil, a
+   * lista vem vazia e criar responde 404, como o Java. Padrao: tem perfil.
+   */
+  temPerfil?: () => boolean;
+  /** Contatos que ja existem ao criar a API. Padrao: os de exemplo. */
+  contatosIniciais?: readonly Contato[];
 }
 
 // Mesmas regras do ContatoEmergenciaRequest do Java (nome, telefone BR, parentesco, prioridade).
@@ -71,11 +78,18 @@ export function criarContatosApiFalsa({
   idDoToken,
   latenciaMs = 0,
   aoNaoAutorizado,
+  temPerfil = () => true,
+  contatosIniciais = CONTATOS_DE_EXEMPLO,
 }: Opcoes): ContatosApi {
   const esperar = () => (latenciaMs > 0 ? new Promise((r) => setTimeout(r, latenciaMs)) : null);
 
-  const contatos: Contato[] = CONTATOS_DE_EXEMPLO.map((contato) => ({ ...contato }));
-  let proximoId = Math.max(...contatos.map((c) => c.id)) + 1;
+  const contatos: Contato[] = contatosIniciais.map((contato) => ({ ...contato }));
+  let proximoId = Math.max(0, ...contatos.map((c) => c.id)) + 1;
+
+  // No Java o perfil e achado em /meu: sem perfil, 404.
+  const exigirPerfil = (): void => {
+    if (!temPerfil()) throw new ErroApi(404, 'Perfil de emergência não encontrado.');
+  };
 
   const exigirSessao = (): void => {
     const token = obterToken();
@@ -105,6 +119,8 @@ export function criarContatosApiFalsa({
       ) {
         throw new ErroApi(400, 'Página ou tamanho inválido.');
       }
+      // A API real trata o 404 de /meu como "sem contatos": lista vazia, nao erro.
+      if (!temPerfil()) return { itens: [], pagina, tamanho, total: 0 };
       const ordenados = [...contatos].sort((a, b) => a.prioridade - b.prioridade || a.id - b.id);
       const itens = ordenados
         .slice((pagina - 1) * tamanho, pagina * tamanho)
@@ -115,12 +131,14 @@ export function criarContatosApiFalsa({
     async obter(id: number): Promise<Contato> {
       await esperar();
       exigirSessao();
+      exigirPerfil();
       return { ...achar(id) };
     },
 
     async criar(dados: DadosContato): Promise<Contato> {
       await esperar();
       exigirSessao();
+      exigirPerfil();
       validar(dados);
       if (contatos.length >= MAXIMO_DE_CONTATOS) {
         throw new ErroApi(409, 'O perfil já tem o máximo de 10 contatos.');

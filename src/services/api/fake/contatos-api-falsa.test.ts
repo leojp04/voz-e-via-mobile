@@ -171,6 +171,44 @@ describe('criarContatosApiFalsa', () => {
     });
   });
 
+  describe('sem perfil de emergencia (os contatos ficam dentro do perfil, como no Java)', () => {
+    async function montarSemPerfil() {
+      const auth = criarAuthApiFalsa();
+      await auth.cadastrar({
+        nome: 'Ana',
+        email: 'ana2@exemplo.com',
+        telefone: '11999999999',
+        senha: 'Senha@123',
+        role: 'CIDADAO',
+        consentimento: true,
+      });
+      const token = (await auth.login('ana2@exemplo.com', 'Senha@123')).token;
+      return criarContatosApiFalsa({
+        obterToken: () => token,
+        idDoToken: auth.idDoToken,
+        temPerfil: () => false,
+        contatosIniciais: [],
+      });
+    }
+
+    it('listar devolve lista vazia, como a API real faz no 404 de /meu', async () => {
+      const api = await montarSemPerfil();
+      expect(await api.listar(1, 10)).toEqual({ itens: [], pagina: 1, tamanho: 10, total: 0 });
+    });
+
+    it('criar e obter respondem 404', async () => {
+      const api = await montarSemPerfil();
+      expect(
+        (
+          await erroDe(
+            api.criar({ nome: 'Joana', telefone: '11955554444', parentesco: null, prioridade: 1 }),
+          )
+        ).status,
+      ).toBe(404);
+      expect((await erroDe(api.obter(1))).status).toBe(404);
+    });
+  });
+
   describe('sessao', () => {
     it('responde 401 sem sessao, sem avisar "sessao vencida"', async () => {
       const { api, usarToken, aoNaoAutorizado } = await montar();

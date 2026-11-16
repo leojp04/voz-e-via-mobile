@@ -160,6 +160,47 @@ export interface Contato {
   prioridade: number;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Perfil de emergencia (API Java): PerfilEmergenciaRequest/Response. Dados de SAUDE (LGPD): todos
+// opcionais, e so vao na mensagem de socorro aos contatos. Desde 16/11/2026 o cidadao cria e edita
+// o proprio perfil (antes era so do cuidador).
+// ---------------------------------------------------------------------------------------------
+
+/** Como a pessoa se locomove ou percebe o ambiente; NAO_INFORMADO e o padrao (a pessoa prefere nao dizer). */
+export type Mobilidade =
+  | 'NAO_INFORMADO'
+  | 'NENHUMA'
+  | 'CADEIRANTE'
+  | 'ANDADOR'
+  | 'BENGALA'
+  | 'DEFICIENCIA_VISUAL'
+  | 'DEFICIENCIA_AUDITIVA';
+
+export interface PerfilEmergencia {
+  id: number;
+  mobilidade: Mobilidade;
+  condicoesSaude: string | null;
+  medicamentos: string | null;
+  observacoes: string | null;
+}
+
+/** O que a pessoa preenche no perfil; cada texto tem ate 500 caracteres e pode ficar sem preencher. */
+export interface DadosPerfil {
+  mobilidade: Mobilidade;
+  condicoesSaude: string | null;
+  medicamentos: string | null;
+  observacoes: string | null;
+}
+
+export interface PerfisApi {
+  /** O perfil de quem esta logado, ou null se ainda nao criou (404 no Java). Erros: 401, 0. */
+  meu(): Promise<PerfilEmergencia | null>;
+  /** Erros: 400 (dados invalidos), 409 (ja tem perfil), 401, 0. */
+  criar(dados: DadosPerfil): Promise<PerfilEmergencia>;
+  /** Erros: 400, 404 (nao existe ou e de outra pessoa), 401, 0. */
+  atualizar(id: number, dados: DadosPerfil): Promise<PerfilEmergencia>;
+}
+
 /** O que a pessoa preenche ao criar ou editar um contato (ContatoEmergenciaRequest do Java). */
 export interface DadosContato {
   /** De 1 a 120 caracteres. */

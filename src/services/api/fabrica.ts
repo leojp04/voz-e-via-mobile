@@ -7,13 +7,22 @@ import { criarAssistenteApiFalsa } from './fake/assistente-api-falsa';
 import { criarAuthApiFalsa } from './fake/auth-api-falsa';
 import { criarContatosApiFalsa } from './fake/contatos-api-falsa';
 import { criarFotosApiFalsa } from './fake/fotos-api-falsa';
+import { criarPerfisApiFalsa } from './fake/perfis-api-falsa';
 import { criarReportesApiFalsa } from './fake/reportes-api-falsa';
 import { criarAssistenteApiReal } from './real/assistente-api-real';
 import { criarAuthApiReal } from './real/auth-api-real';
 import { criarContatosApiReal } from './real/contatos-api-real';
 import { criarFotosApiReal } from './real/fotos-api-real';
+import { criarPerfisApiReal } from './real/perfis-api-real';
 import { criarReportesApiReal } from './real/reportes-api-real';
-import type { AssistenteApi, AuthApi, ContatosApi, FotosApi, ReportesApi } from './types';
+import type {
+  AssistenteApi,
+  AuthApi,
+  ContatosApi,
+  FotosApi,
+  PerfisApi,
+  ReportesApi,
+} from './types';
 
 export interface OpcoesFabrica {
   /** true = API falsa em memoria; false = API real. */
@@ -34,6 +43,7 @@ export interface Apis {
   auth: AuthApi;
   reportes: ReportesApi;
   fotos: FotosApi;
+  perfis: PerfisApi;
   contatos: ContatosApi;
   assistente: AssistenteApi;
 }
@@ -55,11 +65,18 @@ export function criarApis({
       idDoToken: auth.idDoToken,
       aoNaoAutorizado,
     };
+    // Como no Java, os contatos ficam dentro do perfil: a pessoa comeca sem perfil e sem contatos.
+    const perfis = criarPerfisApiFalsa(sessaoDasFalsas);
     return {
       auth,
       reportes: criarReportesApiFalsa(sessaoDasFalsas),
       fotos: criarFotosApiFalsa(sessaoDasFalsas),
-      contatos: criarContatosApiFalsa(sessaoDasFalsas),
+      perfis,
+      contatos: criarContatosApiFalsa({
+        ...sessaoDasFalsas,
+        temPerfil: perfis.temPerfil,
+        contatosIniciais: [],
+      }),
       assistente: criarAssistenteApiFalsa(sessaoDasFalsas),
     };
   }
@@ -80,6 +97,7 @@ export function criarApis({
     auth: criarAuthApiReal(clienteJava),
     reportes: criarReportesApiReal(clienteDotnet, urlDotnet),
     fotos: criarFotosApiReal(clienteDotnet, urlDotnet),
+    perfis: criarPerfisApiReal(clienteJava),
     contatos: criarContatosApiReal(clienteJava),
     assistente: criarAssistenteApiReal(clienteJava),
   };

@@ -15,6 +15,7 @@ import type {
   AuthApi,
   ContatosApi,
   FotosApi,
+  PerfisApi,
   ReportesApi,
   Sessao,
 } from '../services/api/types';
@@ -55,6 +56,10 @@ export function criarContatosApiMock(): jest.Mocked<ContatosApi> {
   };
 }
 
+export function criarPerfisApiMock(): jest.Mocked<PerfisApi> {
+  return { meu: jest.fn(), criar: jest.fn(), atualizar: jest.fn() };
+}
+
 export function criarAssistenteApiMock(): jest.Mocked<AssistenteApi> {
   return { interpretar: jest.fn(), acionarEmergencia: jest.fn(), verificarMensagem: jest.fn() };
 }
@@ -88,6 +93,8 @@ interface OpcoesMontagem {
   fotos?: FotosApi;
   /** API de contatos; sem ela, a tela recebe mocks vazios (jest.fn). */
   contatos?: ContatosApi;
+  /** API de perfil de emergencia; sem ela, a tela recebe mocks vazios (jest.fn). */
+  perfis?: PerfisApi;
   /** API do assistente; sem ela, a tela recebe um mock vazio (jest.fn). */
   assistente?: AssistenteApi;
   armazenamento?: ArmazenamentoSessao;
@@ -105,6 +112,7 @@ export async function montarTela(Tela: Componente, opcoes: OpcoesMontagem) {
     reportes: opcoes.reportes ?? criarReportesApiMock(),
     fotos: opcoes.fotos ?? criarFotosApiMock(),
     contatos: opcoes.contatos ?? criarContatosApiMock(),
+    perfis: opcoes.perfis ?? criarPerfisApiMock(),
     assistente: opcoes.assistente ?? criarAssistenteApiMock(),
   };
   await renderRouter(
