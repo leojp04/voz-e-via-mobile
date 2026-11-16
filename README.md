@@ -127,13 +127,38 @@ etapa os usuários são apenas contas de teste.
 
 ## Créditos e licenças
 
-- **Fonte Atkinson Hyperlegible**: Braille Institute, licença SIL OFL 1.1 (pacote `@expo-google-fonts/atkinson-hyperlegible`, MIT).
-- **Ícones Ionicons**: Ionic, licença MIT (pacote `@expo/vector-icons`).
-- **Câmera e galeria (foto do reporte)**: `expo-image-picker`, licença MIT (Expo).
-- **Localização (GPS do reporte)**: `expo-location`, licença MIT (Expo).
-- **Envio da foto (arquivo como `File`)**: `expo-file-system`, licença MIT (Expo).
-- **Leitura da resposta em voz alta**: `expo-speech`, licença MIT (Expo).
-- **Reconhecimento de fala**: `expo-speech-recognition`, licença MIT.
+O app usa só bibliotecas de código aberto. As 25 dependências diretas de execução (as que vão
+dentro do app) são **MIT**, conferidas no campo `license` do `package.json` de cada pacote
+instalado (versões do `package.json` do projeto, conferência de 15/11/2026). A licença MIT exige
+manter o aviso de copyright e o texto da licença: o texto completo de cada pacote está em
+`node_modules/<pacote>/LICENSE`.
+
+| Pacotes                                                                                                                                                          | Para que serve                                        | Licença                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------- |
+| `expo`, `expo-constants`, `expo-font`, `expo-linking`, `expo-splash-screen`, `expo-status-bar`, `expo-system-ui`                                                 | Base do app Expo                                      | MIT                                |
+| `expo-router`                                                                                                                                                    | Navegação entre telas                                 | MIT                                |
+| `expo-secure-store`                                                                                                                                              | Guardar a sessão (token) no cofre do aparelho         | MIT                                |
+| `expo-image-picker`                                                                                                                                              | Câmera e galeria (foto do reporte)                    | MIT                                |
+| `expo-location`                                                                                                                                                  | Localização (GPS do reporte)                          | MIT                                |
+| `expo-file-system`                                                                                                                                               | Envio da foto (arquivo como `File`)                   | MIT                                |
+| `expo-speech`                                                                                                                                                    | Leitura da resposta em voz alta                       | MIT                                |
+| `expo-speech-recognition` (de terceiros, não é do Expo)                                                                                                          | Reconhecimento de fala                                | MIT                                |
+| `react`, `react-dom`, `react-native`                                                                                                                             | Base do app (Meta)                                    | MIT                                |
+| `react-native-gesture-handler`, `react-native-reanimated`, `react-native-worklets`, `react-native-screens`, `react-native-safe-area-context`, `react-native-web` | Gestos, animações, telas nativas, áreas seguras e web | MIT                                |
+| `@expo/vector-icons`                                                                                                                                             | Ícones Ionicons (Ionic, MIT)                          | MIT                                |
+| `@expo-google-fonts/atkinson-hyperlegible`                                                                                                                       | Fonte Atkinson Hyperlegible (Braille Institute)       | MIT (pacote) e SIL OFL 1.1 (fonte) |
+
+**Ferramentas de desenvolvimento** (não vão dentro do app): `eslint`, `eslint-config-expo`,
+`eslint-config-prettier`, `prettier`, `jest`, `jest-expo`, `@testing-library/react-native`,
+`@types/jest` e `@types/react` são MIT. O **`typescript` é Apache-2.0** (não é MIT).
+
+**O que não foi conferido:** as licenças das dependências indiretas (as que as bibliotecas acima
+trazem junto). Para isso seria preciso uma ferramenta própria, como o `license-checker`.
+
+### Conteúdo e dados de terceiros
+
+- **Fonte Atkinson Hyperlegible**: Braille Institute, licença SIL OFL 1.1 (texto em
+  `node_modules/@expo-google-fonts/atkinson-hyperlegible/LICENSE_FONT`).
 - **Locais de atendimento (assistente por voz)**: os dados vêm da API Java e são do
   **OpenStreetMap** (© Colaboradores do OpenStreetMap), licença **ODbL** (Open Database License).
   A licença exige dar o crédito: o app mostra "© Colaboradores do OpenStreetMap (ODbL)" na tela do
