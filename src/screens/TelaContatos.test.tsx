@@ -1,4 +1,4 @@
-import { type Href, router, Stack, useRouter } from 'expo-router';
+import { type Href, router, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
 import { Alert, Linking, Text } from 'react-native';
 
@@ -68,10 +68,17 @@ async function montar(configurar: (api: ReturnType<typeof criarContatosApiMock>)
       'contatos/_layout': () => <Stack screenOptions={{ headerShown: false }} />,
       'contatos/index': TelaContatos,
       'contatos/outra': OutraTelaFalsa,
+      'contatos/novo': () => <Text>Formulário de mentira: novo</Text>,
+      'contatos/[id]': FormularioDeEdicaoFalso,
     },
     url: '/contatos',
   });
   return contatos;
+}
+
+function FormularioDeEdicaoFalso() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <Text>{`Formulário de mentira: editar ${id}`}</Text>;
 }
 
 describe('TelaContatos', () => {
@@ -298,17 +305,43 @@ describe('TelaContatos', () => {
     expect(screen.getByRole('button', { name: 'Ligar para Dra. Helena' })).toBeOnTheScreen();
   });
 
-  it('o cidadao so consulta: nao ha botao para adicionar nem para editar (so o cuidador altera)', async () => {
-    await montar((api) =>
-      api.listar.mockResolvedValue(
-        pagina([contato(1, { nome: 'Marina Souza', parentesco: 'filha' })], 1, 1),
-      ),
-    );
-    await screen.findByText('filha');
+  describe('o cidadao gere os proprios contatos (liberado no Java em 16/11/2026)', () => {
+    it('o botao "Novo contato" abre o formulario de criacao', async () => {
+      await montar((api) => api.listar.mockResolvedValue(pagina([contato(1)], 1, 1)));
+      await screen.findByText('Pessoa 1');
 
-    expect(screen.queryByRole('button', { name: /Adicionar/ })).not.toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeOnTheScreen();
-    expect(screen.getByText(/cadastrados pelo seu cuidador/)).toBeOnTheScreen();
+      await fireEvent.press(screen.getByRole('button', { name: 'Novo contato' }));
+
+      expect(await screen.findByText('Formulário de mentira: novo')).toBeOnTheScreen();
+    });
+
+    it('cada contato tem um botao "Editar" que abre o formulario daquele contato', async () => {
+      await montar((api) =>
+        api.listar.mockResolvedValue(pagina([contato(1), contato(2, { nome: 'Carlos' })], 1, 2)),
+      );
+      await screen.findByText('Carlos');
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Editar Carlos, parentesco2' }));
+
+      expect(await screen.findByText('Formulário de mentira: editar 2')).toBeOnTheScreen();
+    });
+
+    it('sem nenhum contato, ainda oferece "Novo contato"', async () => {
+      await montar((api) => api.listar.mockResolvedValue(pagina([], 1, 0)));
+      await screen.findByText('Você ainda não tem contatos de emergência cadastrados.');
+      expect(screen.getByRole('button', { name: 'Novo contato' })).toBeOnTheScreen();
+    });
+
+    it('com 10 contatos (o maximo do Java), esconde "Novo contato" e explica', async () => {
+      const dez = Array.from({ length: 10 }, (_, i) => contato(i + 1));
+      await montar((api) => api.listar.mockResolvedValue(pagina(dez, 1, 10)));
+      await screen.findByText('10 contatos');
+
+      expect(screen.queryByRole('button', { name: 'Novo contato' })).not.toBeOnTheScreen();
+      expect(
+        screen.getByText('Você já tem 10 contatos. Exclua um para adicionar outro.'),
+      ).toBeOnTheScreen();
+    });
   });
 
   // No Java, GET /perfis-emergencia/meu e so do CIDADAO (403 para o cuidador): chama-lo mostraria

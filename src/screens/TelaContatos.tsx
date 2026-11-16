@@ -22,6 +22,8 @@ import { ligarPara } from '../utils/ligar-para';
 import { mensagemDeErroAoCarregarContatos } from '../utils/mensagem-de-erro';
 
 const TAMANHO_DA_PAGINA = 10;
+// Maximo de contatos por perfil no Java (409 no 11o).
+const MAXIMO_DE_CONTATOS = 10;
 
 // No Java, GET /perfis-emergencia/meu so aceita CIDADAO (403 para o cuidador). Por isso o cuidador
 // nem chega a consultar a lista: ve um aviso em vez de um erro.
@@ -140,14 +142,26 @@ function ListaDeContatos() {
   }
 
   const vazia = !carregando && !erro && itens.length === 0;
+  const listaPronta = !carregando && !erro;
+  const limiteAtingido = listaPronta && total >= MAXIMO_DE_CONTATOS;
+  const podeAdicionar = listaPronta && total < MAXIMO_DE_CONTATOS;
 
   return (
     <Tela>
       <Texto style={styles.titulo} accessibilityRole="header">
         Contatos de emergência
       </Texto>
-      {/* No Java so o cuidador cria, edita e exclui contatos; o cidadao so consulta. */}
-      <Texto style={styles.aviso}>Seus contatos são cadastrados pelo seu cuidador.</Texto>
+      {/* Desde 16/11/2026 o Java deixa o cidadao gerir os proprios contatos (ate 10). */}
+      {podeAdicionar ? (
+        <Botao
+          titulo="Novo contato"
+          icone="add-circle-outline"
+          onPress={() => router.push('/contatos/novo')}
+        />
+      ) : null}
+      {limiteAtingido ? (
+        <Texto style={styles.aviso}>Você já tem 10 contatos. Exclua um para adicionar outro.</Texto>
+      ) : null}
 
       {carregando ? (
         <View style={styles.carregando}>
@@ -181,7 +195,12 @@ function ListaDeContatos() {
         <Texto style={styles.aviso}>{total === 1 ? '1 contato' : `${total} contatos`}</Texto>
       ) : null}
       {itens.map((item) => (
-        <CartaoContato key={item.id} contato={item} aoLigar={() => ligarPara(item.telefone)} />
+        <CartaoContato
+          key={item.id}
+          contato={item}
+          aoLigar={() => ligarPara(item.telefone)}
+          aoEditar={() => router.push(`/contatos/${item.id}`)}
+        />
       ))}
 
       {erroMais ? (

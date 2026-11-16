@@ -13,24 +13,24 @@ import { Texto } from './Texto';
 interface PropsCartaoContato {
   contato: Contato;
   aoLigar: () => void;
+  aoEditar: () => void;
 }
 
-export function CartaoContato({ contato, aoLigar }: PropsCartaoContato) {
+export function CartaoContato({ contato, aoLigar, aoEditar }: PropsCartaoContato) {
+  const quem = contato.parentesco ? `${contato.nome}, ${contato.parentesco}` : contato.nome;
   return (
     <View style={styles.cartao}>
       <Texto style={styles.nome}>{contato.nome}</Texto>
       {contato.parentesco ? <Texto style={styles.parentesco}>{contato.parentesco}</Texto> : null}
       <Texto style={styles.detalhes}>{formatarTelefone(contato.telefone)}</Texto>
       <Texto style={styles.detalhes}>Prioridade {contato.prioridade}</Texto>
+      <Botao titulo="Ligar" rotulo={`Ligar para ${quem}`} icone="call-outline" onPress={aoLigar} />
       <Botao
-        titulo="Ligar"
-        rotulo={
-          contato.parentesco
-            ? `Ligar para ${contato.nome}, ${contato.parentesco}`
-            : `Ligar para ${contato.nome}`
-        }
-        icone="call-outline"
-        onPress={aoLigar}
+        titulo="Editar"
+        rotulo={`Editar ${quem}`}
+        variante="secundario"
+        icone="create-outline"
+        onPress={aoEditar}
       />
     </View>
   );
