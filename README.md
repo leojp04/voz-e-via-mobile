@@ -13,13 +13,16 @@ voltado a pessoas idosas e pessoas com deficiência e reúne duas partes, cada u
 > tela "Sobre o app" (versão e **hash do commit** gravado no build,
 > [ADR 0006](docs/adr/0006-hash-do-commit-em-app-config.md)) e o fluxo de **reportes**: novo
 > reporte com foto e localização, lista "Meus reportes", detalhe, edição e cancelamento, e os
-> **contatos de emergência** (lista, criar, editar e excluir). A tela do **assistente por voz**
+> **perfil de emergência** (criar e editar; condições de saúde, medicamentos e mobilidade são
+> opcionais) com os **contatos de emergência** (lista, criar, editar e excluir, até 10). A tela do **assistente por voz**
 > existe (fala e leitura da resposta, [ADR 0010](docs/adr/0010-voz-expo-speech-e-reconhecimento.md))
 > e precisa de _development build_. O convite de cuidador e os alertas entram nas próximas etapas.
 >
 > **Integração:** a API .NET (reportes) já foi testada de verdade no simulador, com login de
-> teste. A API Java (login, cadastro, contatos, assistente) ainda não: até lá o app usa a API
-> falsa nessas partes.
+> teste. A API Java (login, cadastro, perfil e contatos de emergência, exclusão de conta,
+> assistente) também: em 16/11/2026 o fluxo perfil, contatos e exclusão de conta foi conferido no
+> simulador contra o Java local. Sem `.env`, ou com `EXPO_PUBLIC_USE_FAKE_API=true`, o app usa a
+> API falsa em memória.
 
 ## Requisitos
 
@@ -72,7 +75,12 @@ Enquanto as APIs reais não confirmam, o app assume o seguinte (o detalhe de cad
 plano único, seções 8.1 e 8.2). Se a API divergir, a tela quebra só na integração, então
 convém confirmar antes:
 
-- **Contatos (API Java):** prioridade é um inteiro de 1 a 5, sendo 1 quem chamar primeiro.
+- **Contatos (API Java):** prioridade é um inteiro de 1 a 10 (não 1 a 5), sendo 1 quem chamar
+  primeiro; no máximo 10 contatos por perfil (o 11º dá 409). O cidadão cria o próprio perfil de
+  emergência (`POST /api/v1/perfis-emergencia`); `mobilidade` é opcional e, sem escolha, vai como
+  `NAO_INFORMADO`. Sem perfil, `GET /perfis-emergencia/meu` dá 404 e o app oferece criá-lo.
+- **Exclusão de conta (API Java):** `DELETE /api/v1/auth/eu` apaga conta, perfil, contatos,
+  socorros, avisos e histórico de voz; os **reportes do .NET não** são apagados junto.
 - **Reportes (API .NET, já conferido na API real):** a porta padrão é 5080; o `POST` recebe o
   **código** da categoria (ex.: `RAMPA`); a foto sobe antes, em `POST /api/fotos`, e a API devolve
   só o caminho (`/uploads/...`); o `PUT` **substitui** descrição, endereço e foto, então o app
