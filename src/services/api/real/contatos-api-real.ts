@@ -4,8 +4,8 @@
 // Contrato conferido no codigo do Java (ContatoEmergenciaController):
 //  - os contatos ficam DENTRO do perfil de emergencia: /api/v1/perfis-emergencia/{perfilId}/contatos;
 //  - o cidadao descobre o id do proprio perfil em GET /api/v1/perfis-emergencia/meu;
-//  - o cidadao so LE (listar e detalhar); criar, editar e excluir sao do CUIDADOR (403 para o
-//    cidadao), por isso o app nao tem essas funcoes.
+//  - desde 16/11/2026 (commit 5690563 do Java) o cidadao tambem cria, edita e exclui os proprios
+//    contatos; ate 10 por perfil (409 no 11o).
 
 import type { ClienteHttp } from '../cliente-http';
 import { ErroApi } from '../erro';
@@ -47,6 +47,18 @@ export function criarContatosApiReal(cliente: ClienteHttp): ContatosApi {
 
     async obter(id) {
       return cliente.get<Contato>(`${await caminhoDosContatos()}/${id}`);
+    },
+
+    async criar(dados) {
+      return cliente.post<Contato>(await caminhoDosContatos(), dados);
+    },
+
+    async editar(id, dados) {
+      return cliente.put<Contato>(`${await caminhoDosContatos()}/${id}`, dados);
+    },
+
+    async excluir(id) {
+      await cliente.delete<void>(`${await caminhoDosContatos()}/${id}`);
     },
   };
 }

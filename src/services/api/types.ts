@@ -160,8 +160,19 @@ export interface Contato {
   prioridade: number;
 }
 
-// O cidadao so CONSULTA os contatos. No Java, criar, editar e excluir sao do cuidador (403 para o
-// cidadao), entao o app nao tem essas funcoes; o fluxo do cuidador e uma tarefa a parte.
+/** O que a pessoa preenche ao criar ou editar um contato (ContatoEmergenciaRequest do Java). */
+export interface DadosContato {
+  /** De 1 a 120 caracteres. */
+  nome: string;
+  /** Telefone brasileiro com DDD, so digitos (ex.: "11988887777"); o Java normaliza para +55. */
+  telefone: string;
+  /** Opcional (ate 60 caracteres); null quando a pessoa nao preenche. */
+  parentesco: string | null;
+  /** Inteiro de 1 a 10, sendo 1 o primeiro a ser avisado no socorro. */
+  prioridade: number;
+}
+
+// Desde 16/11/2026 o Java deixa o CIDADAO gerir os proprios contatos (antes era so do cuidador).
 export interface ContatosApi {
   /**
    * Lista os contatos do perfil de emergencia do proprio usuario, por prioridade. "pagina" comeca
@@ -171,6 +182,15 @@ export interface ContatosApi {
   listar(pagina: number, tamanho: number): Promise<Pagina<Contato>>;
   /** Erros: 404 (nao existe ou e de outra pessoa), 401, 0. */
   obter(id: number): Promise<Contato>;
+  /**
+   * Cria um contato no perfil de emergencia da pessoa. Erros: 400 (dados invalidos), 404 (a pessoa
+   * ainda nao tem perfil), 409 (ja tem o maximo de 10 contatos), 401, 0.
+   */
+  criar(dados: DadosContato): Promise<Contato>;
+  /** Erros: 400, 404 (nao existe ou e de outra pessoa), 401, 0. */
+  editar(id: number, dados: DadosContato): Promise<Contato>;
+  /** Erros: 404, 401, 0. */
+  excluir(id: number): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -119,6 +119,65 @@ describe('criarContatosApiReal', () => {
     );
   });
 
+  it('criar faz POST dentro do perfil, com os dados do contato, e devolve o contato criado', async () => {
+    const dados = {
+      nome: 'Marina Souza',
+      telefone: '11988887777',
+      parentesco: 'filha',
+      prioridade: 1,
+    };
+    const fetchSimulado = fetchPorUrl({
+      '/api/v1/perfis-emergencia/7/contatos': resposta(201, contato),
+    });
+
+    const criado = await criar(fetchSimulado).criar(dados);
+
+    const [url, init] = fetchSimulado.mock.calls[1] as unknown as [string, RequestInit];
+    expect(url).toBe('http://java.teste/api/v1/perfis-emergencia/7/contatos');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual(dados);
+    expect(criado).toEqual(contato);
+  });
+
+  it('editar faz PUT no contato e devolve o contato atualizado', async () => {
+    const dados = { nome: 'Marina S.', telefone: '11988887777', parentesco: null, prioridade: 2 };
+    const fetchSimulado = fetchPorUrl({
+      '/api/v1/perfis-emergencia/7/contatos/4': resposta(200, { ...contato, nome: 'Marina S.' }),
+    });
+
+    const editado = await criar(fetchSimulado).editar(4, dados);
+
+    const [url, init] = fetchSimulado.mock.calls[1] as unknown as [string, RequestInit];
+    expect(url).toBe('http://java.teste/api/v1/perfis-emergencia/7/contatos/4');
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(init.body as string)).toEqual(dados);
+    expect(editado.nome).toBe('Marina S.');
+  });
+
+  it('excluir faz DELETE no contato (resposta 204 sem corpo)', async () => {
+    const fetchSimulado = fetchPorUrl({
+      '/api/v1/perfis-emergencia/7/contatos/4': resposta(204),
+    });
+
+    await expect(criar(fetchSimulado).excluir(4)).resolves.toBeUndefined();
+
+    const [url, init] = fetchSimulado.mock.calls[1] as unknown as [string, RequestInit];
+    expect(url).toBe('http://java.teste/api/v1/perfis-emergencia/7/contatos/4');
+    expect(init.method).toBe('DELETE');
+  });
+
+  it('criar repassa o 400 do Java', async () => {
+    const fetchSimulado = fetchPorUrl({
+      '/api/v1/perfis-emergencia/7/contatos': resposta(400, { mensagem: 'Dados inválidos' }),
+    });
+
+    const erro = await criar(fetchSimulado)
+      .criar({ nome: 'A', telefone: '1', parentesco: null, prioridade: 1 })
+      .catch((e: unknown) => e);
+
+    expect(erro).toMatchObject({ status: 400 });
+  });
+
   it('obter repassa o 404 de um contato que nao existe', async () => {
     const fetchSimulado = fetchPorUrl({
       '/api/v1/perfis-emergencia/7/contatos/99': resposta(404, { mensagem: 'nao existe' }),
