@@ -10,6 +10,10 @@ import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
 import { colunasDaGrade } from '../utils/colunas-da-grade';
 import { Texto } from './Texto';
 
+// Limite de crescimento do texto da opção na letra máxima do sistema (310%): a 310% palavras como
+// "acessibilidade" não cabem nem na linha inteira e quebram no meio. 200% é o que a WCAG 1.4.4 pede.
+const ESCALA_MAXIMA_DA_OPCAO = 2;
+
 export interface OpcaoDoSeletor<T> {
   valor: T;
   titulo: string;
@@ -53,7 +57,10 @@ export function SeletorDeOpcao<T extends string | number>({
                 selecionada && styles.opcaoSelecionada,
               ]}
             >
-              <Texto style={[styles.texto, selecionada && styles.textoSelecionado]}>
+              <Texto
+                maxFontSizeMultiplier={ESCALA_MAXIMA_DA_OPCAO}
+                style={[styles.texto, selecionada && styles.textoSelecionado]}
+              >
                 {opcao.titulo}
               </Texto>
             </Pressable>

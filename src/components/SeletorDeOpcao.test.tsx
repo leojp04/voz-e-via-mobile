@@ -84,6 +84,17 @@ describe('SeletorDeOpcao', () => {
     expect(screen.queryByRole('alert')).not.toBeOnTheScreen();
   });
 
+  // Na letra máxima (310%) uma palavra como "acessibilidade" não cabe nem na linha inteira e quebra
+  // no meio ("acessibilid/ade"). Descoberto no simulador na tela Novo reporte.
+  it('limita o texto de cada opção a 200% da letra do sistema', async () => {
+    await render(
+      <SeletorDeOpcao rotulo="Urgência" opcoes={URGENCIAS} valor="MEDIA" aoMudar={jest.fn()} />,
+    );
+    for (const opcao of URGENCIAS) {
+      expect(screen.getByText(opcao.titulo).props.maxFontSizeMultiplier).toBe(2);
+    }
+  });
+
   describe('com a letra do sistema muito grande', () => {
     afterEach(() => jest.restoreAllMocks());
 
