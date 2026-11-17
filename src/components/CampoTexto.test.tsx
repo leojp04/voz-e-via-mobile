@@ -10,6 +10,13 @@ describe('CampoTexto', () => {
     expect(screen.getByLabelText('E-mail')).toBeOnTheScreen();
   });
 
+  // Na letra máxima (310%) um rótulo como "Medicamentos (opcional)" quebra no meio
+  // ("Medicamento/s"). Descoberto no simulador, no perfil de emergência.
+  it('limita o rótulo a 200% da letra do sistema', async () => {
+    await render(<CampoTexto rotulo="Medicamentos (opcional)" valor="" aoMudar={jest.fn()} />);
+    expect(screen.getByText('Medicamentos (opcional)').props.maxFontSizeMultiplier).toBe(2);
+  });
+
   it('avisa quando o texto muda', async () => {
     const aoMudar = jest.fn();
     await render(<CampoTexto rotulo="Nome" valor="" aoMudar={aoMudar} />);

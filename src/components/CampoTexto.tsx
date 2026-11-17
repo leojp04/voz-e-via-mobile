@@ -6,6 +6,10 @@ import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
 import { Texto } from './Texto';
 
+// Limite de crescimento do rótulo na letra máxima do sistema (310%): a 310% um rótulo como
+// "Medicamentos (opcional)" quebra no meio ("Medicamento/s"). 200% é o que a WCAG 1.4.4 pede.
+const ESCALA_MAXIMA_DO_ROTULO = 2;
+
 interface PropsCampoTexto {
   rotulo: string;
   valor: string;
@@ -34,7 +38,9 @@ export function CampoTexto({
 }: PropsCampoTexto) {
   return (
     <View style={styles.grupo}>
-      <Texto style={styles.rotulo}>{rotulo}</Texto>
+      <Texto maxFontSizeMultiplier={ESCALA_MAXIMA_DO_ROTULO} style={styles.rotulo}>
+        {rotulo}
+      </Texto>
       <TextInput
         accessibilityLabel={rotulo}
         value={valor}
