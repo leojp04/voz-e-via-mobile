@@ -7,6 +7,20 @@ import { Text, type TextProps } from 'react-native';
 
 import { fontes } from '../theme';
 
-export function Texto({ style, ...resto }: TextProps) {
-  return <Text {...resto} style={[{ fontFamily: fontes.familia.regular }, style]} />;
+// Limite de crescimento dos cabeçalhos quando a pessoa aumenta a letra do sistema (máximo do iOS:
+// 310%). Um título de 32 pt vira ~99 pt e palavras como "reportes" quebram no meio ("report/es").
+// 200% é o que a WCAG 1.4.4 pede e ainda cabe na largura. O texto comum não tem limite.
+const ESCALA_MAXIMA_DO_CABECALHO = 2;
+
+export function Texto({ style, maxFontSizeMultiplier, ...resto }: TextProps) {
+  const ehCabecalho = resto.accessibilityRole === 'header';
+  return (
+    <Text
+      {...resto}
+      maxFontSizeMultiplier={
+        maxFontSizeMultiplier ?? (ehCabecalho ? ESCALA_MAXIMA_DO_CABECALHO : undefined)
+      }
+      style={[{ fontFamily: fontes.familia.regular }, style]}
+    />
+  );
 }

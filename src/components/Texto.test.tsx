@@ -23,4 +23,27 @@ describe('Texto', () => {
     await render(<Texto accessibilityRole="header">Entrar</Texto>);
     expect(screen.getByRole('header', { name: 'Entrar' })).toBeOnTheScreen();
   });
+
+  // Com a letra do sistema no máximo (310%) um título de 32 pt vira ~99 pt e palavras como
+  // "reportes" quebram no meio. 200% é o que a WCAG 1.4.4 pede e ainda cabe na largura.
+  it('limita o crescimento de um cabeçalho a 200% da letra do sistema', async () => {
+    await render(<Texto accessibilityRole="header">Meus reportes</Texto>);
+    expect(screen.getByRole('header', { name: 'Meus reportes' }).props.maxFontSizeMultiplier).toBe(
+      2,
+    );
+  });
+
+  it('deixa a tela escolher outro limite para um cabeçalho', async () => {
+    await render(
+      <Texto accessibilityRole="header" maxFontSizeMultiplier={1.5}>
+        Entrar
+      </Texto>,
+    );
+    expect(screen.getByRole('header', { name: 'Entrar' }).props.maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('não limita o texto comum: ele continua crescendo com a letra do sistema', async () => {
+    await render(<Texto>Olá</Texto>);
+    expect(screen.getByText('Olá').props.maxFontSizeMultiplier).toBeUndefined();
+  });
 });
