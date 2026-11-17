@@ -79,10 +79,13 @@ convém confirmar antes:
   primeiro; no máximo 10 contatos por perfil (o 11º dá 409). O cidadão cria o próprio perfil de
   emergência (`POST /api/v1/perfis-emergencia`); `mobilidade` é opcional e, sem escolha, vai como
   `NAO_INFORMADO`. Sem perfil, `GET /perfis-emergencia/meu` dá 404 e o app oferece criá-lo.
-- **Exclusão de conta (API Java):** `DELETE /api/v1/auth/eu` apaga conta, perfil, contatos,
-  socorros, avisos e histórico de voz; os **reportes do .NET não** são apagados junto (guardam só
-  o número do usuário, sem nome nem e-mail). Cancelar um reporte só muda o status para CANCELADO:
-  o registro continua. A política de privacidade do app diz isso.
+- **Exclusão de conta (APIs .NET e Java):** o app chama, nesta ordem e com o mesmo token,
+  `DELETE /api/usuarios/eu` (.NET: apaga reportes, histórico, fotos e cadastro; depois disso o token
+  dá 401 lá) e `DELETE /api/v1/auth/eu` (Java: apaga conta, perfil, contatos, socorros, avisos e
+  histórico de voz). Um 401 do .NET é tratado como "já excluída", para a pessoa poder tentar de novo
+  se o Java falhar; se só o Java falhar, a tela avisa que os reportes já foram apagados. Cancelar um
+  reporte só muda o status para CANCELADO: o registro continua até a conta ser excluída. A política
+  de privacidade do app diz isso. Ver [ADR 0011](docs/adr/0011-exclusao-de-conta-em-duas-apis.md).
 - **Reportes (API .NET, já conferido na API real):** a porta padrão é 5080; o `POST` recebe o
   **código** da categoria (ex.: `RAMPA`); a foto sobe antes, em `POST /api/fotos`, e a API devolve
   só o caminho (`/uploads/...`); o `PUT` **substitui** descrição, endereço e foto, então o app
@@ -127,6 +130,7 @@ e as consequências:
 8. [Contrato de reportes e foto](docs/adr/0008-contrato-de-reportes-e-foto.md)
 9. [Câmera e localização](docs/adr/0009-camera-e-localizacao.md)
 10. [Voz com expo-speech e expo-speech-recognition](docs/adr/0010-voz-expo-speech-e-reconhecimento.md)
+11. [Exclusão de conta em duas APIs](docs/adr/0011-exclusao-de-conta-em-duas-apis.md)
 
 ## Acessibilidade e privacidade
 

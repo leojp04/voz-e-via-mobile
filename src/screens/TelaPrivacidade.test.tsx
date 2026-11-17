@@ -172,21 +172,30 @@ describe('TelaPrivacidade', () => {
     expect(screen.queryByText(/nem dados de saúde/i)).not.toBeOnTheScreen();
   });
 
-  it('a frase de exclusão lista o que some e avisa que os reportes não somem junto', async () => {
+  it('a frase de exclusão lista o que some, inclusive os reportes com histórico e fotos', async () => {
     await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
     expect(
       screen.getByText(
         /perfil de emergência, contatos, pedidos de socorro, avisos e histórico de voz/i,
       ),
     ).toBeOnTheScreen();
-    expect(screen.getByText(/reportes de zeladoria não são apagados/i)).toBeOnTheScreen();
+    expect(
+      screen.getByText(/reportes de zeladoria também são apagados.*histórico e as fotos/i),
+    ).toBeOnTheScreen();
   });
 
-  it('diz que os reportes ficam sem nome nem e-mail e que cancelar não apaga o registro', async () => {
+  it('não diz mais que os reportes ficam com a equipe depois de excluir a conta (a API .NET apaga)', async () => {
     await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
-    expect(screen.getByText(/sem o seu nome nem o seu e-mail/i)).toBeOnTheScreen();
+    expect(screen.queryByText(/reportes de zeladoria não são apagados/i)).not.toBeOnTheScreen();
+    expect(screen.queryByText(/sem o seu nome nem o seu e-mail/i)).not.toBeOnTheScreen();
+  });
+
+  it('diz que cancelar um reporte não apaga o registro até a conta ser excluída', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
     expect(
-      screen.getByText(/cancelar um reporte.*o registro continua guardado/i),
+      screen.getByText(
+        /cancelar um reporte.*o registro continua guardado até você excluir a conta/i,
+      ),
     ).toBeOnTheScreen();
   });
 
