@@ -177,6 +177,25 @@ describe('criarApis: reportes e fotos', () => {
     );
   });
 
+  it('na API real, excluirConta apaga no .NET e depois no Java, cada um na sua URL', async () => {
+    const fetchImpl = jest.fn(
+      async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }),
+    );
+    const { auth } = criarApis({
+      usarApiFalsa: false,
+      urlJava,
+      urlDotnet,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    await auth.excluirConta('jwt-de-teste');
+
+    expect(fetchImpl.mock.calls.map(([url]) => url)).toEqual([
+      `${urlDotnet}/api/usuarios/eu`,
+      `${urlJava}/api/v1/auth/eu`,
+    ]);
+  });
+
   it('na API real, um 401 do .NET com token avisa o app', async () => {
     const aoNaoAutorizado = jest.fn();
     const fetchImpl = jest.fn(async () => new Response('', { status: 401 }));

@@ -94,7 +94,7 @@ export function criarApis({
     fetchImpl,
   });
   return {
-    auth: criarAuthApiReal(clienteJava),
+    auth: criarAuthApiReal(clienteJava, clienteDotnet),
     reportes: criarReportesApiReal(clienteDotnet, urlDotnet),
     fotos: criarFotosApiReal(clienteDotnet, urlDotnet),
     perfis: criarPerfisApiReal(clienteJava),

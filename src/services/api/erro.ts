@@ -14,6 +14,18 @@ export class ErroApi extends Error {
   }
 }
 
+/**
+ * A exclusao de conta apaga em duas APIs (primeiro o .NET, depois o Java). Este erro diz que o .NET JA
+ * apagou (reportes, historico e fotos sumiram) mas o Java falhou: a conta ainda existe, e a pessoa
+ * pode tocar em "Excluir" de novo. Mantem o status e a mensagem do erro do Java.
+ */
+export class ErroExclusaoParcial extends ErroApi {
+  constructor(causa: ErroApi) {
+    super(causa.status, causa.message, causa.campos);
+    this.name = 'ErroExclusaoParcial';
+  }
+}
+
 export function ehErroApi(erro: unknown): erro is ErroApi {
   return erro instanceof ErroApi;
 }
