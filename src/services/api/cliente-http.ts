@@ -23,6 +23,12 @@ export interface OpcoesChamada {
   token?: string;
   /** Cabecalhos extras desta chamada, ex.: o "Idempotency-Key" do POST /api/reportes. */
   cabecalhos?: Record<string, string>;
+  /**
+   * Um 401 desta chamada NAO e "sessao vencida": o erro sobe normalmente, mas o app nao sai.
+   * Usado na exclusao de conta, onde o .NET responde 401 a quem ja foi excluido e o app precisa
+   * seguir para excluir a conta no Java em vez de deslogar no meio do caminho.
+   */
+  naoDeslogarEm401?: boolean;
 }
 
 /** Arquivo do aparelho (ex.: foto) a ser enviado como multipart. */
@@ -146,7 +152,7 @@ export function criarClienteHttp({
 
     const dados = await lerCorpo(resposta);
     if (!resposta.ok) {
-      if (resposta.status === 401 && token) aoNaoAutorizado?.();
+      if (resposta.status === 401 && token && !opcoes?.naoDeslogarEm401) aoNaoAutorizado?.();
       throw converterErro(resposta.status, dados);
     }
     return dados as T;

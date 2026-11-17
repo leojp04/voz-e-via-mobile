@@ -161,6 +161,30 @@ describe('criarClienteHttp', () => {
     expect((erro as ErroApi).status).toBe(401);
   });
 
+  it('com naoDeslogarEm401, o 401 continua virando ErroApi mas nao avisa aoNaoAutorizado', async () => {
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(401, { title: 'Unauthorized' }));
+    const aoNaoAutorizado = jest.fn();
+
+    const erro = await criar(fetchSimulado, { obterToken: () => 'valido', aoNaoAutorizado })
+      .delete('/api/usuarios/eu', { naoDeslogarEm401: true })
+      .catch((e: unknown) => e);
+
+    expect(erro).toBeInstanceOf(ErroApi);
+    expect((erro as ErroApi).status).toBe(401);
+    expect(aoNaoAutorizado).not.toHaveBeenCalled();
+  });
+
+  it('sem naoDeslogarEm401, o 401 de um DELETE com token continua avisando aoNaoAutorizado', async () => {
+    const fetchSimulado = jest.fn().mockResolvedValue(resposta(401, { title: 'Unauthorized' }));
+    const aoNaoAutorizado = jest.fn();
+
+    await criar(fetchSimulado, { obterToken: () => 'valido', aoNaoAutorizado })
+      .delete('/api/usuarios/eu')
+      .catch(() => undefined);
+
+    expect(aoNaoAutorizado).toHaveBeenCalledTimes(1);
+  });
+
   it('envia o corpo como JSON no PUT (editar)', async () => {
     const fetchSimulado = jest.fn().mockResolvedValue(resposta(200, { id: 7 }));
 
