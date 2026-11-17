@@ -80,7 +80,9 @@ convém confirmar antes:
   emergência (`POST /api/v1/perfis-emergencia`); `mobilidade` é opcional e, sem escolha, vai como
   `NAO_INFORMADO`. Sem perfil, `GET /perfis-emergencia/meu` dá 404 e o app oferece criá-lo.
 - **Exclusão de conta (API Java):** `DELETE /api/v1/auth/eu` apaga conta, perfil, contatos,
-  socorros, avisos e histórico de voz; os **reportes do .NET não** são apagados junto.
+  socorros, avisos e histórico de voz; os **reportes do .NET não** são apagados junto (guardam só
+  o número do usuário, sem nome nem e-mail). Cancelar um reporte só muda o status para CANCELADO:
+  o registro continua. A política de privacidade do app diz isso.
 - **Reportes (API .NET, já conferido na API real):** a porta padrão é 5080; o `POST` recebe o
   **código** da categoria (ex.: `RAMPA`); a foto sobe antes, em `POST /api/fotos`, e a API devolve
   só o caminho (`/uploads/...`); o `PUT` **substitui** descrição, endereço e foto, então o app

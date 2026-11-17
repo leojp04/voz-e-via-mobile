@@ -60,7 +60,8 @@ export const SECOES_DE_PRIVACIDADE: SecaoDePrivacidade[] = [
       'Conforme a LGPD (Lei Geral de Proteção de Dados), você pode ver, corrigir e apagar os seus dados.',
       'Para excluir a sua conta, entre no app e use o botão "Excluir minha conta" no fim desta tela. A exclusão não pode ser desfeita.',
       'Ao excluir, apagamos a sua conta, o perfil de emergência, contatos, pedidos de socorro, avisos e histórico de voz.',
-      'Os reportes de zeladoria não são apagados junto: eles ficam com a equipe da zeladoria. Se quiser tirá-los, cancele cada reporte antes de excluir a conta.',
+      'Os reportes de zeladoria não são apagados junto: eles ficam com a equipe da zeladoria, sem o seu nome nem o seu e-mail.',
+      'Cancelar um reporte o tira da fila de atendimento, mas o registro continua guardado.',
     ],
   },
   {

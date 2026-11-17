@@ -165,6 +165,19 @@ describe('TelaPrivacidade', () => {
     expect(screen.getByText(/reportes de zeladoria não são apagados/i)).toBeOnTheScreen();
   });
 
+  it('diz que os reportes ficam sem nome nem e-mail e que cancelar não apaga o registro', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(screen.getByText(/sem o seu nome nem o seu e-mail/i)).toBeOnTheScreen();
+    expect(
+      screen.getByText(/cancelar um reporte.*o registro continua guardado/i),
+    ).toBeOnTheScreen();
+  });
+
+  it('não promete mais que cancelar o reporte o tira do sistema', async () => {
+    await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
+    expect(screen.queryByText(/cancele cada reporte antes de excluir/i)).not.toBeOnTheScreen();
+  });
+
   it('explica o áudio: no celular quando dá, e o aviso quando o sistema (Apple ou Google) entra', async () => {
     await montarTela(TelaPrivacidade, { auth: criarAuthApiMock() });
     expect(screen.getByText(/dentro dele e o áudio não sai do aparelho/i)).toBeOnTheScreen();
