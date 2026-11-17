@@ -1,13 +1,19 @@
 // Traduz um erro qualquer numa frase amigavel para o usuario. Nunca devolve texto tecnico do
 // servidor nem da biblioteca (item P1 do checklist de seguranca): so frases escritas aqui.
 
-import { ehErroApi } from '../services/api/erro';
+import { ehErroApi, ErroExclusaoParcial } from '../services/api/erro';
 
 const MENSAGEM_GENERICA = 'Algo deu errado. Tente de novo.';
 
 // Ao excluir a conta o usuario ja esta logado, entao o 401 significa "sessao vencida" (e nao
-// "senha errada"). Todas as frases deixam claro que a conta NAO foi excluida.
+// "senha errada"). Todas as frases deixam claro que a conta NAO foi excluida, exceto a da exclusao
+// parcial, que diz o que JA sumiu (os reportes) e que a conta ainda existe.
 export function mensagemDeErroAoExcluir(erro: unknown): string {
+  // Vem antes dos status: o erro parcial tambem carrega o status do Java (0, 500...), mas a frase
+  // "a sua conta nao foi excluida. Tente de novo" esconderia que os reportes ja foram apagados.
+  if (erro instanceof ErroExclusaoParcial) {
+    return 'Seus reportes foram apagados, mas a sua conta ainda não foi excluída. Toque em "Excluir minha conta" de novo.';
+  }
   if (ehErroApi(erro)) {
     if (erro.status === 401) return 'Sua sessão venceu. Entre de novo para excluir a conta.';
     if (erro.status === 0) return 'Sem conexão. A sua conta não foi excluída. Tente de novo.';

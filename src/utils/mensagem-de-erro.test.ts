@@ -1,4 +1,4 @@
-import { ErroApi } from '../services/api/erro';
+import { ErroApi, ErroExclusaoParcial } from '../services/api/erro';
 import { mensagemDeErro, mensagemDeErroAoExcluir } from './mensagem-de-erro';
 
 describe('mensagemDeErroAoExcluir', () => {
@@ -24,6 +24,21 @@ describe('mensagemDeErroAoExcluir', () => {
     const msg = mensagemDeErroAoExcluir(new TypeError('Cannot read properties of undefined'));
     expect(msg).toBe('Algo deu errado. A sua conta não foi excluída. Tente de novo.');
     expect(msg).not.toMatch(/undefined|TypeError/);
+  });
+
+  it('exclusão parcial (reportes já apagados, conta não) diz a verdade e manda tentar de novo', () => {
+    const msg = mensagemDeErroAoExcluir(new ErroExclusaoParcial(new ErroApi(503, 'Indisponível')));
+    expect(msg).toBe(
+      'Seus reportes foram apagados, mas a sua conta ainda não foi excluída. Toque em "Excluir minha conta" de novo.',
+    );
+    // Não pode repetir a frase das outras falhas, que seria mentira aqui.
+    expect(msg).not.toMatch(/não foi excluída\. Tente/);
+  });
+
+  it('a mensagem de exclusão parcial é a mesma com ou sem conexão (o que importa é o que já sumiu)', () => {
+    const semConexao = mensagemDeErroAoExcluir(new ErroExclusaoParcial(new ErroApi(0, 'rede')));
+    const servidor = mensagemDeErroAoExcluir(new ErroExclusaoParcial(new ErroApi(500, 'erro')));
+    expect(semConexao).toBe(servidor);
   });
 });
 

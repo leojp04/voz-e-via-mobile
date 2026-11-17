@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from 'expo-router/testing-library';
 import { Alert, Text } from 'react-native';
 
-import { ErroApi } from '../services/api/erro';
+import { ErroApi, ErroExclusaoParcial } from '../services/api/erro';
 import {
   criarArmazenamentoEmMemoria,
   criarAuthApiMock,
@@ -93,6 +93,23 @@ describe('TelaPrivacidade: excluir a conta', () => {
     expect(alerta.mock.calls[1]).toEqual([
       'Não foi possível excluir',
       'Sem conexão. A sua conta não foi excluída. Tente de novo.',
+    ]);
+    expect(screen.getByTestId('status')).toHaveTextContent('autenticado');
+    expect(screen.queryByText('Destino login')).not.toBeOnTheScreen();
+  });
+
+  it('se os reportes já foram apagados mas a conta não, diz isso e mantém a sessão para tentar de novo', async () => {
+    const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const auth = criarAuthApiMock();
+    auth.excluirConta.mockRejectedValue(new ErroExclusaoParcial(new ErroApi(503, 'Indisponível')));
+    await montarLogado(auth);
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir minha conta' }));
+    await tocarNoAlerta(alerta, 'Excluir minha conta');
+
+    await waitFor(() => expect(alerta).toHaveBeenCalledTimes(2));
+    expect(alerta.mock.calls[1]).toEqual([
+      'Não foi possível excluir',
+      'Seus reportes foram apagados, mas a sua conta ainda não foi excluída. Toque em "Excluir minha conta" de novo.',
     ]);
     expect(screen.getByTestId('status')).toHaveTextContent('autenticado');
     expect(screen.queryByText('Destino login')).not.toBeOnTheScreen();
