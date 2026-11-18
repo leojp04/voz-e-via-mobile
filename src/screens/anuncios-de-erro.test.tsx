@@ -1,4 +1,4 @@
-import { fireEvent, screen } from 'expo-router/testing-library';
+import { fireEvent, screen, waitFor } from 'expo-router/testing-library';
 import { AccessibilityInfo, Platform, Text } from 'react-native';
 
 import { ErroApi } from '../services/api/erro';
@@ -12,8 +12,12 @@ function TelaCadastroFalsa() {
   return <Text>Tela de cadastro</Text>;
 }
 
-// O ambiente de teste do React Native já troca announceForAccessibility por uma função simulada.
-const espiao = AccessibilityInfo.announceForAccessibility as jest.Mock;
+// O ambiente de teste do React Native já troca esta API por uma função simulada. O aviso sai
+// ENFILEIRADO e depois de um pequeno atraso (senão se perdia quando o VoiceOver falava o botão).
+const espiao = AccessibilityInfo.announceForAccessibilityWithOptions as jest.Mock;
+const FILA = { queue: true };
+const esperarOAviso = (texto: string) =>
+  waitFor(() => expect(espiao).toHaveBeenCalledWith(texto, FILA), { timeout: 3000 });
 
 describe('anúncio de erros ao VoiceOver (iOS)', () => {
   beforeEach(() => {
@@ -34,8 +38,8 @@ describe('anúncio de erros ao VoiceOver (iOS)', () => {
     await montar();
     await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }));
 
-    expect(espiao).toHaveBeenCalledWith('Informe o seu e-mail.');
-    expect(espiao).toHaveBeenCalledWith('Informe a sua senha.');
+    await esperarOAviso('Informe o seu e-mail.');
+    await esperarOAviso('Informe a sua senha.');
   });
 
   it('anuncia o erro geral de uma credencial recusada pelo servidor', async () => {
@@ -47,7 +51,7 @@ describe('anúncio de erros ao VoiceOver (iOS)', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Entrar' }));
     await screen.findByText('E-mail ou senha incorretos.');
 
-    expect(espiao).toHaveBeenCalledWith('E-mail ou senha incorretos.');
+    await esperarOAviso('E-mail ou senha incorretos.');
   });
 
   it('não anuncia nada enquanto não há erro', async () => {
