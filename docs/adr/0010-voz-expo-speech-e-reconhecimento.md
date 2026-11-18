@@ -69,3 +69,28 @@ precisa de justificativa. O Expo não tem biblioteca oficial para reconhecer fal
   reconhecimento, o comportamento do aviso e do VoiceOver. Só o development build no celular real
   responde (passo 5 do plano).
 - Crédito e licença das duas bibliotecas (MIT) entram no README.
+
+## Atualização de 18/11/2026: Android e o pacote pt-BR
+
+- **Achado no emulador (Android 17):** `supportsOnDeviceRecognition()` respondeu que sim, mas o
+  pacote de voz em português do Google **não estava baixado**, e o reconhecimento falhou com
+  `language-not-supported` (código 13). A pessoa só via "Não consegui ouvir você". O mesmo pode
+  acontecer no celular de quem testar o app.
+- **Decisão:** no Android, o modelo local só conta como pronto se o pacote **pt-BR** estiver
+  instalado (`getSupportedLocales().installedLocales`; aceita `pt-BR`, `pt_BR` e `pt-br`, e não
+  aceita `pt-PT`). Se o pacote faltar, se a consulta falhar ou vier vazia (Android 12 ou menor), vale
+  o item 4: `CONSENTIMENTO_NECESSARIO`, aviso, e só depois do "Entendi, usar a voz" se usa o
+  reconhecedor do sistema. Falha para o lado seguro: no pior caso o app pergunta sem precisar, e
+  nunca liga o microfone num caminho que vai falhar nem envia áudio ao Google sem aceite. No iOS nada
+  muda (a consulta de idiomas só existe no Android).
+- **Texto do aviso:** passou a dizer "Este aparelho não reconhece a sua voz em português sem
+  internet", que vale tanto para quem não tem voz offline quanto para quem não tem o pacote.
+- **Alternativa descartada, por ora:** baixar o pacote offline pelo próprio app
+  (`androidTriggerOfflineModelDownload`). Manteria o áudio só no aparelho, mas exige um fluxo e um
+  download novos. Fica como melhoria futura.
+- **Verificado:** testes automáticos (pacote ausente, presente, variações de escrita, consulta que
+  falha, iOS sem consulta). No emulador: o aviso aparece, nenhum reconhecimento começa antes do
+  aceite, e depois do aceite o app passa a "Ouvindo…".
+- **Não verificado:** a fala reconhecida de verdade no Android (o emulador não tem microfone real).
+  No iPhone 14 Pro Max, em 17/11/2026, falar com o assistente e o "Ouvir de novo" funcionaram; não
+  sabemos se o reconhecimento ali foi local ou pelo sistema.
