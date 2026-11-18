@@ -139,6 +139,23 @@ rótulos em todos os botões, áreas de toque de pelo menos 48 dp, alto contrast
 tamanho de fonte do sistema. O áudio da voz não sai do celular (só o texto é enviado). Nesta
 etapa os usuários são apenas contas de teste.
 
+### Leitor de tela (VoiceOver no iPhone)
+
+Testado no iPhone com o VoiceOver ligado. Dois cuidados do app, e um requisito do aparelho:
+
+- **Idioma:** todo elemento diz ao iOS que o texto está em português (`accessibilityLanguage`
+  `pt-BR`). Sem isso, um iPhone em inglês lê o app com sotaque estrangeiro.
+- **Erros:** o iOS não lê sozinho uma mensagem que aparece na tela (`accessibilityLiveRegion`
+  só vale no Android). Por isso o app anuncia erros e avisos por conta própria, na fila do
+  VoiceOver e meio segundo depois. Sem essa espera, o aviso se perdia quando o VoiceOver ainda
+  estava falando o nome do botão tocado.
+- **Requisito do aparelho:** é preciso ter uma **voz em português baixada** em Ajustes →
+  Acessibilidade → VoiceOver → Fala → Voz. Sem ela o iOS usa a voz do idioma do aparelho,
+  mesmo com o app avisando que o texto é em português.
+
+Limite conhecido: a resposta do assistente não é anunciada pelo VoiceOver, porque já é falada
+pela opção "Ler sempre a resposta em voz alta" e as duas vozes se atropelariam.
+
 ## Créditos e licenças
 
 O app usa só bibliotecas de código aberto. As 25 dependências diretas de execução (as que vão
