@@ -12,6 +12,7 @@
 
 import { requireOptionalNativeModule } from 'expo';
 import type { ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
+import { Platform } from 'react-native';
 
 import { ErroAparelho } from '../aparelho/erro-aparelho';
 
@@ -21,7 +22,7 @@ const IDIOMA = 'pt-BR';
 
 const MSG_SEM_NATIVO = 'A voz não está disponível neste aparelho. Digite o que você precisa.';
 const MSG_CONSENTIMENTO =
-  'Este aparelho não entende voz sem internet. Para usar a voz, o áudio pode ser processado pelo serviço de fala da Apple ou do Google. O Voz & Via não recebe o áudio, só o texto. Você pode digitar se preferir.';
+  'Este aparelho não reconhece a sua voz em português sem internet. Para usar a voz, o áudio pode ser processado pelo serviço de fala da Apple ou do Google. O Voz & Via não recebe o áudio, só o texto. Você pode digitar se preferir.';
 const MSG_PERMISSAO =
   'Para falar com o assistente, permita o microfone e o reconhecimento de fala nas configurações do aparelho.';
 const MSG_NAO_OUVI = 'Não ouvi nada. Toque no microfone e fale de novo.';
@@ -67,6 +68,29 @@ function entendeNoAparelho(modulo: ModuloDeFala): boolean {
   }
 }
 
+function ehPortuguesDoBrasil(idioma: string): boolean {
+  return idioma.replace('_', '-').toLowerCase() === IDIOMA.toLowerCase();
+}
+
+// No Android o modelo local so serve se o pacote de voz em portugues estiver BAIXADO: o aparelho
+// pode dizer que entende fala sem internet e mesmo assim falhar com "language-not-supported" (visto
+// no emulador). A consulta dos idiomas instalados so existe no Android 13 ou maior; se falhar ou vier
+// vazia, trata como nao instalado: o pior caso e pedir o aviso sem precisar, e nunca ligar um
+// microfone que vai falhar. No iOS nao ha essa consulta: vale so supportsOnDeviceRecognition.
+async function idiomaInstalado(modulo: ModuloDeFala): Promise<boolean> {
+  if (Platform.OS !== 'android') return true;
+  try {
+    const { installedLocales } = await modulo.getSupportedLocales({});
+    return installedLocales.some(ehPortuguesDoBrasil);
+  } catch {
+    return false;
+  }
+}
+
+async function modeloLocalPronto(modulo: ModuloDeFala): Promise<boolean> {
+  return entendeNoAparelho(modulo) && (await idiomaInstalado(modulo));
+}
+
 function sistemaReconhece(modulo: ModuloDeFala): boolean {
   try {
     return modulo.isRecognitionAvailable();
@@ -99,7 +123,7 @@ export async function iniciarReconhecimento(
   const modulo = carregarModulo();
   if (modulo === null) throw new ErroAparelho('INDISPONIVEL', MSG_SEM_NATIVO);
 
-  const local = entendeNoAparelho(modulo);
+  const local = await modeloLocalPronto(modulo);
   if (!local) {
     if (!sistemaReconhece(modulo)) throw new ErroAparelho('INDISPONIVEL', MSG_SEM_NATIVO);
     if (!inicio.permitirSistema) {

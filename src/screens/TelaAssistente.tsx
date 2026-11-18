@@ -45,7 +45,7 @@ const MENSAGEM_SEM_GPS =
   'Não foi possível obter sua localização. Verifique se o GPS está ligado e tente de novo.';
 // Aviso antes de usar o reconhecedor do sistema (ver services/voz/reconhecimento.ts).
 const TEXTO_DO_AVISO =
-  'Este aparelho não entende voz sem internet. Para usar a voz, o serviço de fala da Apple ou do Google pode processar o seu áudio. O Voz & Via não recebe o áudio, só o texto. Você pode digitar se preferir.';
+  'Este aparelho não reconhece a sua voz em português sem internet. Para usar a voz, o serviço de fala da Apple ou do Google pode processar o seu áudio. O Voz & Via não recebe o áudio, só o texto. Você pode digitar se preferir.';
 
 const SAMU = '192';
 

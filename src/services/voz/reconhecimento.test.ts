@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { ErroAparelho } from '../aparelho/erro-aparelho';
 import {
   iniciarReconhecimento,
@@ -29,13 +31,25 @@ jest.mock('expo-speech-recognition', () => ({
   },
 }));
 
+// "idiomas" sao os idiomas de voz INSTALADOS no aparelho (so o Android informa isso). 'erro' faz a
+// consulta falhar, como no Android 12 ou menor ou com um servico de fala que nao responde.
 function criarModuloFalso(
-  opcoes: { aoVivo?: boolean; permitido?: boolean; disponivel?: boolean } = {},
+  opcoes: {
+    aoVivo?: boolean;
+    permitido?: boolean;
+    disponivel?: boolean;
+    idiomas?: string[] | 'erro';
+  } = {},
 ) {
-  const { aoVivo = true, permitido = true, disponivel = true } = opcoes;
+  const { aoVivo = true, permitido = true, disponivel = true, idiomas = ['pt-BR'] } = opcoes;
   return {
     supportsOnDeviceRecognition: jest.fn(() => aoVivo),
     isRecognitionAvailable: jest.fn(() => disponivel),
+    getSupportedLocales: jest.fn(() =>
+      idiomas === 'erro'
+        ? Promise.reject(new Error('package_not_found'))
+        : Promise.resolve({ locales: idiomas, installedLocales: idiomas }),
+    ),
     requestPermissionsAsync: jest.fn().mockResolvedValue({ granted: permitido }),
     start: jest.fn(),
     stop: jest.fn(),
@@ -146,6 +160,85 @@ describe('iniciarReconhecimento: o que impede de comecar', () => {
     expect(erro.codigo).toBe('PERMISSAO_NEGADA');
     expect(erro.message).toContain('configurações');
     expect(mockModulo.start).not.toHaveBeenCalled();
+  });
+});
+
+// Achado no emulador Android: o aparelho DIZ que entende fala sem internet, mas o pacote de voz em
+// portugues nao estava baixado (erro "language-not-supported"). Entao o modelo local so vale se o
+// pt-BR estiver instalado; senao cai no aviso de consentimento (usaria o servico do Google).
+describe('iniciarReconhecimento no Android: pacote de voz em portugues', () => {
+  beforeEach(() => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('sem o pacote pt-BR instalado, NAO liga o microfone: pede o aviso antes', async () => {
+    mockModulo = criarModuloFalso({ idiomas: [] });
+    const erro = await erroDe(iniciarReconhecimento(chamadas()));
+    expect(erro.codigo).toBe('CONSENTIMENTO_NECESSARIO');
+    expect(erro.message).toContain('Apple ou do Google');
+    expect(mockModulo.requestPermissionsAsync).not.toHaveBeenCalled();
+    expect(mockModulo.start).not.toHaveBeenCalled();
+  });
+
+  it('com o pacote pt-BR instalado, escuta so no aparelho', async () => {
+    mockModulo = criarModuloFalso({ idiomas: ['pt-BR'] });
+    await iniciarReconhecimento(chamadas());
+    expect(mockModulo.start).toHaveBeenCalledWith(
+      expect.objectContaining({ lang: 'pt-BR', requiresOnDeviceRecognition: true }),
+    );
+  });
+
+  it.each([['pt_BR'], ['pt-br']])('aceita "%s" como portugues do Brasil', async (idioma) => {
+    mockModulo = criarModuloFalso({ idiomas: [idioma] });
+    await iniciarReconhecimento(chamadas());
+    expect(mockModulo.start).toHaveBeenCalledWith(
+      expect.objectContaining({ requiresOnDeviceRecognition: true }),
+    );
+  });
+
+  it.each([['pt-PT'], ['en-US']])('"%s" NAO conta como portugues do Brasil', async (idioma) => {
+    mockModulo = criarModuloFalso({ idiomas: [idioma] });
+    const erro = await erroDe(iniciarReconhecimento(chamadas()));
+    expect(erro.codigo).toBe('CONSENTIMENTO_NECESSARIO');
+    expect(mockModulo.start).not.toHaveBeenCalled();
+  });
+
+  it('se nao der para consultar os idiomas, trata como nao instalado (lado seguro)', async () => {
+    mockModulo = criarModuloFalso({ idiomas: 'erro' });
+    const erro = await erroDe(iniciarReconhecimento(chamadas()));
+    expect(erro.codigo).toBe('CONSENTIMENTO_NECESSARIO');
+    expect(mockModulo.start).not.toHaveBeenCalled();
+  });
+
+  it('sem o pacote, depois do aviso aceito, usa o reconhecedor do sistema', async () => {
+    mockModulo = criarModuloFalso({ idiomas: [] });
+    await iniciarReconhecimento(chamadas(), { permitirSistema: true });
+    expect(mockModulo.start).toHaveBeenCalledWith(
+      expect.objectContaining({ lang: 'pt-BR', requiresOnDeviceRecognition: false }),
+    );
+  });
+});
+
+describe('iniciarReconhecimento no iOS: nao consulta idiomas instalados', () => {
+  beforeEach(() => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('decide so por supportsOnDeviceRecognition, sem chamar getSupportedLocales', async () => {
+    mockModulo = criarModuloFalso({ idiomas: [] });
+    await iniciarReconhecimento(chamadas());
+    expect(mockModulo.getSupportedLocales).not.toHaveBeenCalled();
+    expect(mockModulo.start).toHaveBeenCalledWith(
+      expect.objectContaining({ requiresOnDeviceRecognition: true }),
+    );
   });
 });
 
