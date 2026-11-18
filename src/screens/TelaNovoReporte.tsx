@@ -28,6 +28,7 @@ import { obterLocalizacao, type LocalizacaoAtual } from '../services/aparelho/lo
 import { ehErroApi } from '../services/api/erro';
 import type { ArquivoFoto, Categoria, Reporte, Urgencia } from '../services/api/types';
 import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { gerarUuid } from '../utils/gerar-uuid';
 import { mensagemDeErroDaFoto, mensagemDeErroDoReporte } from '../utils/mensagem-de-erro';
 import {
@@ -76,6 +77,7 @@ export function TelaNovoReporte() {
 
   const [categorias, setCategorias] = useState<Categoria[] | null>(null);
   const [erroCategorias, setErroCategorias] = useState<string | null>(null);
+  useAnunciar(erroCategorias);
   const [tentativaDeCategorias, setTentativaDeCategorias] = useState(0);
 
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
@@ -95,6 +97,7 @@ export function TelaNovoReporte() {
 
   const [erros, setErros] = useState<ErrosDoFormulario>(SEM_ERROS);
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  useAnunciar(erroGeral);
   const [enviando, setEnviando] = useState(false);
   const enviandoAgora = useRef(false);
   const [criado, setCriado] = useState<Reporte | null>(null);

@@ -5,6 +5,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ALVO_MINIMO, cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { Texto } from './Texto';
 
 interface PropsCaixaConsentimento {
@@ -15,6 +16,7 @@ interface PropsCaixaConsentimento {
 }
 
 export function CaixaConsentimento({ texto, marcada, aoAlternar, erro }: PropsCaixaConsentimento) {
+  useAnunciar(erro);
   return (
     <View style={styles.grupo}>
       <Pressable

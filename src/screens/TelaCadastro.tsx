@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ehErroApi } from '../services/api/erro';
 import type { DadosCadastro } from '../services/api/types';
 import { cores, espacos, fontes } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { mensagemDeErro } from '../utils/mensagem-de-erro';
 import {
   validarConsentimento,
@@ -67,6 +68,7 @@ export function TelaCadastro() {
   const [consentimento, setConsentimento] = useState(false);
   const [erros, setErros] = useState<ErrosDoFormulario>(SEM_ERROS);
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  useAnunciar(erroGeral);
   const [enviando, setEnviando] = useState(false);
 
   async function criarConta() {

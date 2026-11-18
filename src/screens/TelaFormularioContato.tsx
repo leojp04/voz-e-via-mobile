@@ -19,6 +19,7 @@ import { useApis } from '../contexts/ApisContext';
 import { ehErroApi } from '../services/api/erro';
 import type { DadosContato } from '../services/api/types';
 import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { formatarTelefone } from '../utils/formatar-telefone';
 import {
   mensagemDeErroAoCarregarContatos,
@@ -49,6 +50,7 @@ export function TelaFormularioContato() {
   const [prioridade, setPrioridade] = useState(1);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  useAnunciar(erroGeral);
   const [ocupado, setOcupado] = useState(false);
   const ocupadoAgora = useRef(false);
 
@@ -143,6 +145,7 @@ export function TelaFormularioContato() {
   }
 
   const erro = editando && !idValido ? MENSAGEM_NAO_ENCONTRADO : erroAoCarregar;
+  useAnunciar(erro);
 
   return (
     <Tela>

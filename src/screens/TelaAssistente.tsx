@@ -31,6 +31,7 @@ import {
 import { falar, pararDeFalar } from '../services/voz/falar';
 import { useEscutaDeVoz } from '../services/voz/use-escuta-de-voz';
 import { cores, espacos, fontes } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { ligarPara } from '../utils/ligar-para';
 import { mensagemDeErroDoAssistente } from '../utils/mensagem-de-erro';
 import { abrirNoMapa } from '../utils/url-do-mapa';
@@ -124,9 +125,11 @@ export function TelaAssistente() {
   const [texto, setTexto] = useState('');
   const [erroDoCampo, setErroDoCampo] = useState<string | null>(null);
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  useAnunciar(erroGeral);
   const [resposta, setResposta] = useState<RespostaAssistente | null>(null);
   const [resultado, setResultado] = useState<ResultadoComCartao | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  useAnunciar(aviso);
   // O alerta de socorro falhou: o botao de ligar para o SAMU tem de continuar a um toque.
   const [oferecerSamu, setOferecerSamu] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -139,6 +142,7 @@ export function TelaAssistente() {
   const [lerSempre, setLerSempre] = useState(true);
   const veioPorVoz = useRef(false);
   const voz = useEscutaDeVoz({ aoTexto: aoTextoFalado });
+  useAnunciar(voz.erro);
 
   // Sair da tela corta a leitura em andamento.
   useEffect(

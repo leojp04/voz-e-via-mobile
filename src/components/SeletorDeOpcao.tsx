@@ -7,6 +7,7 @@
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { ALVO_MINIMO, cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { colunasDaGrade } from '../utils/colunas-da-grade';
 import { Texto } from './Texto';
 
@@ -36,6 +37,7 @@ export function SeletorDeOpcao<T extends string | number>({
   aoMudar,
   erro,
 }: PropsSeletorDeOpcao<T>) {
+  useAnunciar(erro);
   const { fontScale } = useWindowDimensions();
   const linhaInteira = colunasDaGrade(fontScale) === 1;
   return (

@@ -4,6 +4,7 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { ALVO_MINIMO, cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { Texto } from './Texto';
 
 // Limite de crescimento do rótulo na letra máxima do sistema (310%): a 310% um rótulo como
@@ -36,6 +37,7 @@ export function CampoTexto({
   autoCapitalizar = 'none',
   multilinha = false,
 }: PropsCampoTexto) {
+  useAnunciar(erro);
   return (
     <View style={styles.grupo}>
       <Texto maxFontSizeMultiplier={ESCALA_MAXIMA_DO_ROTULO} style={styles.rotulo}>

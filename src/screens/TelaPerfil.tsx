@@ -18,6 +18,7 @@ import { useApis } from '../contexts/ApisContext';
 import { ehErroApi } from '../services/api/erro';
 import type { DadosPerfil, Mobilidade, PerfilEmergencia } from '../services/api/types';
 import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { mensagemDeErroAoCarregar, mensagemDeErroAoSalvarPerfil } from '../utils/mensagem-de-erro';
 import { validarPerfil } from '../utils/validar-perfil';
 
@@ -43,6 +44,7 @@ export function TelaPerfil() {
 
   const [carregando, setCarregando] = useState(true);
   const [erroAoCarregar, setErroAoCarregar] = useState<string | null>(null);
+  useAnunciar(erroAoCarregar);
   const [tentativa, setTentativa] = useState(0);
   // null = a pessoa ainda nao tem perfil (vai criar).
   const [perfil, setPerfil] = useState<PerfilEmergencia | null>(null);
@@ -53,6 +55,7 @@ export function TelaPerfil() {
   const [observacoes, setObservacoes] = useState('');
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  useAnunciar(erroGeral);
   const [ocupado, setOcupado] = useState(false);
   const ocupadoAgora = useRef(false);
 

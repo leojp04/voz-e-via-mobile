@@ -19,6 +19,7 @@ import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import type { Reporte } from '../services/api/types';
 import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { formatarData } from '../utils/formatar-data';
 import { mensagemDeErroAoCancelar, mensagemDeErroAoCarregar } from '../utils/mensagem-de-erro';
 import { estiloDoStatus, rotuloDaUrgencia } from '../utils/status-do-reporte';
@@ -88,6 +89,7 @@ export function TelaDetalheReporte() {
   }
 
   const erro = idValido ? erroAoCarregar : MENSAGEM_NAO_ENCONTRADO;
+  useAnunciar(erro);
 
   return (
     <Tela>

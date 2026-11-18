@@ -17,6 +17,7 @@ import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import type { ReporteResumo } from '../services/api/types';
 import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { mensagemDeErroAoCarregar } from '../utils/mensagem-de-erro';
 
 const TAMANHO_DA_PAGINA = 10;
@@ -31,8 +32,10 @@ export function TelaMeusReportes() {
   const [temMais, setTemMais] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  useAnunciar(erro);
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erroMais, setErroMais] = useState<string | null>(null);
+  useAnunciar(erroMais);
   // true enquanto a primeira pagina recarrega: segura o "Ver mais" (ver carregar).
   const [recarregando, setRecarregando] = useState(false);
 

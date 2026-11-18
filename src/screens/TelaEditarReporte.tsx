@@ -28,6 +28,7 @@ import {
   mensagemDeErroAoEditar,
   mensagemDeErroDaFoto,
 } from '../utils/mensagem-de-erro';
+import { useAnunciar } from '../utils/anunciar';
 import { rotuloDaUrgencia } from '../utils/status-do-reporte';
 import { validarDescricaoDoReporte, type Erro } from '../utils/validators';
 
@@ -56,6 +57,7 @@ export function TelaEditarReporte() {
   const [erroFoto, setErroFoto] = useState<string | null>(null);
 
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  useAnunciar(erroGeral);
   const [salvando, setSalvando] = useState(false);
   const salvandoAgora = useRef(false);
 
@@ -147,6 +149,8 @@ export function TelaEditarReporte() {
 
   const erro = idValido ? erroAoCarregar : MENSAGEM_NAO_ENCONTRADO;
   const naoEstaAberto = reporte !== null && reporte.status !== 'ABERTO';
+  useAnunciar(erro);
+  useAnunciar(naoEstaAberto ? MENSAGEM_NAO_ABERTO : null);
   const fotoNaTela: ArquivoFoto | null =
     novaFoto ??
     (!removida && reporte?.fotoUrl

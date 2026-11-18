@@ -6,6 +6,7 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import type { ArquivoFoto } from '../services/api/types';
 import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { Botao } from './Botao';
 import { Texto } from './Texto';
 
@@ -29,6 +30,7 @@ export function CampoDeFoto({
   ocupado = false,
   erro,
 }: PropsCampoDeFoto) {
+  useAnunciar(erro);
   return (
     <View style={styles.grupo}>
       <Texto style={styles.rotulo}>Foto (opcional)</Texto>

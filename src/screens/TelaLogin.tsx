@@ -12,6 +12,7 @@ import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useAuth } from '../contexts/AuthContext';
 import { cores, espacos, fontes } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { mensagemDeErro } from '../utils/mensagem-de-erro';
 import { validarEmail, validarSenha, type Erro } from '../utils/validators';
 
@@ -24,6 +25,7 @@ export function TelaLogin() {
   const [erroEmail, setErroEmail] = useState<Erro>(null);
   const [erroSenha, setErroSenha] = useState<Erro>(null);
   const [erroGeral, setErroGeral] = useState<string | null>(null);
+  useAnunciar(erroGeral);
   const [enviando, setEnviando] = useState(false);
 
   async function entrar() {

@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 
 import type { LocalizacaoAtual } from '../services/aparelho/localizacao';
 import { cores, espacos, fontes } from '../theme';
+import { useAnunciar } from '../utils/anunciar';
 import { abrirNoMapa } from '../utils/url-do-mapa';
 import { Botao } from './Botao';
 import { Texto } from './Texto';
@@ -22,6 +23,7 @@ interface PropsBlocoLocalizacao {
 }
 
 export function BlocoLocalizacao({ localizacao, obtendo, aoUsar, erro }: PropsBlocoLocalizacao) {
+  useAnunciar(erro);
   return (
     <View style={styles.grupo}>
       <Texto style={styles.rotulo}>Localização</Texto>
