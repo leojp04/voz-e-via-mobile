@@ -11,6 +11,13 @@ function configDoPlugin(nome: string): Record<string, unknown> | undefined {
   return Array.isArray(achado) ? achado[1] : undefined;
 }
 
+// O nome do app.json e o que aparece embaixo do icone no celular (antes era o slug tecnico).
+describe('nome do app no app.json', () => {
+  it('e "Voz & Via", o nome que a pessoa ve no aparelho', () => {
+    expect(appJson.expo.name).toBe('Voz & Via');
+  });
+});
+
 describe('permissoes declaradas no app.json', () => {
   it('a camera tem um texto de permissao em portugues que explica o uso', () => {
     const config = configDoPlugin('expo-image-picker');

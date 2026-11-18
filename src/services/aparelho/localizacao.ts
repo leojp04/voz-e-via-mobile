@@ -28,6 +28,27 @@ export function montarEndereco(endereco: PartesDoEndereco): string | undefined {
   return [linhaDaRua, linhaDoBairro].filter(Boolean).join(' - ') || undefined;
 }
 
+// No Android o GPS pode nunca responder (sem sinal, dentro de predio). Passado esse tempo a
+// pessoa recebe o erro "indisponivel" e pode tentar de novo, em vez de ver o botao carregando sem fim.
+const LIMITE_DE_ESPERA_DO_GPS_MS = 10_000;
+
+/** Corrida entre a promessa e um cronometro: quem terminar primeiro decide; o cronometro rejeita. */
+function comLimiteDeEspera<T>(promessa: Promise<T>, limiteMs: number): Promise<T> {
+  return new Promise<T>((resolver, rejeitar) => {
+    const cronometro = setTimeout(() => rejeitar(new Error('tempo esgotado')), limiteMs);
+    promessa.then(
+      (valor) => {
+        clearTimeout(cronometro);
+        resolver(valor);
+      },
+      (erro: unknown) => {
+        clearTimeout(cronometro);
+        rejeitar(erro);
+      },
+    );
+  });
+}
+
 export async function obterLocalizacao(): Promise<LocalizacaoAtual> {
   const permissao = await Location.requestForegroundPermissionsAsync();
   if (!permissao.granted) {
@@ -40,7 +61,10 @@ export async function obterLocalizacao(): Promise<LocalizacaoAtual> {
   let posicao: Location.LocationObject;
   try {
     // Precisao "equilibrada": suficiente para achar a rua e gasta menos bateria que a maxima.
-    posicao = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    posicao = await comLimiteDeEspera(
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+      LIMITE_DE_ESPERA_DO_GPS_MS,
+    );
   } catch {
     throw new ErroAparelho(
       'INDISPONIVEL',

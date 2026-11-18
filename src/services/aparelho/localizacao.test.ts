@@ -91,6 +91,26 @@ describe('obterLocalizacao', () => {
     );
   });
 
+  // No Android o GPS pode ficar sem responder para sempre (sem sinal, emulador). Sem limite, o botao
+  // ficaria "carregando" sem fim; com o limite, a pessoa recebe o erro e pode tentar de novo.
+  it('GPS que nao responde: desiste em 10 segundos com o erro de indisponivel', async () => {
+    jest.useFakeTimers();
+    try {
+      pedirPermissao.mockResolvedValue(permissao(true));
+      lerPosicao.mockReturnValue(new Promise(() => {}));
+
+      const resultado = erroDe(obterLocalizacao());
+      await jest.advanceTimersByTimeAsync(9_999);
+      expect(converterEmEndereco).not.toHaveBeenCalled();
+      await jest.advanceTimersByTimeAsync(1);
+
+      const erro = await resultado;
+      expect(erro.codigo).toBe('INDISPONIVEL');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   // O endereco e um extra: se a conversao falhar, o reporte ainda funciona so com o ponto do GPS.
   it('se nao conseguir converter em endereco, mantem so latitude e longitude', async () => {
     pedirPermissao.mockResolvedValue(permissao(true));
