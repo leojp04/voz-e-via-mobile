@@ -3,7 +3,7 @@
 
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
-import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { ALVO_MINIMO, cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { Icone, type NomeDeIcone } from './Icone';
 import { Texto } from './Texto';
 
@@ -46,6 +46,7 @@ export function Botao({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={rotulo ?? titulo}
+      accessibilityLanguage={IDIOMA_DO_APP}
       accessibilityState={{ disabled: inativo, busy: carregando }}
       disabled={inativo}
       onPress={onPress}

@@ -3,7 +3,7 @@
 
 import { StyleSheet, View } from 'react-native';
 
-import { fontes } from '../theme';
+import { fontes, IDIOMA_DO_APP } from '../theme';
 import { estiloDoStatus } from '../utils/status-do-reporte';
 import { Texto } from './Texto';
 
@@ -13,6 +13,7 @@ export function EtiquetaDeStatus({ status }: { status: string }) {
     <View
       accessible
       accessibilityLabel={`Status: ${rotulo}`}
+      accessibilityLanguage={IDIOMA_DO_APP}
       style={[styles.etiqueta, { backgroundColor: fundo }]}
     >
       <Texto style={[styles.texto, { color: texto }]}>{rotulo}</Texto>

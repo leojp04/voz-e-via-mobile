@@ -8,13 +8,18 @@ import { StyleSheet, View } from 'react-native';
 import { Botao } from '../components/Botao';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { lerInfoDoApp } from '../utils/info-do-app';
 
 function Dado({ nome, valor, rotulo }: { nome: string; valor: string; rotulo: string }) {
   // O leitor de tela le o dado inteiro de uma vez ("Versao do app: 1.0.0").
   return (
-    <View style={styles.dado} accessible accessibilityLabel={`${rotulo}: ${valor}`}>
+    <View
+      style={styles.dado}
+      accessible
+      accessibilityLabel={`${rotulo}: ${valor}`}
+      accessibilityLanguage={IDIOMA_DO_APP}
+    >
       <Texto style={styles.nome}>{nome}</Texto>
       <Texto style={styles.valor} selectable>
         {valor}

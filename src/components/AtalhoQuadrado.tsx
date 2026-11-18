@@ -4,7 +4,7 @@
 
 import { Pressable, StyleSheet } from 'react-native';
 
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { Icone, type NomeDeIcone } from './Icone';
 import { Texto } from './Texto';
 
@@ -21,6 +21,7 @@ export function AtalhoQuadrado({ titulo, rotulo, icone, onPress }: PropsAtalhoQu
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={rotulo ?? titulo}
+      accessibilityLanguage={IDIOMA_DO_APP}
       onPress={onPress}
       style={({ pressed }) => [styles.atalho, pressed && styles.pressionado]}
     >

@@ -18,7 +18,7 @@ import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import type { Reporte } from '../services/api/types';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { formatarData } from '../utils/formatar-data';
 import { mensagemDeErroAoCancelar, mensagemDeErroAoCarregar } from '../utils/mensagem-de-erro';
 import { estiloDoStatus, rotuloDaUrgencia } from '../utils/status-do-reporte';
@@ -97,7 +97,11 @@ export function TelaDetalheReporte() {
 
       {idValido && carregando ? (
         <View style={styles.carregando}>
-          <ActivityIndicator color={cores.acao} accessibilityLabel="Carregando reporte" />
+          <ActivityIndicator
+            color={cores.acao}
+            accessibilityLabel="Carregando reporte"
+            accessibilityLanguage={IDIOMA_DO_APP}
+          />
           <Texto style={styles.aviso}>Carregando reporte…</Texto>
         </View>
       ) : null}
@@ -134,6 +138,7 @@ export function TelaDetalheReporte() {
               source={{ uri: reporte.fotoUrl }}
               accessibilityRole="image"
               accessibilityLabel="Foto do problema"
+              accessibilityLanguage={IDIOMA_DO_APP}
               style={styles.imagem}
               resizeMode="cover"
             />

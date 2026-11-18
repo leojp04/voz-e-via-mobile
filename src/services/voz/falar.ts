@@ -4,7 +4,7 @@
 
 import * as Speech from 'expo-speech';
 
-const IDIOMA = 'pt-BR';
+import { IDIOMA_DO_APP } from '../../theme';
 
 /** Le o texto em voz alta, cortando antes qualquer fala em andamento. Nao lanca erro. */
 export async function falar(texto: string): Promise<void> {
@@ -12,7 +12,7 @@ export async function falar(texto: string): Promise<void> {
   if (limpo.length === 0) return;
   try {
     await Speech.stop();
-    Speech.speak(limpo, { language: IDIOMA });
+    Speech.speak(limpo, { language: IDIOMA_DO_APP });
   } catch {
     // Sem motor de voz no aparelho: a pessoa ainda le a resposta na tela.
   }

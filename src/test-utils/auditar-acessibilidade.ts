@@ -7,7 +7,7 @@
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import type { ReactTestInstance } from 'react-test-renderer';
 
-import { ALVO_MINIMO } from '../theme';
+import { ALVO_MINIMO, IDIOMA_DO_APP } from '../theme';
 
 // Percorre so os elementos "de verdade" (hosts: View, Text, TextInput, Image...).
 function elementos(raiz: ReactTestInstance): ReactTestInstance[] {
@@ -74,6 +74,17 @@ export function auditar(raiz: ReactTestInstance): string[] {
           `${descricao(no)}: alvo de toque com altura ${altura} dp (mínimo ${ALVO_MINIMO})`,
         );
       }
+    }
+    // O iOS lê com a voz do idioma do APARELHO, a menos que o elemento diga em que idioma está.
+    // Sem isso, um iPhone em inglês lê o app em português com sotaque de quem não conhece a língua.
+    const falado =
+      tocavel(no) ||
+      tipo === 'TextInput' ||
+      tipo === 'Image' ||
+      (tipo === 'Text' && textoDe(no) !== '') ||
+      String(no.props.accessibilityLabel ?? '').trim() !== '';
+    if (falado && no.props.accessibilityLanguage !== IDIOMA_DO_APP) {
+      problemas.push(`${descricao(no)}: sem accessibilityLanguage="${IDIOMA_DO_APP}"`);
     }
     if (tipo === 'TextInput' && !no.props.accessibilityLabel) {
       problemas.push(`${descricao(no)}: campo de texto sem accessibilityLabel`);

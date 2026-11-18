@@ -5,7 +5,7 @@
 
 import { Text, type TextProps } from 'react-native';
 
-import { fontes } from '../theme';
+import { fontes, IDIOMA_DO_APP } from '../theme';
 
 // Limite de crescimento dos cabeçalhos quando a pessoa aumenta a letra do sistema (máximo do iOS:
 // 310%). Um título de 32 pt vira ~99 pt e palavras como "reportes" quebram no meio ("report/es").
@@ -16,6 +16,7 @@ export function Texto({ style, maxFontSizeMultiplier, ...resto }: TextProps) {
   const ehCabecalho = resto.accessibilityRole === 'header';
   return (
     <Text
+      accessibilityLanguage={IDIOMA_DO_APP}
       {...resto}
       maxFontSizeMultiplier={
         maxFontSizeMultiplier ?? (ehCabecalho ? ESCALA_MAXIMA_DO_CABECALHO : undefined)

@@ -4,7 +4,7 @@
 
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { Icone } from './Icone';
 import { Texto } from './Texto';
 
@@ -22,6 +22,7 @@ export function BotaoMicrofone({ onPress, ouvindo = false }: PropsBotaoMicrofone
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={ouvindo ? 'Parar de ouvir' : 'Falar com o assistente por voz'}
+        accessibilityLanguage={IDIOMA_DO_APP}
         accessibilityState={{ busy: ouvindo }}
         onPress={onPress}
         style={({ pressed }) => [styles.circulo, pressed && styles.pressionado]}

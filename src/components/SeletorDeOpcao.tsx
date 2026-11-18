@@ -6,7 +6,7 @@
 
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { ALVO_MINIMO, cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { colunasDaGrade } from '../utils/colunas-da-grade';
 import { Texto } from './Texto';
 
@@ -41,7 +41,12 @@ export function SeletorDeOpcao<T extends string | number>({
   return (
     <View style={styles.grupo}>
       <Texto style={styles.rotulo}>{rotulo}</Texto>
-      <View accessibilityRole="radiogroup" accessibilityLabel={rotulo} style={styles.opcoes}>
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel={rotulo}
+        accessibilityLanguage={IDIOMA_DO_APP}
+        style={styles.opcoes}
+      >
         {opcoes.map((opcao) => {
           const selecionada = opcao.valor === valor;
           return (
@@ -49,6 +54,7 @@ export function SeletorDeOpcao<T extends string | number>({
               key={String(opcao.valor)}
               accessibilityRole="radio"
               accessibilityLabel={opcao.titulo}
+              accessibilityLanguage={IDIOMA_DO_APP}
               accessibilityState={{ selected: selecionada }}
               onPress={() => aoMudar(opcao.valor)}
               style={[

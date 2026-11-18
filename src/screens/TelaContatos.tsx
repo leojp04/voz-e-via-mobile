@@ -17,7 +17,7 @@ import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { Contato } from '../services/api/types';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { ligarPara } from '../utils/ligar-para';
 import { mensagemDeErroAoCarregarContatos } from '../utils/mensagem-de-erro';
 
@@ -195,7 +195,11 @@ function ListaDeContatos() {
 
       {carregando ? (
         <View style={styles.carregando}>
-          <ActivityIndicator color={cores.acao} accessibilityLabel="Carregando contatos" />
+          <ActivityIndicator
+            color={cores.acao}
+            accessibilityLabel="Carregando contatos"
+            accessibilityLanguage={IDIOMA_DO_APP}
+          />
           <Texto style={styles.aviso}>Carregando contatos…</Texto>
         </View>
       ) : null}

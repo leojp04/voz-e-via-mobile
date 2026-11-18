@@ -27,7 +27,7 @@ import { ehErroAparelho } from '../services/aparelho/erro-aparelho';
 import { obterLocalizacao, type LocalizacaoAtual } from '../services/aparelho/localizacao';
 import { ehErroApi } from '../services/api/erro';
 import type { ArquivoFoto, Categoria, Reporte, Urgencia } from '../services/api/types';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { gerarUuid } from '../utils/gerar-uuid';
 import { mensagemDeErroDaFoto, mensagemDeErroDoReporte } from '../utils/mensagem-de-erro';
 import {
@@ -266,7 +266,11 @@ export function TelaNovoReporte() {
       ) : null}
       {categorias === null && !erroCategorias ? (
         <View style={styles.carregando}>
-          <ActivityIndicator color={cores.acao} accessibilityLabel="Carregando categorias" />
+          <ActivityIndicator
+            color={cores.acao}
+            accessibilityLabel="Carregando categorias"
+            accessibilityLanguage={IDIOMA_DO_APP}
+          />
           <Texto style={styles.aviso}>Carregando categorias…</Texto>
         </View>
       ) : null}

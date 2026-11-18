@@ -3,7 +3,7 @@
 
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { ALVO_MINIMO, cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { Texto } from './Texto';
 
 // Limite de crescimento do rótulo na letra máxima do sistema (310%): a 310% um rótulo como
@@ -43,6 +43,7 @@ export function CampoTexto({
       </Texto>
       <TextInput
         accessibilityLabel={rotulo}
+        accessibilityLanguage={IDIOMA_DO_APP}
         value={valor}
         onChangeText={aoMudar}
         secureTextEntry={senha}

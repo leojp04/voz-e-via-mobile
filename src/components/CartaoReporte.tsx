@@ -5,7 +5,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { ReporteResumo } from '../services/api/types';
-import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { ALVO_MINIMO, cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { formatarData } from '../utils/formatar-data';
 import { estiloDoStatus } from '../utils/status-do-reporte';
 import { EtiquetaDeStatus } from './EtiquetaDeStatus';
@@ -23,6 +23,7 @@ export function CartaoReporte({ reporte, aoAbrir }: PropsCartaoReporte) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Reporte ${reporte.protocolo}, ${reporte.categoria.nome}, status ${rotuloDoStatus}`}
+      accessibilityLanguage={IDIOMA_DO_APP}
       onPress={aoAbrir}
       style={({ pressed }) => [styles.cartao, pressed && styles.pressionado]}
     >

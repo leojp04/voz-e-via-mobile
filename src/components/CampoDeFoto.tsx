@@ -5,7 +5,7 @@
 import { Image, StyleSheet, View } from 'react-native';
 
 import type { ArquivoFoto } from '../services/api/types';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { Botao } from './Botao';
 import { Texto } from './Texto';
 
@@ -37,6 +37,7 @@ export function CampoDeFoto({
           source={{ uri: foto.uri }}
           accessibilityRole="image"
           accessibilityLabel="Foto do problema"
+          accessibilityLanguage={IDIOMA_DO_APP}
           style={styles.imagem}
           resizeMode="cover"
         />

@@ -16,7 +16,7 @@ import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import type { ReporteResumo } from '../services/api/types';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { mensagemDeErroAoCarregar } from '../utils/mensagem-de-erro';
 
 const TAMANHO_DA_PAGINA = 10;
@@ -117,7 +117,11 @@ export function TelaMeusReportes() {
 
       {carregando ? (
         <View style={styles.carregando}>
-          <ActivityIndicator color={cores.acao} accessibilityLabel="Carregando reportes" />
+          <ActivityIndicator
+            color={cores.acao}
+            accessibilityLabel="Carregando reportes"
+            accessibilityLanguage={IDIOMA_DO_APP}
+          />
           <Texto style={styles.aviso}>Carregando reportes…</Texto>
         </View>
       ) : null}

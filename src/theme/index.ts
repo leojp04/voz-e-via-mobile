@@ -19,6 +19,12 @@ export const cores = {
   borda: '#6B6B6B',
 } as const;
 
+/**
+ * Idioma do app (codigo BCP 47). Dito ao leitor de tela (accessibilityLanguage, so iOS) e a voz do
+ * "Ouvir de novo": sem isso o VoiceOver usa a voz do idioma do aparelho e le portugues com sotaque.
+ */
+export const IDIOMA_DO_APP = 'pt-BR';
+
 /** Tamanho minimo de area tocavel, em dp (recomendacao de acessibilidade do Android e do iOS). */
 export const ALVO_MINIMO = 48;
 

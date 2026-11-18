@@ -20,6 +20,7 @@ import type {
   Sessao,
 } from '../services/api/types';
 import type { ArmazenamentoSessao } from '../services/armazenamento-sessao';
+import { IDIOMA_DO_APP } from '../theme';
 
 export const sessaoDeTeste: Sessao = {
   token: 'tok-123',
@@ -80,7 +81,11 @@ export function criarArmazenamentoEmMemoria(inicial: Sessao | null = null): Arma
 // Mostra o status da sessao na tela (testID "status") para o teste conferir login e logout.
 function EstadoDaSessao() {
   const { status } = useAuth();
-  return <Text testID="status">{status}</Text>;
+  return (
+    <Text testID="status" accessibilityLanguage={IDIOMA_DO_APP}>
+      {status}
+    </Text>
+  );
 }
 
 // O renderRouter so aceita telas escritas como funcao simples (sem props).

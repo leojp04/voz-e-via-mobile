@@ -18,7 +18,7 @@ import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import { ehErroApi } from '../services/api/erro';
 import type { DadosContato } from '../services/api/types';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { formatarTelefone } from '../utils/formatar-telefone';
 import {
   mensagemDeErroAoCarregarContatos,
@@ -152,7 +152,11 @@ export function TelaFormularioContato() {
 
       {carregando ? (
         <View style={styles.carregando}>
-          <ActivityIndicator color={cores.acao} accessibilityLabel="Carregando contato" />
+          <ActivityIndicator
+            color={cores.acao}
+            accessibilityLabel="Carregando contato"
+            accessibilityLanguage={IDIOMA_DO_APP}
+          />
           <Texto style={styles.aviso}>Carregando contato…</Texto>
         </View>
       ) : null}

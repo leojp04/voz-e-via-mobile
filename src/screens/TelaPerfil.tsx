@@ -17,7 +17,7 @@ import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import { ehErroApi } from '../services/api/erro';
 import type { DadosPerfil, Mobilidade, PerfilEmergencia } from '../services/api/types';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { mensagemDeErroAoCarregar, mensagemDeErroAoSalvarPerfil } from '../utils/mensagem-de-erro';
 import { validarPerfil } from '../utils/validar-perfil';
 
@@ -132,7 +132,11 @@ export function TelaPerfil() {
 
       {carregando ? (
         <View style={styles.carregando}>
-          <ActivityIndicator color={cores.acao} accessibilityLabel="Carregando perfil" />
+          <ActivityIndicator
+            color={cores.acao}
+            accessibilityLabel="Carregando perfil"
+            accessibilityLanguage={IDIOMA_DO_APP}
+          />
           <Texto style={styles.aviso}>Carregando perfil…</Texto>
         </View>
       ) : null}

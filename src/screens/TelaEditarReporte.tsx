@@ -22,7 +22,7 @@ import { escolherFotoDaGaleria, tirarFoto } from '../services/aparelho/camera';
 import { ehErroAparelho } from '../services/aparelho/erro-aparelho';
 import { ehErroApi } from '../services/api/erro';
 import type { ArquivoFoto, DadosEdicaoReporte, Reporte } from '../services/api/types';
-import { cores, espacos, fontes } from '../theme';
+import { cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import {
   mensagemDeErroAoCarregar,
   mensagemDeErroAoEditar,
@@ -161,7 +161,11 @@ export function TelaEditarReporte() {
 
       {carregando ? (
         <View style={styles.carregando}>
-          <ActivityIndicator color={cores.acao} accessibilityLabel="Carregando reporte" />
+          <ActivityIndicator
+            color={cores.acao}
+            accessibilityLabel="Carregando reporte"
+            accessibilityLanguage={IDIOMA_DO_APP}
+          />
           <Texto style={styles.aviso}>Carregando reporte…</Texto>
         </View>
       ) : null}

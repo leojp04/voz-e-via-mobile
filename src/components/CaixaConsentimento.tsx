@@ -4,7 +4,7 @@
 
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { ALVO_MINIMO, cores, espacos, fontes } from '../theme';
+import { ALVO_MINIMO, cores, espacos, fontes, IDIOMA_DO_APP } from '../theme';
 import { Texto } from './Texto';
 
 interface PropsCaixaConsentimento {
@@ -20,6 +20,7 @@ export function CaixaConsentimento({ texto, marcada, aoAlternar, erro }: PropsCa
       <Pressable
         accessibilityRole="checkbox"
         accessibilityLabel={texto}
+        accessibilityLanguage={IDIOMA_DO_APP}
         accessibilityState={{ checked: marcada }}
         onPress={aoAlternar}
         style={styles.linha}
