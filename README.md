@@ -131,6 +131,7 @@ e as consequências:
 9. [Câmera e localização](docs/adr/0009-camera-e-localizacao.md)
 10. [Voz com expo-speech e expo-speech-recognition](docs/adr/0010-voz-expo-speech-e-reconhecimento.md)
 11. [Exclusão de conta em duas APIs](docs/adr/0011-exclusao-de-conta-em-duas-apis.md)
+12. [Assinatura do APK com chave própria](docs/adr/0012-assinatura-android-com-chave-propria.md)
 
 ## Acessibilidade e privacidade
 
