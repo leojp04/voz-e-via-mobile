@@ -22,6 +22,11 @@ describe('falar', () => {
     expect(falarNoAparelho).toHaveBeenCalledWith('Ligando para a Maria.', { language: 'pt-BR' });
   });
 
+  it('"mais devagar" lê com velocidade menor', async () => {
+    await falar('Ligue 135.', true);
+    expect(falarNoAparelho).toHaveBeenCalledWith('Ligue 135.', { language: 'pt-BR', rate: 0.7 });
+  });
+
   it('nao fala quando o texto esta vazio ou so tem espacos', async () => {
     await falar('');
     await falar('   ');

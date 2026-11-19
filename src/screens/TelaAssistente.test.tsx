@@ -722,6 +722,22 @@ describe('TelaAssistente: dúvida sobre serviço público', () => {
   });
 });
 
+describe('TelaAssistente: ouvir mais devagar', () => {
+  it('lê a resposta de novo, mais devagar', async () => {
+    await montar((api) =>
+      api.interpretar.mockResolvedValue(resposta({ mensagemFalada: 'Ligue 135.' })),
+    );
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('como peço a aposentadoria?');
+
+    await fireEvent.press(
+      await screen.findByRole('button', { name: 'Ouvir a resposta mais devagar' }),
+    );
+
+    expect(falar).toHaveBeenLastCalledWith('Ligue 135.', true);
+  });
+});
+
 describe('localParaBuscar', () => {
   it('só pede a localização quando ela ajuda a achar um tipo de lugar', () => {
     const base = resposta({ intencao: 'BUSCAR_ATENDIMENTO' });

@@ -296,6 +296,13 @@ export function TelaAssistente() {
             icone="volume-high"
             onPress={() => void falar(resposta.mensagemFalada)}
           />
+          <Botao
+            titulo="Ouvir mais devagar"
+            rotulo="Ouvir a resposta mais devagar"
+            variante="secundario"
+            icone="hourglass-outline"
+            onPress={() => void falar(resposta.mensagemFalada, true)}
+          />
           {intencaoTemAcao(resposta.intencao) && tituloDeConfirmar ? (
             <View style={styles.confirmacao}>
               <Botao
