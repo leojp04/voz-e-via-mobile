@@ -321,6 +321,8 @@ export interface OrientacaoServico {
   orgao: string;
   /** Onde a pessoa pode ser atendida perto de casa (ex.: CRAS); o app pode buscar o mais perto. */
   localPresencial: TipoAtendimento | null;
+  /** Ajuda contra golpe (quem ja caiu num golpe, como reconhecer): o app mostra com o destaque de golpe. */
+  sobreGolpe: boolean;
 }
 
 export interface PedidoAssistente {

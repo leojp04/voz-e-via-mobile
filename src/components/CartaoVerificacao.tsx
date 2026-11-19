@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 
 import type { ClassificacaoGolpe, ResultadoVerificacao } from '../services/api/types';
 import { cores, espacos, fontes } from '../theme';
+import { corDaAjuda, SeloDeAjuda } from './SeloDeAjuda';
 import { Texto } from './Texto';
 
 const TEXTO_DA_CLASSIFICACAO: Record<ClassificacaoGolpe, string> = {
@@ -39,8 +40,15 @@ interface PropsCartaoVerificacao {
 
 export function CartaoVerificacao({ resultado }: PropsCartaoVerificacao) {
   const tipoDeGolpe = resultado.tipoGolpe ? TEXTO_DO_TIPO_DE_GOLPE[resultado.tipoGolpe] : undefined;
+  // Golpe provavel ou suspeito: borda de alerta. Sem sinais, a borda comum (e o aviso de que nao e garantia).
+  const emAlerta =
+    resultado.classificacao === 'PROVAVEL_GOLPE' || resultado.classificacao === 'SUSPEITA';
   return (
-    <View style={styles.cartao} accessibilityLiveRegion="polite">
+    <View
+      style={[styles.cartao, emAlerta ? { borderColor: corDaAjuda('verificacao-golpe') } : null]}
+      accessibilityLiveRegion="polite"
+    >
+      <SeloDeAjuda tipo="verificacao-golpe" />
       <Texto style={styles.classificacao}>{TEXTO_DA_CLASSIFICACAO[resultado.classificacao]}</Texto>
       {tipoDeGolpe ? <Texto style={styles.destaque}>{tipoDeGolpe}</Texto> : null}
       {resultado.classificacao === 'SEM_SINAIS_DE_RISCO' ? (

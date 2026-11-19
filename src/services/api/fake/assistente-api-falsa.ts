@@ -199,6 +199,7 @@ function interpretar(pedido: PedidoAssistente): RespostaAssistente {
         telefone: '135',
         orgao: 'INSS',
         localPresencial: null,
+        sobreGolpe: false,
       },
     });
   }

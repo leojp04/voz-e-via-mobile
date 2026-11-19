@@ -643,6 +643,7 @@ describe('TelaAssistente: dúvida sobre serviço público', () => {
     telefone: '135',
     orgao: 'INSS',
     localPresencial: 'CRAS' as const,
+    sobreGolpe: false,
   };
   const duvida = resposta({
     intencao: 'TIRAR_DUVIDA',
@@ -704,6 +705,7 @@ describe('TelaAssistente: dúvida sobre serviço público', () => {
           telefone: null,
           orgao: 'Assistente VozViva. Confirme nos canais oficiais',
           localPresencial: null,
+          sobreGolpe: false,
         },
       }),
     );

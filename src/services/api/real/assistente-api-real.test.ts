@@ -142,6 +142,7 @@ describe('criarAssistenteApiReal.interpretar', () => {
       telefone: '135',
       orgao: 'INSS',
       localPresencial: null,
+      sobreGolpe: false,
     };
     const fetchSimulado = jest
       .fn()

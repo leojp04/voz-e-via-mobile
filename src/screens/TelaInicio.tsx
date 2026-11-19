@@ -23,7 +23,7 @@ interface AtalhoDoInicio {
   rotulo: string;
   icone: NomeDeIcone;
   /** Tela que o atalho abre; sem rota, o atalho ainda avisa "Em breve". */
-  rota?: '/reportes/novo' | '/reportes' | '/contatos' | '/atendimentos';
+  rota?: '/reportes/novo' | '/reportes' | '/contatos' | '/atendimentos' | '/golpe';
 }
 
 const ATALHOS: AtalhoDoInicio[] = [
@@ -32,6 +32,12 @@ const ATALHOS: AtalhoDoInicio[] = [
     rotulo: 'Achar hospital, posto de saúde, farmácia ou CRAS perto de mim',
     icone: 'medkit-outline',
     rota: '/atendimentos',
+  },
+  {
+    titulo: 'É golpe?',
+    rotulo: 'Conferir se uma mensagem é golpe, ou saber o que fazer se caiu num golpe',
+    icone: 'shield-checkmark-outline',
+    rota: '/golpe',
   },
   {
     titulo: 'Reportar problema',

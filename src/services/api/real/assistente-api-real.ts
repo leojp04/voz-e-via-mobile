@@ -52,6 +52,7 @@ function normalizarOrientacao(
     telefone: bruta.telefone ?? null,
     orgao: bruta.orgao ?? '',
     localPresencial: bruta.localPresencial ?? null,
+    sobreGolpe: bruta.sobreGolpe === true,
   };
 }
 

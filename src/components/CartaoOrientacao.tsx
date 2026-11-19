@@ -9,6 +9,7 @@ import type { OrientacaoServico } from '../services/api/types';
 import { cores, espacos, fontes } from '../theme';
 import { ligarPara } from '../utils/ligar-para';
 import { Botao } from './Botao';
+import { corDaAjuda, SeloDeAjuda } from './SeloDeAjuda';
 import { Texto } from './Texto';
 
 /** Abre o site oficial no navegador; sem navegador, avisa em vez de falhar calado. */
@@ -30,8 +31,13 @@ interface PropsCartaoOrientacao {
 export function CartaoOrientacao({ orientacao }: PropsCartaoOrientacao) {
   const { link } = orientacao;
   const site = link ? dominio(link) : null;
+  const tipo = orientacao.sobreGolpe ? 'ajuda-golpe' : 'orientacao';
   return (
-    <View style={styles.cartao} accessibilityLiveRegion="polite">
+    <View
+      style={[styles.cartao, { borderColor: corDaAjuda(tipo) }]}
+      accessibilityLiveRegion="polite"
+    >
+      <SeloDeAjuda tipo={tipo} />
       <Texto style={styles.titulo} accessibilityRole="header">
         {orientacao.titulo}
       </Texto>

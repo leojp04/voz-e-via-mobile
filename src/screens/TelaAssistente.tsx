@@ -321,6 +321,15 @@ export function TelaAssistente() {
               />
             </View>
           ) : null}
+          {resposta.intencao === 'VERIFICAR_INFORMACAO' ? (
+            <Botao
+              titulo="Colar a mensagem recebida"
+              rotulo="Abrir a tela É golpe? para colar a mensagem recebida"
+              variante="secundario"
+              icone="clipboard-outline"
+              onPress={() => router.push({ pathname: '/golpe', params: { texto: texto.trim() } })}
+            />
+          ) : null}
           {local ? (
             <View style={styles.confirmacao}>
               <Texto style={styles.fonte}>
