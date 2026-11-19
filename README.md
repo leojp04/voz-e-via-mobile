@@ -21,8 +21,8 @@ voltado a pessoas idosas e pessoas com deficiência e reúne duas partes, cada u
 > **Integração:** a API .NET (reportes) já foi testada de verdade no simulador, com login de
 > teste. A API Java (login, cadastro, perfil e contatos de emergência, exclusão de conta,
 > assistente) também: em 16/11/2026 o fluxo perfil, contatos e exclusão de conta foi conferido no
-> simulador contra o Java local. Sem `.env`, ou com `EXPO_PUBLIC_USE_FAKE_API=true`, o app usa a
-> API falsa em memória.
+> simulador contra o Java local. As duas APIs estão publicadas na Azure, e o app usa as duas por
+> padrão (sem `.env`). Só com `EXPO_PUBLIC_USE_FAKE_API=true` ele usa a API falsa em memória.
 
 ## Requisitos
 
@@ -34,7 +34,7 @@ voltado a pessoas idosas e pessoas com deficiência e reúne duas partes, cada u
 
 ```bash
 npm install
-cp .env.example .env     # ajuste as URLs das APIs, se precisar
+cp .env.example .env     # já aponta para as APIs publicadas na Azure
 npx expo start
 ```
 
@@ -45,9 +45,17 @@ A voz usa um módulo nativo e **não funciona no Expo Go**: lá a tela do assist
 "Voz indisponível" e deixa digitar. Para testar a voz, gere um _development build_ com
 `npx expo run:ios` ou `npx expo run:android`.
 
-Enquanto as APIs não estiverem no ar, deixe `EXPO_PUBLIC_USE_FAKE_API=true` no `.env`: o app usa
-uma API falsa em memória. Na entrega, o app usa apenas as APIs reais (ver
-[ADR 0004](docs/adr/0004-api-falsa-temporaria.md)).
+O app usa as APIs publicadas na Azure:
+
+| API                                        | Endereço                                           | Swagger                                                                           |
+| ------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Java (login, perfil, contatos, assistente) | `https://app-vozviva-rm562312.azurewebsites.net`   | [swagger-ui.html](https://app-vozviva-rm562312.azurewebsites.net/swagger-ui.html) |
+| .NET (reportes de zeladoria)               | `https://app-zeladoria-rm562312.azurewebsites.net` | [swagger](https://app-zeladoria-rm562312.azurewebsites.net/swagger)               |
+
+A primeira chamada depois de um tempo parada pode levar uns 15 segundos (o plano da Azure é pequeno).
+Para desenvolver sem backend, use `EXPO_PUBLIC_USE_FAKE_API=true` no `.env` (API falsa em memória,
+ver [ADR 0004](docs/adr/0004-api-falsa-temporaria.md)); para usar as APIs rodando no computador,
+troque as URLs no `.env`.
 
 ## Scripts
 
