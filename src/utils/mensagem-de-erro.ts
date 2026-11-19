@@ -35,6 +35,11 @@ export function mensagemDeErroDoReporte(erro: unknown): string {
     if (erro.status === 400 || erro.status === 422) {
       return 'Confira os dados do reporte e tente de novo.';
     }
+    // 409 aqui: a mesma Idempotency-Key ainda esta sendo processada pelo .NET. O reporte ja esta a
+    // caminho, entao reenviar so geraria outro 409.
+    if (erro.status === 409) {
+      return 'O seu reporte ainda está sendo enviado. Espere um instante e confira em "Meus reportes".';
+    }
     if (erro.status >= 500) {
       return 'O servidor está com problemas. O seu reporte não foi enviado. Tente de novo em instantes.';
     }
@@ -46,6 +51,16 @@ export function mensagemDeErroDaFoto(erro: unknown): string {
   if (ehErroApi(erro)) {
     if (erro.status === 0) return 'Sem conexão. A foto não foi enviada. Tente de novo.';
     if (erro.status === 400) return 'A foto não foi aceita. Escolha outra, em JPEG ou PNG.';
+    // 413: a foto passa do limite de 5 MB da API .NET.
+    if (erro.status === 413) return 'A foto é grande demais. Escolha outra, de até 5 MB.';
+    // 429: limite de fotos por minuto da API .NET (por pessoa).
+    if (erro.status === 429) {
+      return 'Muitas fotos em pouco tempo. A foto não foi enviada. Espere um minuto e tente de novo.';
+    }
+    // 409: o reporte mudou de status ou foi alterado por outra pessoa enquanto a foto subia.
+    if (erro.status === 409) {
+      return 'Este reporte já não aceita foto, porque mudou ou não está mais em aberto. A foto não foi enviada.';
+    }
     if (erro.status >= 500) {
       return 'O servidor está com problemas. A foto não foi enviada. Tente de novo em instantes.';
     }

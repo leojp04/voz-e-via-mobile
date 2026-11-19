@@ -50,6 +50,12 @@ describe('mensagemDeErroDoReporte', () => {
     expect(mensagemDeErroDoReporte(new ErroApi(422, 'x'))).toBe(esperado);
   });
 
+  it('409: o mesmo envio ainda esta sendo processado, nao precisa reenviar', () => {
+    expect(mensagemDeErroDoReporte(new ErroApi(409, 'x'))).toBe(
+      'O seu reporte ainda está sendo enviado. Espere um instante e confira em "Meus reportes".',
+    );
+  });
+
   it('erro do servidor: avisa que o reporte nao foi enviado', () => {
     expect(mensagemDeErroDoReporte(new ErroApi(503, 'x'))).toBe(
       'O servidor está com problemas. O seu reporte não foi enviado. Tente de novo em instantes.',
@@ -75,6 +81,24 @@ describe('mensagemDeErroDaFoto', () => {
   it('400: a foto nao foi aceita, sugere outra em JPEG ou PNG', () => {
     expect(mensagemDeErroDaFoto(new ErroApi(400, 'x'))).toBe(
       'A foto não foi aceita. Escolha outra, em JPEG ou PNG.',
+    );
+  });
+
+  it('413: a foto e grande demais (limite de 5 MB da API)', () => {
+    expect(mensagemDeErroDaFoto(new ErroApi(413, 'x'))).toBe(
+      'A foto é grande demais. Escolha outra, de até 5 MB.',
+    );
+  });
+
+  it('429: muitas fotos em pouco tempo, pede para esperar', () => {
+    expect(mensagemDeErroDaFoto(new ErroApi(429, 'x'))).toBe(
+      'Muitas fotos em pouco tempo. A foto não foi enviada. Espere um minuto e tente de novo.',
+    );
+  });
+
+  it('409: o reporte ja nao esta em aberto ou mudou, a foto NAO foi enviada', () => {
+    expect(mensagemDeErroDaFoto(new ErroApi(409, 'x'))).toBe(
+      'Este reporte já não aceita foto, porque mudou ou não está mais em aberto. A foto não foi enviada.',
     );
   });
 
