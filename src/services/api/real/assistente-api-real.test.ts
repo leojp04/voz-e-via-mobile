@@ -133,7 +133,7 @@ describe('criarAssistenteApiReal.interpretar', () => {
     });
   });
 
-  it('TIRAR_DUVIDA traz a orientacao oficial; link que nao e https e descartado', async () => {
+  it('TIRAR_DUVIDA traz a orientacao oficial; link que nao e https vira sem link', async () => {
     const orientacao = {
       titulo: 'Pedir aposentadoria',
       resumo: 'A aposentadoria é pedida pelo Meu INSS.',
@@ -162,7 +162,7 @@ describe('criarAssistenteApiReal.interpretar', () => {
 
     expect(certa.intencao).toBe('TIRAR_DUVIDA');
     expect(certa.orientacao).toEqual(orientacao);
-    expect(suspeita.orientacao).toBeNull();
+    expect(suspeita.orientacao).toEqual({ ...orientacao, link: null });
   });
 
   it('propaga o erro da API (400 com texto vazio)', async () => {

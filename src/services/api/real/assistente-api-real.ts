@@ -39,16 +39,16 @@ const SEM_ENTIDADES: EntidadesDaFala = {
   referenciaLocal: null,
 };
 
-// So abre link https (o Java manda o site oficial da base curada; qualquer outra coisa e descartada).
+// So abre link https (o Java manda o site oficial da base curada; qualquer outra coisa vira "sem link").
 function normalizarOrientacao(
   bruta: Partial<OrientacaoServico> | null | undefined,
 ): OrientacaoServico | null {
-  if (!bruta || !bruta.titulo || !bruta.resumo || !bruta.link?.startsWith('https://')) return null;
+  if (!bruta || !bruta.titulo || !bruta.resumo) return null;
   return {
     titulo: bruta.titulo,
     resumo: bruta.resumo,
     passos: bruta.passos ?? [],
-    link: bruta.link,
+    link: bruta.link?.startsWith('https://') ? bruta.link : null,
     telefone: bruta.telefone ?? null,
     orgao: bruta.orgao ?? '',
     localPresencial: bruta.localPresencial ?? null,

@@ -691,6 +691,29 @@ describe('TelaAssistente: dúvida sobre serviço público', () => {
     });
   });
 
+  it('dúvida aberta: mostra a resposta e a fonte, sem botão de site nem de ligar', async () => {
+    await perguntar(
+      resposta({
+        intencao: 'TIRAR_DUVIDA',
+        mensagemFalada: 'Sim, idosos têm prioridade na fila do banco. Confirme no gov.br.',
+        orientacao: {
+          titulo: 'Resposta do assistente',
+          resumo: 'Sim, idosos têm prioridade na fila do banco. Confirme no gov.br.',
+          passos: [],
+          link: null,
+          telefone: null,
+          orgao: 'Assistente VozViva. Confirme nos canais oficiais',
+          localPresencial: null,
+        },
+      }),
+    );
+
+    expect(await screen.findByText(/idosos têm prioridade na fila do banco/)).toBeOnTheScreen();
+    expect(screen.getByText('Assistente VozViva. Confirme nos canais oficiais')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /Abrir o site oficial/ })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /central gratuita/ })).not.toBeOnTheScreen();
+  });
+
   it('sem atendimento presencial, não pede a localização', async () => {
     await perguntar(resposta({ ...duvida, orientacao: { ...ORIENTACAO, localPresencial: null } }));
 

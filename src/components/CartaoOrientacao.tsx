@@ -1,6 +1,6 @@
-// Cartao da orientacao sobre um servico publico (TIRAR_DUVIDA): o que fazer em passos curtos, o site
-// oficial e a central gratuita. O conteudo vem da base curada do Java, nunca do texto da IA, entao o
-// link e o telefone sao sempre os oficiais. Os botoes so abrem o navegador ou o discador: a pessoa
+// Cartao da resposta de uma duvida (TIRAR_DUVIDA): o que fazer em passos curtos, o site oficial e a
+// central gratuita. Passos, link e telefone vem da base curada do Java, nunca do texto da IA, entao
+// sao sempre os oficiais; numa duvida aberta vem so o titulo e a fonte (a resposta fica acima). Os botoes so abrem o navegador ou o discador: a pessoa
 // continua no controle (nada e enviado nem ligado sozinho).
 
 import { Alert, Linking, StyleSheet, View } from 'react-native';
@@ -28,7 +28,8 @@ interface PropsCartaoOrientacao {
 }
 
 export function CartaoOrientacao({ orientacao }: PropsCartaoOrientacao) {
-  const site = dominio(orientacao.link);
+  const { link } = orientacao;
+  const site = link ? dominio(link) : null;
   return (
     <View style={styles.cartao} accessibilityLiveRegion="polite">
       <Texto style={styles.titulo} accessibilityRole="header">
@@ -44,12 +45,14 @@ export function CartaoOrientacao({ orientacao }: PropsCartaoOrientacao) {
           ))}
         </View>
       ) : null}
-      <Botao
-        titulo="Abrir o site oficial"
-        rotulo={`Abrir o site oficial, ${site}`}
-        icone="open-outline"
-        onPress={() => abrirSiteOficial(orientacao.link)}
-      />
+      {link ? (
+        <Botao
+          titulo="Abrir o site oficial"
+          rotulo={`Abrir o site oficial, ${site}`}
+          icone="open-outline"
+          onPress={() => abrirSiteOficial(link)}
+        />
+      ) : null}
       {orientacao.telefone ? (
         <Botao
           titulo={`Ligar ${orientacao.telefone}`}
@@ -59,7 +62,9 @@ export function CartaoOrientacao({ orientacao }: PropsCartaoOrientacao) {
           onPress={() => ligarPara(orientacao.telefone as string)}
         />
       ) : null}
-      <Texto style={styles.fonte}>{`Fonte: ${orientacao.orgao} (${site})`}</Texto>
+      <Texto style={styles.fonte}>
+        {site ? `Fonte: ${orientacao.orgao} (${site})` : orientacao.orgao}
+      </Texto>
     </View>
   );
 }

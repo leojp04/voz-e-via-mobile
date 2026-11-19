@@ -306,15 +306,16 @@ export interface AtendimentosProximos {
 }
 
 /**
- * Orientacao oficial sobre um servico publico (aposentadoria, BPC, gov.br...), em TIRAR_DUVIDA. Vem da
- * base curada do Java (OrientacaoServicoResponse), nunca do texto do modelo.
+ * Resposta de uma duvida (TIRAR_DUVIDA), do Java (OrientacaoServicoResponse). Com servico da base
+ * (aposentadoria, BPC, gov.br...), passos, link e telefone sao os oficiais da base curada; numa duvida
+ * aberta ("idoso tem prioridade na fila do banco?"), vem so o texto, sem link nem telefone.
  */
 export interface OrientacaoServico {
   titulo: string;
   resumo: string;
   passos: string[];
-  /** Pagina oficial do servico (sempre https). */
-  link: string;
+  /** Pagina oficial do servico (sempre https); null numa resposta aberta, sem servico da base. */
+  link: string | null;
   /** Central oficial gratuita (ex.: "135" do INSS), quando houver. */
   telefone: string | null;
   orgao: string;
