@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "br.com.fiap.vozevia",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#1F3A5F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
