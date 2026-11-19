@@ -84,6 +84,7 @@ function resposta(
     entidades: SEM_ENTIDADES,
     confianca: 0.9,
     atendimentos: null,
+    orientacao: null,
     ...parcial,
   };
 }
@@ -176,6 +177,29 @@ function interpretar(pedido: PedidoAssistente): RespostaAssistente {
     return resposta({
       intencao: 'VERIFICAR_INFORMACAO',
       mensagemFalada: 'Cole ou fale a mensagem que você recebeu, e eu confiro para você.',
+    });
+  }
+
+  // Depois do golpe: "recebi uma mensagem do INSS, isso e golpe?" e verificacao, nao duvida.
+  if (/\b(aposentadoria|aposentar|inss|prova de vida)\b/.test(t)) {
+    const resumo =
+      'A aposentadoria é pedida pelo Meu INSS, no site ou no aplicativo, sem ir a uma agência. Se precisar de ajuda, ligue 135.';
+    return resposta({
+      intencao: 'TIRAR_DUVIDA',
+      urgencia: 'BAIXA',
+      mensagemFalada: resumo,
+      orientacao: {
+        titulo: 'Pedir aposentadoria',
+        resumo,
+        passos: [
+          'Entre no Meu INSS com a sua conta gov.br.',
+          'Toque em Novo pedido e digite aposentadoria.',
+        ],
+        link: 'https://meu.inss.gov.br',
+        telefone: '135',
+        orgao: 'INSS',
+        localPresencial: null,
+      },
     });
   }
 

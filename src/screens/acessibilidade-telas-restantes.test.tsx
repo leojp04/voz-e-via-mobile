@@ -104,6 +104,7 @@ function resposta(parcial: Partial<RespostaAssistente>): RespostaAssistente {
     mensagemFalada: 'ok',
     confianca: 0.9,
     atendimentos: null,
+    orientacao: null,
     ...parcial,
   };
 }

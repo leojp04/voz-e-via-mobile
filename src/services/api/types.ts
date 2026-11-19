@@ -241,7 +241,12 @@ export interface ContatosApi {
 // ---------------------------------------------------------------------------------------------
 
 export type Intencao =
-  'SOCORRO' | 'BUSCAR_ATENDIMENTO' | 'VERIFICAR_INFORMACAO' | 'ZELADORIA_REPORT' | 'DESCONHECIDA';
+  | 'SOCORRO'
+  | 'BUSCAR_ATENDIMENTO'
+  | 'VERIFICAR_INFORMACAO'
+  | 'ZELADORIA_REPORT'
+  | 'TIRAR_DUVIDA'
+  | 'DESCONHECIDA';
 
 /** Urgencia da fala (o Java tem um nivel a mais que o reporte: CRITICA). */
 export type UrgenciaDaFala = Urgencia | 'CRITICA';
@@ -300,6 +305,23 @@ export interface AtendimentosProximos {
   creditoDados: string;
 }
 
+/**
+ * Orientacao oficial sobre um servico publico (aposentadoria, BPC, gov.br...), em TIRAR_DUVIDA. Vem da
+ * base curada do Java (OrientacaoServicoResponse), nunca do texto do modelo.
+ */
+export interface OrientacaoServico {
+  titulo: string;
+  resumo: string;
+  passos: string[];
+  /** Pagina oficial do servico (sempre https). */
+  link: string;
+  /** Central oficial gratuita (ex.: "135" do INSS), quando houver. */
+  telefone: string | null;
+  orgao: string;
+  /** Onde a pessoa pode ser atendida perto de casa (ex.: CRAS); o app pode buscar o mais perto. */
+  localPresencial: TipoAtendimento | null;
+}
+
 export interface PedidoAssistente {
   /** O que a pessoa disse ou digitou (a fala vira texto no celular; o audio nao sai do aparelho). */
   texto: string;
@@ -317,8 +339,10 @@ export interface RespostaAssistente {
   mensagemFalada: string;
   /** De 0 a 1. */
   confianca: number;
-  /** So em BUSCAR_ATENDIMENTO com localizacao. */
+  /** Em BUSCAR_ATENDIMENTO com localizacao (e em TIRAR_DUVIDA com atendimento presencial, como o CRAS). */
   atendimentos: AtendimentosProximos | null;
+  /** So em TIRAR_DUVIDA. */
+  orientacao: OrientacaoServico | null;
 }
 
 export interface PedidoEmergencia {

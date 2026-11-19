@@ -129,7 +129,40 @@ describe('criarAssistenteApiReal.interpretar', () => {
       mensagemFalada: 'Posso pedir ajuda?',
       confianca: 0,
       atendimentos: null,
+      orientacao: null,
     });
+  });
+
+  it('TIRAR_DUVIDA traz a orientacao oficial; link que nao e https e descartado', async () => {
+    const orientacao = {
+      titulo: 'Pedir aposentadoria',
+      resumo: 'A aposentadoria é pedida pelo Meu INSS.',
+      passos: ['Entre no Meu INSS.'],
+      link: 'https://meu.inss.gov.br',
+      telefone: '135',
+      orgao: 'INSS',
+      localPresencial: null,
+    };
+    const fetchSimulado = jest
+      .fn()
+      .mockResolvedValueOnce(
+        resposta(200, { ...respostaDoJava, intencao: 'TIRAR_DUVIDA', orientacao }),
+      )
+      .mockResolvedValueOnce(
+        resposta(200, {
+          ...respostaDoJava,
+          intencao: 'TIRAR_DUVIDA',
+          orientacao: { ...orientacao, link: 'javascript:alert(1)' },
+        }),
+      );
+    const api = criar(fetchSimulado);
+
+    const certa = await api.interpretar({ texto: 'como peço aposentadoria' });
+    const suspeita = await api.interpretar({ texto: 'como peço aposentadoria' });
+
+    expect(certa.intencao).toBe('TIRAR_DUVIDA');
+    expect(certa.orientacao).toEqual(orientacao);
+    expect(suspeita.orientacao).toBeNull();
   });
 
   it('propaga o erro da API (400 com texto vazio)', async () => {

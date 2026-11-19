@@ -6,7 +6,10 @@
 // confirmar uma coisa que ja nao e o que esta escrito.
 // Privacidade: o GPS NUNCA vai junto do envio. Para BUSCAR_ATENDIMENTO o Java so traz a lista se
 // receber a localizacao; quando ela falta, a tela oferece "Usar minha localizacao" e, so nesse
-// toque, le o GPS e reenvia a MESMA frase.
+// toque, le o GPS e reenvia a MESMA frase. So oferece quando o Java ja sabe o TIPO de lugar: sem o
+// tipo, a localizacao nao resolve e o pedido voltaria igual (era um loop). Numa duvida sobre servico
+// publico (TIRAR_DUVIDA), a tela mostra a orientacao oficial e, se ela tiver atendimento presencial
+// (ex.: CRAS), oferece buscar o mais perto do mesmo jeito.
 
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -17,12 +20,18 @@ import { BotaoMicrofone } from '../components/BotaoMicrofone';
 import { CaixaConsentimento } from '../components/CaixaConsentimento';
 import { CampoTexto } from '../components/CampoTexto';
 import { CartaoAtendimento } from '../components/CartaoAtendimento';
+import { CartaoOrientacao } from '../components/CartaoOrientacao';
 import { CartaoVerificacao } from '../components/CartaoVerificacao';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import { obterLocalizacao } from '../services/aparelho/localizacao';
-import type { AtendimentosProximos, Intencao, RespostaAssistente } from '../services/api/types';
+import type {
+  AtendimentosProximos,
+  Intencao,
+  RespostaAssistente,
+  TipoAtendimento,
+} from '../services/api/types';
 import {
   executarIntencao,
   intencaoTemAcao,
@@ -56,6 +65,27 @@ const TITULO_DE_CONFIRMAR: Partial<Record<Intencao, string>> = {
 };
 
 type ResultadoComCartao = Extract<ResultadoDaExecucao, { tipo: 'emergencia' | 'verificacao' }>;
+
+const NOME_DO_LOCAL: Record<TipoAtendimento, string> = {
+  HOSPITAL: 'o hospital',
+  UPA: 'a UPA',
+  UBS: 'o posto de saúde',
+  FARMACIA: 'a farmácia',
+  CRAS: 'o CRAS',
+  DELEGACIA: 'a delegacia',
+  DEFENSORIA: 'a Defensoria Pública',
+};
+
+/**
+ * Que lugar a localizacao ajudaria a achar, ou null quando ela nao resolve nada (sem tipo, ou a lista
+ * ja veio). Sem isso, "Usar minha localizacao" reenviava a mesma frase e voltava igual.
+ */
+export function localParaBuscar(resposta: RespostaAssistente): TipoAtendimento | null {
+  if (resposta.atendimentos) return null;
+  if (resposta.intencao === 'BUSCAR_ATENDIMENTO') return resposta.entidades.tipoAtendimento;
+  if (resposta.intencao === 'TIRAR_DUVIDA') return resposta.orientacao?.localPresencial ?? null;
+  return null;
+}
 
 function BotaoLigarEmergencia({ telefone }: { telefone: string }) {
   const rotulo =
@@ -266,6 +296,7 @@ export function TelaAssistente() {
   }
 
   const tituloDeConfirmar = resposta ? TITULO_DE_CONFIRMAR[resposta.intencao] : undefined;
+  const local = resposta ? localParaBuscar(resposta) : null;
 
   return (
     <Tela>
@@ -351,15 +382,14 @@ export function TelaAssistente() {
               />
             </View>
           ) : null}
-          {resposta.intencao === 'BUSCAR_ATENDIMENTO' && !resposta.atendimentos ? (
+          {local ? (
             <View style={styles.confirmacao}>
               <Texto style={styles.fonte}>
-                Para mostrar os mais perto de você, preciso da sua localização. Ela é usada só nesta
-                busca.
+                {`Para mostrar ${NOME_DO_LOCAL[local]} mais perto de você, preciso da sua localização. Ela é usada só nesta busca.`}
               </Texto>
               <Botao
                 titulo="Usar minha localização"
-                rotulo="Usar minha localização para achar atendimentos"
+                rotulo={`Usar minha localização para achar ${NOME_DO_LOCAL[local]} mais perto`}
                 icone="locate-outline"
                 onPress={() => void usarLocalizacao()}
                 carregando={lendoGps}
@@ -368,6 +398,8 @@ export function TelaAssistente() {
           ) : null}
         </View>
       ) : null}
+
+      {resposta?.orientacao ? <CartaoOrientacao orientacao={resposta.orientacao} /> : null}
 
       {resposta?.atendimentos ? <ListaDeAtendimentos dados={resposta.atendimentos} /> : null}
 
