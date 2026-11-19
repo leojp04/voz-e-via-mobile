@@ -91,6 +91,27 @@ describe('criarClienteHttp', () => {
     expect(fetchSimulado.mock.calls[0][1].headers.Authorization).toBeUndefined();
   });
 
+  it('passou do tempo limite: cancela a chamada e avisa que demorou (408), sem esperar para sempre', async () => {
+    jest.useFakeTimers();
+    const fetchTravado = jest.fn(
+      (_url: string, opcoes: RequestInit) =>
+        new Promise<Response>((_resolve, rejeitar) => {
+          opcoes.signal?.addEventListener('abort', () => rejeitar(new Error('abortado')));
+        }),
+    );
+    const cliente = criarClienteHttp({
+      baseUrl: 'http://api.teste',
+      fetchImpl: fetchTravado as unknown as typeof fetch,
+      tempoLimiteMs: 1000,
+    });
+
+    const chamada = cliente.get('/lento');
+    jest.advanceTimersByTime(1000);
+
+    await expect(chamada).rejects.toMatchObject({ status: 408 });
+    jest.useRealTimers();
+  });
+
   it('devolve undefined quando a resposta nao tem corpo (204)', async () => {
     const fetchSimulado = jest.fn().mockResolvedValue(resposta(204));
 

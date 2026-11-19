@@ -9,6 +9,7 @@ import type {
   ClassificacaoGolpe,
   EntidadesDaFala,
   Intencao,
+  OrientacaoServico,
   ResultadoEmergencia,
   ResultadoVerificacao,
   RespostaAssistente,
@@ -19,6 +20,7 @@ const INTENCOES: readonly Intencao[] = [
   'BUSCAR_ATENDIMENTO',
   'VERIFICAR_INFORMACAO',
   'ZELADORIA_REPORT',
+  'TIRAR_DUVIDA',
   'DESCONHECIDA',
 ];
 
@@ -37,6 +39,23 @@ const SEM_ENTIDADES: EntidadesDaFala = {
   referenciaLocal: null,
 };
 
+// So abre link https (o Java manda o site oficial da base curada; qualquer outra coisa vira "sem link").
+function normalizarOrientacao(
+  bruta: Partial<OrientacaoServico> | null | undefined,
+): OrientacaoServico | null {
+  if (!bruta || !bruta.titulo || !bruta.resumo) return null;
+  return {
+    titulo: bruta.titulo,
+    resumo: bruta.resumo,
+    passos: bruta.passos ?? [],
+    link: bruta.link?.startsWith('https://') ? bruta.link : null,
+    telefone: bruta.telefone ?? null,
+    orgao: bruta.orgao ?? '',
+    localPresencial: bruta.localPresencial ?? null,
+    sobreGolpe: bruta.sobreGolpe === true,
+  };
+}
+
 // A resposta vem de uma IA: o app nao confia no formato. Intencao desconhecida vira DESCONHECIDA
 // (nunca executa uma acao que nao conhece) e campo ausente vira um valor seguro.
 function normalizar(bruta: Partial<RespostaAssistente>): RespostaAssistente {
@@ -46,7 +65,9 @@ function normalizar(bruta: Partial<RespostaAssistente>): RespostaAssistente {
     entidades: { ...SEM_ENTIDADES, ...bruta.entidades },
     mensagemFalada: bruta.mensagemFalada ?? '',
     confianca: bruta.confianca ?? 0,
+    analisadoPor: bruta.analisadoPor === 'REGRAS' ? 'REGRAS' : 'IA_E_REGRAS',
     atendimentos: (bruta.atendimentos as AtendimentosProximos | null | undefined) ?? null,
+    orientacao: normalizarOrientacao(bruta.orientacao),
   };
 }
 

@@ -15,6 +15,11 @@ export interface OpcoesClienteHttp {
   aoNaoAutorizado?: () => void;
   /** Troca do fetch, usada nos testes. */
   fetchImpl?: typeof fetch;
+  /**
+   * Tempo maximo de uma chamada, em ms. Sem limite, uma API travada deixa a tela "carregando" para
+   * sempre. O padrao cobre a primeira chamada depois de um deploy (cerca de 15 s) e a IA (ate 30 s).
+   */
+  tempoLimiteMs?: number;
 }
 
 /** Opcoes de uma chamada especifica. */
@@ -50,6 +55,10 @@ export interface ClienteHttp {
 }
 
 const MENSAGEM_SEM_CONEXAO = 'Sem conexão. Verifique a internet e tente de novo.';
+const MENSAGEM_DEMOROU = 'O servidor demorou para responder. Tente de novo.';
+/** Status do ErroApi quando a chamada passa do tempo limite (o mesmo codigo HTTP de "Request Timeout"). */
+export const STATUS_TEMPO_ESGOTADO = 408;
+const TEMPO_LIMITE_PADRAO_MS = 45_000;
 const MENSAGEM_ERRO_SERVIDOR = 'Algo deu errado no servidor. Tente de novo.';
 const MENSAGEM_ERRO_GENERICA = 'Não foi possível concluir a operação. Tente de novo.';
 
@@ -122,6 +131,7 @@ export function criarClienteHttp({
   obterToken,
   aoNaoAutorizado,
   fetchImpl = fetch,
+  tempoLimiteMs = TEMPO_LIMITE_PADRAO_MS,
 }: OpcoesClienteHttp): ClienteHttp {
   const base = baseUrl.replace(/\/+$/, '');
 
@@ -139,15 +149,26 @@ export function criarClienteHttp({
     if (corpo !== undefined && !ehMultipart) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
 
+    const controle = new AbortController();
+    let esgotou = false;
+    const relogio = setTimeout(() => {
+      esgotou = true;
+      controle.abort();
+    }, tempoLimiteMs);
     let resposta: Response;
     try {
       resposta = await fetchImpl(`${base}${caminho}`, {
         method: metodo,
         headers,
         body: corpo === undefined ? undefined : ehMultipart ? corpo : JSON.stringify(corpo),
+        signal: controle.signal,
       });
     } catch {
-      throw new ErroApi(0, MENSAGEM_SEM_CONEXAO);
+      throw esgotou
+        ? new ErroApi(STATUS_TEMPO_ESGOTADO, MENSAGEM_DEMOROU)
+        : new ErroApi(0, MENSAGEM_SEM_CONEXAO);
+    } finally {
+      clearTimeout(relogio);
     }
 
     const dados = await lerCorpo(resposta);

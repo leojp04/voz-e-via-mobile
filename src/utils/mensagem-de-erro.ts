@@ -182,6 +182,9 @@ export function mensagemDeErro(erro: unknown): string {
 export function mensagemDeErroDoAssistente(erro: unknown): string {
   if (ehErroApi(erro)) {
     if (erro.status === 0) return 'Sem conexão. Nada foi feito. Tente de novo.';
+    if (erro.status === 408) {
+      return 'O assistente demorou para responder. Nada foi feito. Tente de novo.';
+    }
     if (erro.status === 400) {
       return 'Não consegui entender o que você escreveu. Nada foi feito. Tente com outras palavras.';
     }

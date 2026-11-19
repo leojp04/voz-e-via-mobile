@@ -6,13 +6,22 @@ import * as Speech from 'expo-speech';
 
 import { IDIOMA_DO_APP } from '../../theme';
 
-/** Le o texto em voz alta, cortando antes qualquer fala em andamento. Nao lanca erro. */
-export async function falar(texto: string): Promise<void> {
+// Mais devagar para quem tem dificuldade de acompanhar: pessoas idosas preferem fala clara e lenta.
+const VELOCIDADE_DEVAGAR = 0.7;
+
+/**
+ * Le o texto em voz alta, cortando antes qualquer fala em andamento. Nao lanca erro.
+ * @param devagar le mais devagar ("Ouvir mais devagar")
+ */
+export async function falar(texto: string, devagar = false): Promise<void> {
   const limpo = texto.trim();
   if (limpo.length === 0) return;
   try {
     await Speech.stop();
-    Speech.speak(limpo, { language: IDIOMA_DO_APP });
+    Speech.speak(
+      limpo,
+      devagar ? { language: IDIOMA_DO_APP, rate: VELOCIDADE_DEVAGAR } : { language: IDIOMA_DO_APP },
+    );
   } catch {
     // Sem motor de voz no aparelho: a pessoa ainda le a resposta na tela.
   }

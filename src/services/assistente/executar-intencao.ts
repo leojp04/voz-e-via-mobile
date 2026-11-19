@@ -140,6 +140,7 @@ export async function executarIntencao(
     case 'ZELADORIA_REPORT':
       return abrirNovoReporte(resposta, texto, deps);
     case 'BUSCAR_ATENDIMENTO':
+    case 'TIRAR_DUVIDA':
     case 'DESCONHECIDA':
       return { tipo: 'nada' };
   }

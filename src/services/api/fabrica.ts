@@ -4,12 +4,14 @@
 
 import { criarClienteHttp } from './cliente-http';
 import { criarAssistenteApiFalsa } from './fake/assistente-api-falsa';
+import { criarAtendimentosApiFalsa } from './fake/atendimentos-api-falsa';
 import { criarAuthApiFalsa } from './fake/auth-api-falsa';
 import { criarContatosApiFalsa } from './fake/contatos-api-falsa';
 import { criarFotosApiFalsa } from './fake/fotos-api-falsa';
 import { criarPerfisApiFalsa } from './fake/perfis-api-falsa';
 import { criarReportesApiFalsa } from './fake/reportes-api-falsa';
 import { criarAssistenteApiReal } from './real/assistente-api-real';
+import { criarAtendimentosApiReal } from './real/atendimentos-api-real';
 import { criarAuthApiReal } from './real/auth-api-real';
 import { criarContatosApiReal } from './real/contatos-api-real';
 import { criarFotosApiReal } from './real/fotos-api-real';
@@ -17,6 +19,7 @@ import { criarPerfisApiReal } from './real/perfis-api-real';
 import { criarReportesApiReal } from './real/reportes-api-real';
 import type {
   AssistenteApi,
+  AtendimentosApi,
   AuthApi,
   ContatosApi,
   FotosApi,
@@ -46,6 +49,7 @@ export interface Apis {
   perfis: PerfisApi;
   contatos: ContatosApi;
   assistente: AssistenteApi;
+  atendimentos: AtendimentosApi;
 }
 
 export function criarApis({
@@ -78,6 +82,7 @@ export function criarApis({
         contatosIniciais: [],
       }),
       assistente: criarAssistenteApiFalsa(sessaoDasFalsas),
+      atendimentos: criarAtendimentosApiFalsa(),
     };
   }
   // Dois servidores, duas URLs, mesma sessao: o token do login (Java) vale tambem no .NET.
@@ -100,6 +105,7 @@ export function criarApis({
     perfis: criarPerfisApiReal(clienteJava),
     contatos: criarContatosApiReal(clienteJava),
     assistente: criarAssistenteApiReal(clienteJava),
+    atendimentos: criarAtendimentosApiReal(clienteJava),
   };
 }
 

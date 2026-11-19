@@ -241,7 +241,12 @@ export interface ContatosApi {
 // ---------------------------------------------------------------------------------------------
 
 export type Intencao =
-  'SOCORRO' | 'BUSCAR_ATENDIMENTO' | 'VERIFICAR_INFORMACAO' | 'ZELADORIA_REPORT' | 'DESCONHECIDA';
+  | 'SOCORRO'
+  | 'BUSCAR_ATENDIMENTO'
+  | 'VERIFICAR_INFORMACAO'
+  | 'ZELADORIA_REPORT'
+  | 'TIRAR_DUVIDA'
+  | 'DESCONHECIDA';
 
 /** Urgencia da fala (o Java tem um nivel a mais que o reporte: CRITICA). */
 export type UrgenciaDaFala = Urgencia | 'CRITICA';
@@ -300,6 +305,26 @@ export interface AtendimentosProximos {
   creditoDados: string;
 }
 
+/**
+ * Resposta de uma duvida (TIRAR_DUVIDA), do Java (OrientacaoServicoResponse). Com servico da base
+ * (aposentadoria, BPC, gov.br...), passos, link e telefone sao os oficiais da base curada; numa duvida
+ * aberta ("idoso tem prioridade na fila do banco?"), vem so o texto, sem link nem telefone.
+ */
+export interface OrientacaoServico {
+  titulo: string;
+  resumo: string;
+  passos: string[];
+  /** Pagina oficial do servico (sempre https); null numa resposta aberta, sem servico da base. */
+  link: string | null;
+  /** Central oficial gratuita (ex.: "135" do INSS), quando houver. */
+  telefone: string | null;
+  orgao: string;
+  /** Onde a pessoa pode ser atendida perto de casa (ex.: CRAS); o app pode buscar o mais perto. */
+  localPresencial: TipoAtendimento | null;
+  /** Ajuda contra golpe (quem ja caiu num golpe, como reconhecer): o app mostra com o destaque de golpe. */
+  sobreGolpe: boolean;
+}
+
 export interface PedidoAssistente {
   /** O que a pessoa disse ou digitou (a fala vira texto no celular; o audio nao sai do aparelho). */
   texto: string;
@@ -317,8 +342,12 @@ export interface RespostaAssistente {
   mensagemFalada: string;
   /** De 0 a 1. */
   confianca: number;
-  /** So em BUSCAR_ATENDIMENTO com localizacao. */
+  /** REGRAS = a IA estava indisponivel (fora do ar ou no limite de uso) e a resposta veio so das regras. */
+  analisadoPor: 'IA_E_REGRAS' | 'REGRAS';
+  /** Em BUSCAR_ATENDIMENTO com localizacao (e em TIRAR_DUVIDA com atendimento presencial, como o CRAS). */
   atendimentos: AtendimentosProximos | null;
+  /** So em TIRAR_DUVIDA. */
+  orientacao: OrientacaoServico | null;
 }
 
 export interface PedidoEmergencia {
@@ -353,6 +382,20 @@ export interface ResultadoVerificacao {
   canalOficial: string | null;
   mensagemFalada: string;
   fontes: { titulo: string; orgao: string; url: string }[];
+}
+
+/** Busca direta, sem passar pela voz (tela "Atendimento perto"). */
+export interface PedidoAtendimentos {
+  tipo: TipoAtendimento;
+  latitude: number;
+  longitude: number;
+  /** true = prefere locais com acessibilidade confirmada. */
+  acessivel: boolean;
+}
+
+export interface AtendimentosApi {
+  /** GET /api/v1/atendimentos/proximos. Erros: 400, 401, 0 (sem conexao). */
+  proximos(pedido: PedidoAtendimentos): Promise<AtendimentosProximos>;
 }
 
 export interface AssistenteApi {

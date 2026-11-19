@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor } from 'expo-router/testing-library';
-import { Text } from 'react-native';
+import { Linking, Text } from 'react-native';
 
 import { ErroAparelho } from '../services/aparelho/erro-aparelho';
 import { obterLocalizacao } from '../services/aparelho/localizacao';
@@ -22,7 +22,7 @@ import {
 } from '../test-utils/montar-tela';
 import { ligarPara } from '../utils/ligar-para';
 import { abrirNoMapa } from '../utils/url-do-mapa';
-import { TelaAssistente } from './TelaAssistente';
+import { localParaBuscar, TelaAssistente } from './TelaAssistente';
 
 // O Ionicons tenta carregar um arquivo de fonte (que nao existe no Jest); o icone e decorativo.
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
@@ -83,7 +83,9 @@ function resposta(parcial: Partial<RespostaAssistente>): RespostaAssistente {
     entidades: SEM_ENTIDADES,
     mensagemFalada: 'ok',
     confianca: 0.9,
+    analisadoPor: 'IA_E_REGRAS',
     atendimentos: null,
+    orientacao: null,
     ...parcial,
   };
 }
@@ -502,7 +504,7 @@ describe('TelaAssistente: BUSCAR_ATENDIMENTO', () => {
     return assistente;
   }
 
-  const USAR_GPS = 'Usar minha localização para achar atendimentos';
+  const USAR_GPS = 'Usar minha localização para achar a farmácia mais perto';
 
   it('com a lista pronta, mostra os atendimentos e o crédito do OpenStreetMap (ODbL)', async () => {
     await buscar(buscarComLista());
@@ -618,6 +620,220 @@ describe('TelaAssistente: BUSCAR_ATENDIMENTO', () => {
     expect(await screen.findByText('Permita o acesso à localização.')).toBeOnTheScreen();
     expect(assistente.interpretar).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: USAR_GPS })).toBeOnTheScreen();
+  });
+
+  it('sem o tipo de lugar, não oferece a localização (ela não resolve e o pedido voltava igual, em loop)', async () => {
+    await buscar(
+      resposta({
+        intencao: 'BUSCAR_ATENDIMENTO',
+        mensagemFalada: 'Que lugar você procura? Posso achar hospital, UPA ou farmácia.',
+      }),
+    );
+
+    expect(await screen.findByText(/Que lugar você procura/)).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /Usar minha localização/ })).not.toBeOnTheScreen();
+  });
+});
+
+describe('TelaAssistente: dúvida sobre serviço público', () => {
+  const ORIENTACAO = {
+    titulo: 'BPC para pessoa idosa',
+    resumo: 'O BPC paga um salário mínimo por mês ao idoso a partir de 65 anos com renda baixa.',
+    passos: ['Faça o Cadastro Único no CRAS.', 'Peça o BPC pelo Meu INSS ou ligando 135.'],
+    link: 'https://www.gov.br/pt-br/servicos/solicitar-beneficio-assistencial-ao-idoso',
+    telefone: '135',
+    orgao: 'INSS',
+    localPresencial: 'CRAS' as const,
+    sobreGolpe: false,
+  };
+  const duvida = resposta({
+    intencao: 'TIRAR_DUVIDA',
+    mensagemFalada: ORIENTACAO.resumo,
+    entidades: { ...SEM_ENTIDADES, tipoAtendimento: 'CRAS' },
+    orientacao: ORIENTACAO,
+  });
+
+  async function perguntar(resp: RespostaAssistente) {
+    const assistente = await montar((api) => api.interpretar.mockResolvedValue(resp));
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('meu pai tem direito ao bpc?');
+    return assistente;
+  }
+
+  it('mostra os passos, o site oficial e a central gratuita, sem botão de "Sim"', async () => {
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    await perguntar(duvida);
+
+    expect(await screen.findByText('1. Faça o Cadastro Único no CRAS.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Sim,/ })).not.toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Abrir o site oficial, gov.br' }));
+    expect(Linking.openURL).toHaveBeenCalledWith(ORIENTACAO.link);
+
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Ligar para a central gratuita, 135' }),
+    );
+    expect(ligarPara).toHaveBeenCalledWith('135');
+  });
+
+  it('com atendimento presencial, oferece achar o CRAS mais perto pela localização', async () => {
+    jest.mocked(obterLocalizacao).mockResolvedValue({ latitude: -23.5, longitude: -46.6 });
+    const assistente = await perguntar(duvida);
+
+    await fireEvent.press(
+      await screen.findByRole('button', {
+        name: 'Usar minha localização para achar o CRAS mais perto',
+      }),
+    );
+
+    expect(assistente.interpretar).toHaveBeenLastCalledWith({
+      texto: 'meu pai tem direito ao bpc?',
+      latitude: -23.5,
+      longitude: -46.6,
+    });
+  });
+
+  it('dúvida aberta: mostra a resposta e a fonte, sem botão de site nem de ligar', async () => {
+    await perguntar(
+      resposta({
+        intencao: 'TIRAR_DUVIDA',
+        mensagemFalada: 'Sim, idosos têm prioridade na fila do banco. Confirme no gov.br.',
+        orientacao: {
+          titulo: 'Resposta do assistente',
+          resumo: 'Sim, idosos têm prioridade na fila do banco. Confirme no gov.br.',
+          passos: [],
+          link: null,
+          telefone: null,
+          orgao: 'Assistente VozViva. Confirme nos canais oficiais',
+          localPresencial: null,
+          sobreGolpe: false,
+        },
+      }),
+    );
+
+    expect(await screen.findByText(/idosos têm prioridade na fila do banco/)).toBeOnTheScreen();
+    expect(screen.getByText('Assistente VozViva. Confirme nos canais oficiais')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /Abrir o site oficial/ })).not.toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /central gratuita/ })).not.toBeOnTheScreen();
+  });
+
+  it('sem atendimento presencial, não pede a localização', async () => {
+    await perguntar(resposta({ ...duvida, orientacao: { ...ORIENTACAO, localPresencial: null } }));
+
+    expect(await screen.findByText('1. Faça o Cadastro Único no CRAS.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /Usar minha localização/ })).not.toBeOnTheScreen();
+  });
+});
+
+describe('TelaAssistente: tratamento de cada tipo de resposta', () => {
+  async function perguntar(resp: RespostaAssistente, texto = 'qualquer coisa') {
+    const assistente = await montar((api) => api.interpretar.mockResolvedValue(resp));
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar(texto);
+    return assistente;
+  }
+
+  it('socorro: o 192 já aparece junto da confirmação, sem esperar o aviso falhar', async () => {
+    await perguntar(socorro, 'caí e não consigo levantar');
+
+    expect(
+      await screen.findByRole('button', { name: 'Sim, avisar meus contatos' }),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ligar para o SAMU, 192' }));
+    expect(ligarPara).toHaveBeenCalledWith('192');
+  });
+
+  it('não entendeu: oferece os caminhos principais em vez de só pedir para repetir', async () => {
+    await perguntar(desconhecida, 'hmm');
+
+    expect(await screen.findByText('Posso ajudar com:')).toBeOnTheScreen();
+    for (const nome of [
+      'Pedir ajuda aos meus contatos de emergência',
+      'Achar hospital, posto ou farmácia perto',
+      'Conferir se uma mensagem é golpe',
+      'Reportar um problema na rua',
+    ]) {
+      expect(screen.getByRole('button', { name: nome })).toBeOnTheScreen();
+    }
+  });
+
+  it('sem IA (modo simples): avisa a pessoa, para ela conferir a resposta', async () => {
+    await perguntar(resposta({ ...zeladoria, analisadoPor: 'REGRAS' }), 'buraco na calçada');
+
+    expect(
+      await screen.findByText(
+        'Resposta no modo simples: a inteligência artificial está indisponível agora.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('confiança baixa numa ação: pede para conferir antes de confirmar', async () => {
+    await perguntar(resposta({ ...zeladoria, confianca: 0.4 }), 'tem um negócio na rua');
+
+    expect(
+      await screen.findByText('Não tenho certeza se entendi. Confira antes de confirmar.'),
+    ).toBeOnTheScreen();
+  });
+
+  it('socorro com confiança baixa continua sem aviso de dúvida (na dúvida, oferecer ajuda)', async () => {
+    await perguntar(resposta({ ...socorro, confianca: 0.3 }), 'não tô bem');
+
+    expect(
+      await screen.findByRole('button', { name: 'Sim, avisar meus contatos' }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(/Não tenho certeza se entendi/)).not.toBeOnTheScreen();
+  });
+
+  it('enquanto pensa, diz que está pensando e, se demorar, que ainda está pensando', async () => {
+    jest.useFakeTimers();
+    let responder: (r: RespostaAssistente) => void = () => {};
+    await montar((api) =>
+      api.interpretar.mockReturnValue(
+        new Promise((resolver) => {
+          responder = resolver;
+        }),
+      ),
+    );
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('como peço a aposentadoria?');
+
+    expect(await screen.findByText('Pensando na resposta...')).toBeOnTheScreen();
+    await act(async () => {
+      jest.advanceTimersByTime(8000);
+    });
+    expect(screen.getByText(/Ainda pensando/)).toBeOnTheScreen();
+
+    await act(async () => responder(desconhecida));
+    expect(screen.queryByText(/Ainda pensando/)).not.toBeOnTheScreen();
+    jest.useRealTimers();
+  });
+});
+
+describe('TelaAssistente: ouvir mais devagar', () => {
+  it('lê a resposta de novo, mais devagar', async () => {
+    await montar((api) =>
+      api.interpretar.mockResolvedValue(resposta({ mensagemFalada: 'Ligue 135.' })),
+    );
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('como peço a aposentadoria?');
+
+    await fireEvent.press(
+      await screen.findByRole('button', { name: 'Ouvir a resposta mais devagar' }),
+    );
+
+    expect(falar).toHaveBeenLastCalledWith('Ligue 135.', true);
+  });
+});
+
+describe('localParaBuscar', () => {
+  it('só pede a localização quando ela ajuda a achar um tipo de lugar', () => {
+    const base = resposta({ intencao: 'BUSCAR_ATENDIMENTO' });
+    expect(localParaBuscar(base)).toBeNull();
+    expect(
+      localParaBuscar({ ...base, entidades: { ...SEM_ENTIDADES, tipoAtendimento: 'UBS' } }),
+    ).toBe('UBS');
+    expect(localParaBuscar(resposta({ intencao: 'SOCORRO' }))).toBeNull();
+    expect(localParaBuscar(resposta({ intencao: 'TIRAR_DUVIDA' }))).toBeNull();
   });
 });
 

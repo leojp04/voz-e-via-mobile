@@ -103,7 +103,9 @@ function resposta(parcial: Partial<RespostaAssistente>): RespostaAssistente {
     entidades: SEM_ENTIDADES,
     mensagemFalada: 'ok',
     confianca: 0.9,
+    analisadoPor: 'IA_E_REGRAS',
     atendimentos: null,
+    orientacao: null,
     ...parcial,
   };
 }

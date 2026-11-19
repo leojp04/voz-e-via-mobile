@@ -6,7 +6,10 @@
 // confirmar uma coisa que ja nao e o que esta escrito.
 // Privacidade: o GPS NUNCA vai junto do envio. Para BUSCAR_ATENDIMENTO o Java so traz a lista se
 // receber a localizacao; quando ela falta, a tela oferece "Usar minha localizacao" e, so nesse
-// toque, le o GPS e reenvia a MESMA frase.
+// toque, le o GPS e reenvia a MESMA frase. So oferece quando o Java ja sabe o TIPO de lugar: sem o
+// tipo, a localizacao nao resolve e o pedido voltaria igual (era um loop). Numa duvida sobre servico
+// publico (TIRAR_DUVIDA), a tela mostra a orientacao oficial e, se ela tiver atendimento presencial
+// (ex.: CRAS), oferece buscar o mais perto do mesmo jeito.
 
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -16,13 +19,14 @@ import { Botao } from '../components/Botao';
 import { BotaoMicrofone } from '../components/BotaoMicrofone';
 import { CaixaConsentimento } from '../components/CaixaConsentimento';
 import { CampoTexto } from '../components/CampoTexto';
-import { CartaoAtendimento } from '../components/CartaoAtendimento';
+import { CartaoOrientacao } from '../components/CartaoOrientacao';
+import { BotaoLigarEmergencia, ListaDeAtendimentos } from '../components/ListaDeAtendimentos';
 import { CartaoVerificacao } from '../components/CartaoVerificacao';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import { obterLocalizacao } from '../services/aparelho/localizacao';
-import type { AtendimentosProximos, Intencao, RespostaAssistente } from '../services/api/types';
+import type { Intencao, RespostaAssistente, TipoAtendimento } from '../services/api/types';
 import {
   executarIntencao,
   intencaoTemAcao,
@@ -32,9 +36,7 @@ import { falar, pararDeFalar } from '../services/voz/falar';
 import { useEscutaDeVoz } from '../services/voz/use-escuta-de-voz';
 import { cores, espacos, fontes } from '../theme';
 import { useAnunciar } from '../utils/anunciar';
-import { ligarPara } from '../utils/ligar-para';
 import { mensagemDeErroDoAssistente } from '../utils/mensagem-de-erro';
-import { abrirNoMapa } from '../utils/url-do-mapa';
 
 const MENSAGEM_TEXTO_VAZIO = 'Escreva o que você precisa.';
 // Limite do Java (IntencaoRequest.texto): acima disso a API devolve 400.
@@ -55,67 +57,60 @@ const TITULO_DE_CONFIRMAR: Partial<Record<Intencao, string>> = {
   ZELADORIA_REPORT: 'Sim, abrir o formulário',
 };
 
+// Abaixo disso o app avisa que pode nao ter entendido (o socorro e sempre oferecido, com qualquer confianca).
+const CONFIANCA_MINIMA = 0.6;
+// Depois disso sem resposta, a tela avisa que ainda esta pensando (a primeira chamada do dia e mais lenta).
+const ESPERA_LONGA_MS = 8000;
+
+/** Atalhos quando o assistente nao entendeu: a pessoa escolhe com um toque em vez de repetir. */
+const CAMINHOS_SEM_ENTENDER = [
+  {
+    titulo: 'Pedir ajuda',
+    rotulo: 'Pedir ajuda aos meus contatos de emergência',
+    rota: '/ajuda',
+    icone: 'help-buoy-outline',
+  },
+  {
+    titulo: 'Atendimento perto',
+    rotulo: 'Achar hospital, posto ou farmácia perto',
+    rota: '/atendimentos',
+    icone: 'medkit-outline',
+  },
+  {
+    titulo: 'É golpe?',
+    rotulo: 'Conferir se uma mensagem é golpe',
+    rota: '/golpe',
+    icone: 'shield-checkmark-outline',
+  },
+  {
+    titulo: 'Problema na rua',
+    rotulo: 'Reportar um problema na rua',
+    rota: '/reportes/novo',
+    icone: 'camera-outline',
+  },
+] as const;
+
 type ResultadoComCartao = Extract<ResultadoDaExecucao, { tipo: 'emergencia' | 'verificacao' }>;
 
-function BotaoLigarEmergencia({ telefone }: { telefone: string }) {
-  const rotulo =
-    telefone === SAMU ? `Ligar para o SAMU, ${telefone}` : `Ligar para a emergência, ${telefone}`;
-  return (
-    <Botao
-      titulo={`Ligar ${telefone}`}
-      rotulo={rotulo}
-      variante="ajuda"
-      icone="call-outline"
-      onPress={() => ligarPara(telefone)}
-    />
-  );
-}
+const NOME_DO_LOCAL: Record<TipoAtendimento, string> = {
+  HOSPITAL: 'o hospital',
+  UPA: 'a UPA',
+  UBS: 'o posto de saúde',
+  FARMACIA: 'a farmácia',
+  CRAS: 'o CRAS',
+  DELEGACIA: 'a delegacia',
+  DEFENSORIA: 'a Defensoria Pública',
+};
 
-function ListaDeAtendimentos({ dados }: { dados: AtendimentosProximos }) {
-  return (
-    <View style={styles.lista}>
-      {dados.orientacaoEmergencia ? (
-        <View style={styles.cartao}>
-          <Texto style={styles.resposta}>{dados.orientacaoEmergencia}</Texto>
-          {dados.telefoneEmergencia ? (
-            <BotaoLigarEmergencia telefone={dados.telefoneEmergencia} />
-          ) : null}
-        </View>
-      ) : null}
-      {dados.semAcessivelNoRaio ? (
-        <Texto style={styles.destaque}>
-          Nenhum local confirmado como acessível por perto. Veja os mais próximos e ligue antes para
-          conferir.
-        </Texto>
-      ) : null}
-      {dados.atendimentos.length === 0 ? (
-        <Texto style={styles.destaque}>Não encontrei atendimentos por perto.</Texto>
-      ) : (
-        <>
-          {/* Responde a pergunta do Java ("quer que eu abra o caminho?") com um toque. */}
-          <Botao
-            titulo="Abrir caminho até o mais perto"
-            rotulo={`Abrir o caminho até ${dados.atendimentos[0].nome}, o mais perto de você`}
-            icone="navigate-outline"
-            onPress={() =>
-              abrirNoMapa(dados.atendimentos[0].latitude, dados.atendimentos[0].longitude)
-            }
-          />
-          {dados.atendimentos.map((atendimento) => (
-            <CartaoAtendimento
-              key={atendimento.id}
-              atendimento={atendimento}
-              aoLigar={ligarPara}
-              aoVerNoMapa={abrirNoMapa}
-            />
-          ))}
-        </>
-      )}
-      {dados.observacao ? <Texto style={styles.fonte}>{dados.observacao}</Texto> : null}
-      {/* Credito exigido pela licenca ODbL do OpenStreetMap: sempre visivel junto da lista. */}
-      <Texto style={styles.fonte}>{dados.creditoDados}</Texto>
-    </View>
-  );
+/**
+ * Que lugar a localizacao ajudaria a achar, ou null quando ela nao resolve nada (sem tipo, ou a lista
+ * ja veio). Sem isso, "Usar minha localizacao" reenviava a mesma frase e voltava igual.
+ */
+export function localParaBuscar(resposta: RespostaAssistente): TipoAtendimento | null {
+  if (resposta.atendimentos) return null;
+  if (resposta.intencao === 'BUSCAR_ATENDIMENTO') return resposta.entidades.tipoAtendimento;
+  if (resposta.intencao === 'TIRAR_DUVIDA') return resposta.orientacao?.localPresencial ?? null;
+  return null;
 }
 
 export function TelaAssistente() {
@@ -133,6 +128,13 @@ export function TelaAssistente() {
   // O alerta de socorro falhou: o botao de ligar para o SAMU tem de continuar a um toque.
   const [oferecerSamu, setOferecerSamu] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  // A IA pode levar alguns segundos: depois de ESPERA_LONGA_MS a tela diz que ainda esta pensando.
+  const [demorando, setDemorando] = useState(false);
+  useEffect(() => {
+    if (!ocupado) return;
+    const relogio = setTimeout(() => setDemorando(true), ESPERA_LONGA_MS);
+    return () => clearTimeout(relogio);
+  }, [ocupado]);
   const ocupadoAgora = useRef(false);
   const [executando, setExecutando] = useState(false);
   const executandoAgora = useRef(false);
@@ -199,6 +201,7 @@ export function TelaAssistente() {
     } finally {
       ocupadoAgora.current = false;
       setOcupado(false);
+      setDemorando(false);
     }
   }
 
@@ -266,6 +269,7 @@ export function TelaAssistente() {
   }
 
   const tituloDeConfirmar = resposta ? TITULO_DE_CONFIRMAR[resposta.intencao] : undefined;
+  const local = resposta ? localParaBuscar(resposta) : null;
 
   return (
     <Tela>
@@ -309,6 +313,14 @@ export function TelaAssistente() {
         carregando={ocupado}
       />
 
+      {ocupado ? (
+        <Texto style={styles.fonte} accessibilityLiveRegion="polite">
+          {demorando
+            ? 'Ainda pensando. A primeira resposta do dia pode levar alguns segundos.'
+            : 'Pensando na resposta...'}
+        </Texto>
+      ) : null}
+
       {erroGeral ? (
         <View style={styles.faixaErro} accessibilityRole="alert" accessibilityLiveRegion="polite">
           <Texto style={styles.textoErro}>{erroGeral}</Texto>
@@ -326,12 +338,31 @@ export function TelaAssistente() {
       {resposta ? (
         <View style={styles.cartao} accessibilityLiveRegion="polite">
           <Texto style={styles.resposta}>{resposta.mensagemFalada}</Texto>
+          {resposta.analisadoPor === 'REGRAS' ? (
+            <Texto style={styles.fonte}>
+              Resposta no modo simples: a inteligência artificial está indisponível agora.
+            </Texto>
+          ) : null}
+          {intencaoTemAcao(resposta.intencao) &&
+          resposta.intencao !== 'SOCORRO' &&
+          resposta.confianca < CONFIANCA_MINIMA ? (
+            <Texto style={styles.destaque}>
+              Não tenho certeza se entendi. Confira antes de confirmar.
+            </Texto>
+          ) : null}
           <Botao
             titulo="Ouvir de novo"
             rotulo="Ouvir a resposta de novo"
             variante="secundario"
             icone="volume-high"
             onPress={() => void falar(resposta.mensagemFalada)}
+          />
+          <Botao
+            titulo="Ouvir mais devagar"
+            rotulo="Ouvir a resposta mais devagar"
+            variante="secundario"
+            icone="hourglass-outline"
+            onPress={() => void falar(resposta.mensagemFalada, true)}
           />
           {intencaoTemAcao(resposta.intencao) && tituloDeConfirmar ? (
             <View style={styles.confirmacao}>
@@ -351,15 +382,39 @@ export function TelaAssistente() {
               />
             </View>
           ) : null}
-          {resposta.intencao === 'BUSCAR_ATENDIMENTO' && !resposta.atendimentos ? (
+          {resposta.intencao === 'SOCORRO' ? <BotaoLigarEmergencia telefone={SAMU} /> : null}
+          {resposta.intencao === 'DESCONHECIDA' ? (
+            <View style={styles.confirmacao}>
+              <Texto style={styles.destaque}>Posso ajudar com:</Texto>
+              {CAMINHOS_SEM_ENTENDER.map((caminho) => (
+                <Botao
+                  key={caminho.rota}
+                  titulo={caminho.titulo}
+                  rotulo={caminho.rotulo}
+                  variante="secundario"
+                  icone={caminho.icone}
+                  onPress={() => router.push(caminho.rota)}
+                />
+              ))}
+            </View>
+          ) : null}
+          {resposta.intencao === 'VERIFICAR_INFORMACAO' ? (
+            <Botao
+              titulo="Colar a mensagem recebida"
+              rotulo="Abrir a tela É golpe? para colar a mensagem recebida"
+              variante="secundario"
+              icone="clipboard-outline"
+              onPress={() => router.push({ pathname: '/golpe', params: { texto: texto.trim() } })}
+            />
+          ) : null}
+          {local ? (
             <View style={styles.confirmacao}>
               <Texto style={styles.fonte}>
-                Para mostrar os mais perto de você, preciso da sua localização. Ela é usada só nesta
-                busca.
+                {`Para mostrar ${NOME_DO_LOCAL[local]} mais perto de você, preciso da sua localização. Ela é usada só nesta busca.`}
               </Texto>
               <Botao
                 titulo="Usar minha localização"
-                rotulo="Usar minha localização para achar atendimentos"
+                rotulo={`Usar minha localização para achar ${NOME_DO_LOCAL[local]} mais perto`}
                 icone="locate-outline"
                 onPress={() => void usarLocalizacao()}
                 carregando={lendoGps}
@@ -368,6 +423,8 @@ export function TelaAssistente() {
           ) : null}
         </View>
       ) : null}
+
+      {resposta?.orientacao ? <CartaoOrientacao orientacao={resposta.orientacao} /> : null}
 
       {resposta?.atendimentos ? <ListaDeAtendimentos dados={resposta.atendimentos} /> : null}
 
