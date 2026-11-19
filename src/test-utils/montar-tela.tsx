@@ -12,6 +12,7 @@ import { ApisProvider } from '../contexts/ApisContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import type {
   AssistenteApi,
+  AtendimentosApi,
   AuthApi,
   ContatosApi,
   FotosApi,
@@ -65,6 +66,10 @@ export function criarAssistenteApiMock(): jest.Mocked<AssistenteApi> {
   return { interpretar: jest.fn(), acionarEmergencia: jest.fn(), verificarMensagem: jest.fn() };
 }
 
+export function criarAtendimentosApiMock(): jest.Mocked<AtendimentosApi> {
+  return { proximos: jest.fn() };
+}
+
 export function criarArmazenamentoEmMemoria(inicial: Sessao | null = null): ArmazenamentoSessao {
   let guardada = inicial;
   return {
@@ -102,6 +107,8 @@ interface OpcoesMontagem {
   perfis?: PerfisApi;
   /** API do assistente; sem ela, a tela recebe um mock vazio (jest.fn). */
   assistente?: AssistenteApi;
+  /** API de atendimentos (busca direta); sem ela, a tela recebe um mock vazio (jest.fn). */
+  atendimentos?: AtendimentosApi;
   armazenamento?: ArmazenamentoSessao;
   /** Rotas extras (alem de "index"), para testar navegacao entre telas. */
   rotas?: Record<string, Componente>;
@@ -119,6 +126,7 @@ export async function montarTela(Tela: Componente, opcoes: OpcoesMontagem) {
     contatos: opcoes.contatos ?? criarContatosApiMock(),
     perfis: opcoes.perfis ?? criarPerfisApiMock(),
     assistente: opcoes.assistente ?? criarAssistenteApiMock(),
+    atendimentos: opcoes.atendimentos ?? criarAtendimentosApiMock(),
   };
   await renderRouter(
     {

@@ -379,6 +379,20 @@ export interface ResultadoVerificacao {
   fontes: { titulo: string; orgao: string; url: string }[];
 }
 
+/** Busca direta, sem passar pela voz (tela "Atendimento perto"). */
+export interface PedidoAtendimentos {
+  tipo: TipoAtendimento;
+  latitude: number;
+  longitude: number;
+  /** true = prefere locais com acessibilidade confirmada. */
+  acessivel: boolean;
+}
+
+export interface AtendimentosApi {
+  /** GET /api/v1/atendimentos/proximos. Erros: 400, 401, 0 (sem conexao). */
+  proximos(pedido: PedidoAtendimentos): Promise<AtendimentosProximos>;
+}
+
 export interface AssistenteApi {
   /** POST /api/v1/voz/intencoes. Erros: 400 (texto vazio ou longo demais), 401, 0 (sem conexao). */
   interpretar(pedido: PedidoAssistente): Promise<RespostaAssistente>;

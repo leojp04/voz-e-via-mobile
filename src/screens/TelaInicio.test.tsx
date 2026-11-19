@@ -20,6 +20,7 @@ const BOTOES = [
   'Reportar um problema na rua',
   'Meus reportes',
   'Contatos de emergência',
+  'Achar hospital, posto de saúde, farmácia ou CRAS perto de mim',
   'Pedir ajuda',
 ];
 
@@ -37,24 +38,34 @@ describe('TelaInicio', () => {
     expect(screen.getByRole('button', { name: nome })).toBeOnTheScreen();
   });
 
-  it('ainda sem função: tocar num botão avisa "Em breve" em vez de parecer quebrado', async () => {
+  it('Pedir ajuda abre a confirmação do aviso aos contatos (sem aviso de "Em breve")', async () => {
     const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    await montar();
+    const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
+    await montarTela(TelaInicio, {
+      auth: criarAuthApiMock(),
+      armazenamento,
+      rotas: { ajuda: () => <Text>Destino pedir ajuda</Text> },
+    });
     await fireEvent.press(screen.getByRole('button', { name: 'Pedir ajuda' }));
-    expect(alerta).toHaveBeenCalledWith(
-      'Em breve',
-      'A função "Pedir ajuda" ainda não está disponível.',
-    );
+    expect(await screen.findByText('Destino pedir ajuda')).toBeOnTheScreen();
+    expect(alerta).not.toHaveBeenCalled();
   });
 
-  it('a frase do aviso não depende de singular ou plural do nome da ação', async () => {
+  it('Atendimento perto abre a busca por hospital, posto ou farmácia (sem "Em breve")', async () => {
     const alerta = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    await montar();
-    await fireEvent.press(screen.getByRole('button', { name: 'Pedir ajuda' }));
-    expect(alerta).toHaveBeenCalledWith(
-      'Em breve',
-      'A função "Pedir ajuda" ainda não está disponível.',
+    const armazenamento = criarArmazenamentoEmMemoria(sessaoDeTeste);
+    await montarTela(TelaInicio, {
+      auth: criarAuthApiMock(),
+      armazenamento,
+      rotas: { atendimentos: () => <Text>Destino atendimentos</Text> },
+    });
+    await fireEvent.press(
+      screen.getByRole('button', {
+        name: 'Achar hospital, posto de saúde, farmácia ou CRAS perto de mim',
+      }),
     );
+    expect(await screen.findByText('Destino atendimentos')).toBeOnTheScreen();
+    expect(alerta).not.toHaveBeenCalled();
   });
 
   it('o microfone é o destaque da tela e mostra a dica "Toque e fale"', async () => {

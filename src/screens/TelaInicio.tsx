@@ -1,8 +1,8 @@
 // Tela de Inicio (direcao visual "marinho e salvia", ADR 0007): o microfone em destaque no
-// centro, uma grade de atalhos e o "Pedir ajuda" em terracota. Por enquanto so Sobre o app,
-// Privacidade e Sair funcionam; as demais acoes mostram "Em breve" para nao parecerem quebradas
-// (cada etapa seguinte liga uma). Os rotulos falados continuam completos ("Reportar um problema
-// na rua"), mesmo com o titulo curto na tela.
+// centro, uma grade de atalhos e o "Pedir ajuda" em terracota, que abre a confirmacao do aviso
+// aos contatos. "Atendimento perto" acha hospital, UPA, posto de saude, farmacia ou CRAS por toque,
+// sem precisar da voz. Os rotulos falados continuam completos ("Reportar um problema na rua"),
+// mesmo com o titulo curto na tela.
 
 import { useRouter } from 'expo-router';
 import { Alert, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -23,10 +23,16 @@ interface AtalhoDoInicio {
   rotulo: string;
   icone: NomeDeIcone;
   /** Tela que o atalho abre; sem rota, o atalho ainda avisa "Em breve". */
-  rota?: '/reportes/novo' | '/reportes' | '/contatos';
+  rota?: '/reportes/novo' | '/reportes' | '/contatos' | '/atendimentos';
 }
 
 const ATALHOS: AtalhoDoInicio[] = [
+  {
+    titulo: 'Atendimento perto',
+    rotulo: 'Achar hospital, posto de saúde, farmácia ou CRAS perto de mim',
+    icone: 'medkit-outline',
+    rota: '/atendimentos',
+  },
   {
     titulo: 'Reportar problema',
     rotulo: 'Reportar um problema na rua',
@@ -92,7 +98,7 @@ export function TelaInicio() {
         variante="ajuda"
         grande
         icone="help-buoy-outline"
-        onPress={() => avisarEmBreve('Pedir ajuda')}
+        onPress={() => router.push('/ajuda')}
       />
 
       <Botao

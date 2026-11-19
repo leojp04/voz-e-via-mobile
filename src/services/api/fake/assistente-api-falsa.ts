@@ -89,7 +89,7 @@ function resposta(
   };
 }
 
-function montarAtendimentos(
+export function montarAtendimentos(
   tipo: TipoAtendimento,
   latitude: number,
   longitude: number,

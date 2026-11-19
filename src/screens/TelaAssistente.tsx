@@ -19,19 +19,14 @@ import { Botao } from '../components/Botao';
 import { BotaoMicrofone } from '../components/BotaoMicrofone';
 import { CaixaConsentimento } from '../components/CaixaConsentimento';
 import { CampoTexto } from '../components/CampoTexto';
-import { CartaoAtendimento } from '../components/CartaoAtendimento';
 import { CartaoOrientacao } from '../components/CartaoOrientacao';
+import { BotaoLigarEmergencia, ListaDeAtendimentos } from '../components/ListaDeAtendimentos';
 import { CartaoVerificacao } from '../components/CartaoVerificacao';
 import { Tela } from '../components/Tela';
 import { Texto } from '../components/Texto';
 import { useApis } from '../contexts/ApisContext';
 import { obterLocalizacao } from '../services/aparelho/localizacao';
-import type {
-  AtendimentosProximos,
-  Intencao,
-  RespostaAssistente,
-  TipoAtendimento,
-} from '../services/api/types';
+import type { Intencao, RespostaAssistente, TipoAtendimento } from '../services/api/types';
 import {
   executarIntencao,
   intencaoTemAcao,
@@ -41,9 +36,7 @@ import { falar, pararDeFalar } from '../services/voz/falar';
 import { useEscutaDeVoz } from '../services/voz/use-escuta-de-voz';
 import { cores, espacos, fontes } from '../theme';
 import { useAnunciar } from '../utils/anunciar';
-import { ligarPara } from '../utils/ligar-para';
 import { mensagemDeErroDoAssistente } from '../utils/mensagem-de-erro';
-import { abrirNoMapa } from '../utils/url-do-mapa';
 
 const MENSAGEM_TEXTO_VAZIO = 'Escreva o que você precisa.';
 // Limite do Java (IntencaoRequest.texto): acima disso a API devolve 400.
@@ -85,67 +78,6 @@ export function localParaBuscar(resposta: RespostaAssistente): TipoAtendimento |
   if (resposta.intencao === 'BUSCAR_ATENDIMENTO') return resposta.entidades.tipoAtendimento;
   if (resposta.intencao === 'TIRAR_DUVIDA') return resposta.orientacao?.localPresencial ?? null;
   return null;
-}
-
-function BotaoLigarEmergencia({ telefone }: { telefone: string }) {
-  const rotulo =
-    telefone === SAMU ? `Ligar para o SAMU, ${telefone}` : `Ligar para a emergência, ${telefone}`;
-  return (
-    <Botao
-      titulo={`Ligar ${telefone}`}
-      rotulo={rotulo}
-      variante="ajuda"
-      icone="call-outline"
-      onPress={() => ligarPara(telefone)}
-    />
-  );
-}
-
-function ListaDeAtendimentos({ dados }: { dados: AtendimentosProximos }) {
-  return (
-    <View style={styles.lista}>
-      {dados.orientacaoEmergencia ? (
-        <View style={styles.cartao}>
-          <Texto style={styles.resposta}>{dados.orientacaoEmergencia}</Texto>
-          {dados.telefoneEmergencia ? (
-            <BotaoLigarEmergencia telefone={dados.telefoneEmergencia} />
-          ) : null}
-        </View>
-      ) : null}
-      {dados.semAcessivelNoRaio ? (
-        <Texto style={styles.destaque}>
-          Nenhum local confirmado como acessível por perto. Veja os mais próximos e ligue antes para
-          conferir.
-        </Texto>
-      ) : null}
-      {dados.atendimentos.length === 0 ? (
-        <Texto style={styles.destaque}>Não encontrei atendimentos por perto.</Texto>
-      ) : (
-        <>
-          {/* Responde a pergunta do Java ("quer que eu abra o caminho?") com um toque. */}
-          <Botao
-            titulo="Abrir caminho até o mais perto"
-            rotulo={`Abrir o caminho até ${dados.atendimentos[0].nome}, o mais perto de você`}
-            icone="navigate-outline"
-            onPress={() =>
-              abrirNoMapa(dados.atendimentos[0].latitude, dados.atendimentos[0].longitude)
-            }
-          />
-          {dados.atendimentos.map((atendimento) => (
-            <CartaoAtendimento
-              key={atendimento.id}
-              atendimento={atendimento}
-              aoLigar={ligarPara}
-              aoVerNoMapa={abrirNoMapa}
-            />
-          ))}
-        </>
-      )}
-      {dados.observacao ? <Texto style={styles.fonte}>{dados.observacao}</Texto> : null}
-      {/* Credito exigido pela licenca ODbL do OpenStreetMap: sempre visivel junto da lista. */}
-      <Texto style={styles.fonte}>{dados.creditoDados}</Texto>
-    </View>
-  );
 }
 
 export function TelaAssistente() {
