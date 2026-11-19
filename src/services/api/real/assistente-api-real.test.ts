@@ -128,6 +128,7 @@ describe('criarAssistenteApiReal.interpretar', () => {
       },
       mensagemFalada: 'Posso pedir ajuda?',
       confianca: 0,
+      analisadoPor: 'IA_E_REGRAS',
       atendimentos: null,
       orientacao: null,
     });

@@ -342,6 +342,8 @@ export interface RespostaAssistente {
   mensagemFalada: string;
   /** De 0 a 1. */
   confianca: number;
+  /** REGRAS = a IA estava indisponivel (fora do ar ou no limite de uso) e a resposta veio so das regras. */
+  analisadoPor: 'IA_E_REGRAS' | 'REGRAS';
   /** Em BUSCAR_ATENDIMENTO com localizacao (e em TIRAR_DUVIDA com atendimento presencial, como o CRAS). */
   atendimentos: AtendimentosProximos | null;
   /** So em TIRAR_DUVIDA. */

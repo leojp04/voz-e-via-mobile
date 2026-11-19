@@ -83,6 +83,7 @@ function resposta(parcial: Partial<RespostaAssistente>): RespostaAssistente {
     entidades: SEM_ENTIDADES,
     mensagemFalada: 'ok',
     confianca: 0.9,
+    analisadoPor: 'IA_E_REGRAS',
     atendimentos: null,
     orientacao: null,
     ...parcial,
@@ -721,6 +722,90 @@ describe('TelaAssistente: dúvida sobre serviço público', () => {
 
     expect(await screen.findByText('1. Faça o Cadastro Único no CRAS.')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: /Usar minha localização/ })).not.toBeOnTheScreen();
+  });
+});
+
+describe('TelaAssistente: tratamento de cada tipo de resposta', () => {
+  async function perguntar(resp: RespostaAssistente, texto = 'qualquer coisa') {
+    const assistente = await montar((api) => api.interpretar.mockResolvedValue(resp));
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar(texto);
+    return assistente;
+  }
+
+  it('socorro: o 192 já aparece junto da confirmação, sem esperar o aviso falhar', async () => {
+    await perguntar(socorro, 'caí e não consigo levantar');
+
+    expect(
+      await screen.findByRole('button', { name: 'Sim, avisar meus contatos' }),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Ligar para o SAMU, 192' }));
+    expect(ligarPara).toHaveBeenCalledWith('192');
+  });
+
+  it('não entendeu: oferece os caminhos principais em vez de só pedir para repetir', async () => {
+    await perguntar(desconhecida, 'hmm');
+
+    expect(await screen.findByText('Posso ajudar com:')).toBeOnTheScreen();
+    for (const nome of [
+      'Pedir ajuda aos meus contatos de emergência',
+      'Achar hospital, posto ou farmácia perto',
+      'Conferir se uma mensagem é golpe',
+      'Reportar um problema na rua',
+    ]) {
+      expect(screen.getByRole('button', { name: nome })).toBeOnTheScreen();
+    }
+  });
+
+  it('sem IA (modo simples): avisa a pessoa, para ela conferir a resposta', async () => {
+    await perguntar(resposta({ ...zeladoria, analisadoPor: 'REGRAS' }), 'buraco na calçada');
+
+    expect(
+      await screen.findByText(
+        'Resposta no modo simples: a inteligência artificial está indisponível agora.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('confiança baixa numa ação: pede para conferir antes de confirmar', async () => {
+    await perguntar(resposta({ ...zeladoria, confianca: 0.4 }), 'tem um negócio na rua');
+
+    expect(
+      await screen.findByText('Não tenho certeza se entendi. Confira antes de confirmar.'),
+    ).toBeOnTheScreen();
+  });
+
+  it('socorro com confiança baixa continua sem aviso de dúvida (na dúvida, oferecer ajuda)', async () => {
+    await perguntar(resposta({ ...socorro, confianca: 0.3 }), 'não tô bem');
+
+    expect(
+      await screen.findByRole('button', { name: 'Sim, avisar meus contatos' }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(/Não tenho certeza se entendi/)).not.toBeOnTheScreen();
+  });
+
+  it('enquanto pensa, diz que está pensando e, se demorar, que ainda está pensando', async () => {
+    jest.useFakeTimers();
+    let responder: (r: RespostaAssistente) => void = () => {};
+    await montar((api) =>
+      api.interpretar.mockReturnValue(
+        new Promise((resolver) => {
+          responder = resolver;
+        }),
+      ),
+    );
+    await screen.findByRole('header', { name: 'Assistente' });
+    await digitarEEnviar('como peço a aposentadoria?');
+
+    expect(await screen.findByText('Pensando na resposta...')).toBeOnTheScreen();
+    await act(async () => {
+      jest.advanceTimersByTime(8000);
+    });
+    expect(screen.getByText(/Ainda pensando/)).toBeOnTheScreen();
+
+    await act(async () => responder(desconhecida));
+    expect(screen.queryByText(/Ainda pensando/)).not.toBeOnTheScreen();
+    jest.useRealTimers();
   });
 });
 

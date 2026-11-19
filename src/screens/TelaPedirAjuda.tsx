@@ -39,6 +39,7 @@ const PEDIDO_DE_SOCORRO: RespostaAssistente = {
   },
   mensagemFalada: '',
   confianca: 1,
+  analisadoPor: 'REGRAS',
   atendimentos: null,
   orientacao: null,
 };

@@ -1,7 +1,13 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import type { ResultadoVerificacao } from '../services/api/types';
+import { ligarPara } from '../utils/ligar-para';
 import { CartaoVerificacao } from './CartaoVerificacao';
+
+// O Ionicons tenta carregar um arquivo de fonte (que nao existe no Jest); o icone e decorativo.
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+jest.mock('../utils/ligar-para');
 
 const resultado: ResultadoVerificacao = {
   classificacao: 'PROVAVEL_GOLPE',
@@ -86,5 +92,33 @@ describe('CartaoVerificacao', () => {
   it('nos outros casos nao mostra esse aviso extra', async () => {
     await montar({ classificacao: 'PROVAVEL_GOLPE' });
     expect(screen.queryByText(/não garante que a mensagem seja segura/i)).toBeNull();
+  });
+});
+
+describe('CartaoVerificacao: canal oficial e fontes', () => {
+  it('canal oficial com central gratuita vira botão de ligar, e as fontes viram botões de abrir', async () => {
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    await render(
+      <CartaoVerificacao
+        resultado={{
+          classificacao: 'PROVAVEL_GOLPE',
+          tipoGolpe: 'FALSO_BENEFICIO',
+          sinais: [],
+          orientacao: 'Não clique no link.',
+          canalOficial: 'Central 135 ou aplicativo Meu INSS',
+          mensagemFalada: 'Isso parece golpe.',
+          fontes: [
+            { titulo: 'Falso aviso do INSS', orgao: 'INSS', url: 'https://www.gov.br/inss' },
+          ],
+        }}
+      />,
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Ligar para o canal oficial, 135' }));
+    expect(ligarPara).toHaveBeenCalledWith('135');
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Abrir a fonte: Falso aviso do INSS (INSS)' }),
+    );
+    expect(Linking.openURL).toHaveBeenCalledWith('https://www.gov.br/inss');
   });
 });

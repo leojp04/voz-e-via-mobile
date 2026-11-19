@@ -65,6 +65,7 @@ function normalizar(bruta: Partial<RespostaAssistente>): RespostaAssistente {
     entidades: { ...SEM_ENTIDADES, ...bruta.entidades },
     mensagemFalada: bruta.mensagemFalada ?? '',
     confianca: bruta.confianca ?? 0,
+    analisadoPor: bruta.analisadoPor === 'REGRAS' ? 'REGRAS' : 'IA_E_REGRAS',
     atendimentos: (bruta.atendimentos as AtendimentosProximos | null | undefined) ?? null,
     orientacao: normalizarOrientacao(bruta.orientacao),
   };

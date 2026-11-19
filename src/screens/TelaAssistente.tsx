@@ -57,6 +57,39 @@ const TITULO_DE_CONFIRMAR: Partial<Record<Intencao, string>> = {
   ZELADORIA_REPORT: 'Sim, abrir o formulário',
 };
 
+// Abaixo disso o app avisa que pode nao ter entendido (o socorro e sempre oferecido, com qualquer confianca).
+const CONFIANCA_MINIMA = 0.6;
+// Depois disso sem resposta, a tela avisa que ainda esta pensando (a primeira chamada do dia e mais lenta).
+const ESPERA_LONGA_MS = 8000;
+
+/** Atalhos quando o assistente nao entendeu: a pessoa escolhe com um toque em vez de repetir. */
+const CAMINHOS_SEM_ENTENDER = [
+  {
+    titulo: 'Pedir ajuda',
+    rotulo: 'Pedir ajuda aos meus contatos de emergência',
+    rota: '/ajuda',
+    icone: 'help-buoy-outline',
+  },
+  {
+    titulo: 'Atendimento perto',
+    rotulo: 'Achar hospital, posto ou farmácia perto',
+    rota: '/atendimentos',
+    icone: 'medkit-outline',
+  },
+  {
+    titulo: 'É golpe?',
+    rotulo: 'Conferir se uma mensagem é golpe',
+    rota: '/golpe',
+    icone: 'shield-checkmark-outline',
+  },
+  {
+    titulo: 'Problema na rua',
+    rotulo: 'Reportar um problema na rua',
+    rota: '/reportes/novo',
+    icone: 'camera-outline',
+  },
+] as const;
+
 type ResultadoComCartao = Extract<ResultadoDaExecucao, { tipo: 'emergencia' | 'verificacao' }>;
 
 const NOME_DO_LOCAL: Record<TipoAtendimento, string> = {
@@ -95,6 +128,13 @@ export function TelaAssistente() {
   // O alerta de socorro falhou: o botao de ligar para o SAMU tem de continuar a um toque.
   const [oferecerSamu, setOferecerSamu] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  // A IA pode levar alguns segundos: depois de ESPERA_LONGA_MS a tela diz que ainda esta pensando.
+  const [demorando, setDemorando] = useState(false);
+  useEffect(() => {
+    if (!ocupado) return;
+    const relogio = setTimeout(() => setDemorando(true), ESPERA_LONGA_MS);
+    return () => clearTimeout(relogio);
+  }, [ocupado]);
   const ocupadoAgora = useRef(false);
   const [executando, setExecutando] = useState(false);
   const executandoAgora = useRef(false);
@@ -161,6 +201,7 @@ export function TelaAssistente() {
     } finally {
       ocupadoAgora.current = false;
       setOcupado(false);
+      setDemorando(false);
     }
   }
 
@@ -272,6 +313,14 @@ export function TelaAssistente() {
         carregando={ocupado}
       />
 
+      {ocupado ? (
+        <Texto style={styles.fonte} accessibilityLiveRegion="polite">
+          {demorando
+            ? 'Ainda pensando. A primeira resposta do dia pode levar alguns segundos.'
+            : 'Pensando na resposta...'}
+        </Texto>
+      ) : null}
+
       {erroGeral ? (
         <View style={styles.faixaErro} accessibilityRole="alert" accessibilityLiveRegion="polite">
           <Texto style={styles.textoErro}>{erroGeral}</Texto>
@@ -289,6 +338,18 @@ export function TelaAssistente() {
       {resposta ? (
         <View style={styles.cartao} accessibilityLiveRegion="polite">
           <Texto style={styles.resposta}>{resposta.mensagemFalada}</Texto>
+          {resposta.analisadoPor === 'REGRAS' ? (
+            <Texto style={styles.fonte}>
+              Resposta no modo simples: a inteligência artificial está indisponível agora.
+            </Texto>
+          ) : null}
+          {intencaoTemAcao(resposta.intencao) &&
+          resposta.intencao !== 'SOCORRO' &&
+          resposta.confianca < CONFIANCA_MINIMA ? (
+            <Texto style={styles.destaque}>
+              Não tenho certeza se entendi. Confira antes de confirmar.
+            </Texto>
+          ) : null}
           <Botao
             titulo="Ouvir de novo"
             rotulo="Ouvir a resposta de novo"
@@ -319,6 +380,22 @@ export function TelaAssistente() {
                   setResposta(null);
                 }}
               />
+            </View>
+          ) : null}
+          {resposta.intencao === 'SOCORRO' ? <BotaoLigarEmergencia telefone={SAMU} /> : null}
+          {resposta.intencao === 'DESCONHECIDA' ? (
+            <View style={styles.confirmacao}>
+              <Texto style={styles.destaque}>Posso ajudar com:</Texto>
+              {CAMINHOS_SEM_ENTENDER.map((caminho) => (
+                <Botao
+                  key={caminho.rota}
+                  titulo={caminho.titulo}
+                  rotulo={caminho.rotulo}
+                  variante="secundario"
+                  icone={caminho.icone}
+                  onPress={() => router.push(caminho.rota)}
+                />
+              ))}
             </View>
           ) : null}
           {resposta.intencao === 'VERIFICAR_INFORMACAO' ? (

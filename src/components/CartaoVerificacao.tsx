@@ -7,6 +7,9 @@ import { StyleSheet, View } from 'react-native';
 
 import type { ClassificacaoGolpe, ResultadoVerificacao } from '../services/api/types';
 import { cores, espacos, fontes } from '../theme';
+import { ligarPara } from '../utils/ligar-para';
+import { Botao } from './Botao';
+import { abrirSiteOficial } from './CartaoOrientacao';
 import { corDaAjuda, SeloDeAjuda } from './SeloDeAjuda';
 import { Texto } from './Texto';
 
@@ -31,6 +34,9 @@ const TEXTO_DO_TIPO_DE_GOLPE: Record<string, string> = {
   OUTRO: 'Outro tipo de golpe',
 };
 
+// Centrais oficiais gratuitas: se o canal oficial citar uma delas ("Central 135"), o cartao oferece ligar.
+const CENTRAIS_OFICIAIS = /\b(100|121|135|136|180|188|190|192|193)\b/;
+
 const AVISO_SEM_SINAIS =
   'Isso não garante que a mensagem seja segura. Na dúvida, não clique em links nem passe dados.';
 
@@ -41,6 +47,7 @@ interface PropsCartaoVerificacao {
 export function CartaoVerificacao({ resultado }: PropsCartaoVerificacao) {
   const tipoDeGolpe = resultado.tipoGolpe ? TEXTO_DO_TIPO_DE_GOLPE[resultado.tipoGolpe] : undefined;
   // Golpe provavel ou suspeito: borda de alerta. Sem sinais, a borda comum (e o aviso de que nao e garantia).
+  const central = resultado.canalOficial?.match(CENTRAIS_OFICIAIS)?.[1] ?? null;
   const emAlerta =
     resultado.classificacao === 'PROVAVEL_GOLPE' || resultado.classificacao === 'SUSPEITA';
   return (
@@ -68,11 +75,26 @@ export function CartaoVerificacao({ resultado }: PropsCartaoVerificacao) {
       {resultado.canalOficial ? (
         <Texto style={styles.destaque}>{`Canal oficial: ${resultado.canalOficial}`}</Texto>
       ) : null}
-      {resultado.fontes.map((fonte) => (
-        <Texto key={fonte.url} style={styles.fonte}>
-          {`Fonte: ${fonte.titulo} (${fonte.orgao})`}
-        </Texto>
-      ))}
+      {central ? (
+        <Botao
+          titulo={`Ligar ${central}`}
+          rotulo={`Ligar para o canal oficial, ${central}`}
+          icone="call-outline"
+          onPress={() => ligarPara(central)}
+        />
+      ) : null}
+      {resultado.fontes
+        .filter((fonte) => fonte.url.startsWith('https://'))
+        .map((fonte) => (
+          <Botao
+            key={fonte.url}
+            titulo={`Fonte: ${fonte.titulo} (${fonte.orgao})`}
+            rotulo={`Abrir a fonte: ${fonte.titulo} (${fonte.orgao})`}
+            variante="secundario"
+            icone="open-outline"
+            onPress={() => abrirSiteOficial(fonte.url)}
+          />
+        ))}
     </View>
   );
 }

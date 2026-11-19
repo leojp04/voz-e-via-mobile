@@ -41,6 +41,7 @@ const AJUDA_DE_QUEM_CAIU: RespostaAssistente = {
   },
   mensagemFalada: 'Ligue agora para o seu banco e conteste o Pix pelo MED.',
   confianca: 0.9,
+  analisadoPor: 'IA_E_REGRAS',
   atendimentos: null,
   orientacao: {
     titulo: 'Caí em um golpe: o que fazer agora',

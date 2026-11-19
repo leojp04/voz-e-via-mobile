@@ -83,6 +83,7 @@ function resposta(
     urgencia: null,
     entidades: SEM_ENTIDADES,
     confianca: 0.9,
+    analisadoPor: 'IA_E_REGRAS',
     atendimentos: null,
     orientacao: null,
     ...parcial,
