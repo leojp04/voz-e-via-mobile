@@ -64,14 +64,22 @@ As falas são uma sugestão; fale com as suas palavras e mostre a tela enquanto 
    escolha a **Mobilidade** (Cadeirante), escreva os **Medicamentos** e salve.
    > "O perfil vai junto da mensagem de socorro para os contatos."
 
-**Contatos de emergência (API Java), o CRUD completo:** 2. **Criar:** toque em **Novo contato**, preencha **Nome** (Ana Souza), **Telefone com DDD**, **Parentesco**
-(Filha) e **Prioridade** (1). Toque em **Salvar contato**. 3. **Ler:** o contato aparece na lista, com o telefone formatado pela API. 4. **Atualizar:** toque no contato, mude o parentesco ou o telefone e salve. A lista mostra a mudança. 5. **Excluir:** abra o contato, toque em **Excluir contato** e confirme. Crie a Ana de novo, porque o bloco 4 usa
-ela (ou deixe outro contato salvo antes de gravar).
+**Contatos de emergência (API Java), o CRUD completo:**
+
+1. **Criar:** toque em **Novo contato**, preencha **Nome** (Ana Souza), **Telefone com DDD**, **Parentesco**
+   (Filha) e **Prioridade** (1). Toque em **Salvar contato**.
+2. **Ler:** o contato aparece na lista, com o telefone formatado pela API.
+3. **Atualizar:** toque no contato, mude o parentesco ou o telefone e salve. A lista mostra a mudança.
+4. **Excluir:** abra o contato, toque em **Excluir contato** e confirme. Crie a Ana de novo, porque o bloco 4 usa
+   ela (ou deixe outro contato salvo antes de gravar).
 
 > "Tudo vai para a API: nada fica só no celular. Se a internet cair, o app avisa e oferece tentar de novo."
 
-**Reporte de zeladoria (API .NET), rápido:** 6. Volte ao Início, toque em **Reportar problema**, escolha a **Categoria** (Calçada), escreva a **Descrição**,
-use a localização e toque em enviar. Mostre o protocolo e abra **Meus reportes**.
+**Reporte de zeladoria (API .NET), rápido:**
+
+1. Volte ao Início, toque em **Reportar problema**, escolha a **Categoria** (Calçada), escreva a **Descrição**,
+   use a localização e toque em enviar.
+2. Mostre o protocolo e abra **Meus reportes**.
 
 > "O mesmo login vale na API .NET, que guarda os reportes da prefeitura."
 
