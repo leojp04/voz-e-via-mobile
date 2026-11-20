@@ -218,6 +218,6 @@ trazem junto). Para isso seria preciso uma ferramenta própria, como o `license-
 
 ## Entrega
 
-- Vídeo (até 5 min): _link a preencher_ (roteiro da gravação em [`docs/roteiro-video.md`](docs/roteiro-video.md))
-- Publicação no Firebase App Distribution: _a preencher_
+- Vídeo (até 5 min): https://youtu.be/RVkeDJ753yo (roteiro da gravação em [`docs/roteiro-video.md`](docs/roteiro-video.md))
+- Publicação no Firebase App Distribution: versão 1.0.0 (4), distribuída ao grupo de testers, que inclui o professor. Commit de referência da versão publicada: `0696ee6` (o commit seguinte altera só este README, para pôr o link do vídeo).
 - Tela "Sobre o App" com o hash do commit: disponível em Início → Sobre o app
